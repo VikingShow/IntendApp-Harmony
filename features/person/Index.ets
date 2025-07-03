@@ -1,0 +1,1 @@
+export { PersonPage } from './src/main/ets/pages/PersonPage';

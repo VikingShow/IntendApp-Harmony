@@ -1,0 +1,72 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\SowrJam\\.ohos\\config\\default_IntendApp_JbER1NJ5XmdSDSQtUXpIvZp2Q2YjFkZgjjtp7sQJQ7U=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B113418AB85880CBEAE826959D967F6267AC96699E8F5DA5E7C32F2C5496DC556EAFE1D77225B6F",
+          "profile": "C:\\Users\\SowrJam\\.ohos\\config\\default_IntendApp_JbER1NJ5XmdSDSQtUXpIvZp2Q2YjFkZgjjtp7sQJQ7U=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\SowrJam\\.ohos\\config\\default_IntendApp_JbER1NJ5XmdSDSQtUXpIvZp2Q2YjFkZgjjtp7sQJQ7U=.p12",
+          "storePassword": "0000001B245FD2422963AC18D4F52476F7196FF8EB3A9F99D553E008D55EA9A21E27357DA18707B09E5DBD"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "5.0.5(17)",
+        "compatibleSdkVersion": "5.0.5(17)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "default",
+      "srcPath": "./product/default",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "list",
+      "srcPath": "./features/list",
+    },
+    {
+      "name": "intend",
+      "srcPath": "./features/intend",
+    },
+    {
+      "name": "person",
+      "srcPath": "./features/person",
+    },
+    {
+      "name": "utils",
+      "srcPath": "./commons/utils",
+    }
+  ]
+}

@@ -1,22 +1,34 @@
 // File: entry/src/main/ets/model/ProjectData.ts
 
 /**
- * 任务节点接口
- * 新增了用于关键路径计算的可选属性
+ * 子任务清单项目接口
+ */
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  isCompleted: boolean;
+}
+
+/**
+ * 任务节点接口 (V2.0)
+ * 引入了明确的起止日期、子任务清单和进度属性
  */
 export interface TaskNode {
   id: string;
   name: string;
-  duration: number;
+  startDate: Date;    // 新增：开始日期
+  endDate: Date;      // 新增：结束日期
+  checklist: ChecklistItem[]; // 新增：子任务清单
+
   x: number;
   y: number;
 
-  // 新增：用于关键路径计算的属性
+  // 关键路径计算属性
   earlyStart?: number;
   earlyFinish?: number;
   lateStart?: number;
   lateFinish?: number;
-  isCritical?: boolean; // 标记是否为关键节点
+  isCritical?: boolean;
 }
 
 /**

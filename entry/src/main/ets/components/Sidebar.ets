@@ -21,6 +21,14 @@ export struct Sidebar {
   // 新增：更新项目名称的回调
   onUpdateProjectName: (newName: string) => void = () => {};
 
+  // FIX: 封装一个统一的保存项目名称的函数
+  private saveProjectName() {
+    if (this.tempProjectName.trim() !== '') {
+      this.onUpdateProjectName(this.tempProjectName);
+    }
+    this.isEditingProjectName = false;
+  }
+
   build() {
     Column() {
       if (this.selectedTask === null) {
@@ -46,16 +54,20 @@ export struct Sidebar {
   @Builder
   ProjectView() {
     Column({ space: 10 }) {
-      // --- 1. 可编辑的项目标题 ---
+      // --- 可编辑的项目标题 ---
       Row({ space: 8 }) {
         if (this.isEditingProjectName) {
           TextInput({ text: this.tempProjectName })
             .layoutWeight(1)
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
+            .onChange((value: string) => {
+              // 在输入时更新临时变量
+              this.tempProjectName = value;
+            })
             .onSubmit(() => {
-              this.onUpdateProjectName(this.tempProjectName);
-              this.isEditingProjectName = false;
+              // 提交时保存
+              this.saveProjectName();
             })
         } else {
           Text(this.project.name)
@@ -74,18 +86,20 @@ export struct Sidebar {
         .backgroundColor('#EFEFEF')
         .onClick(() => {
           if (this.isEditingProjectName) {
-            this.onUpdateProjectName(this.tempProjectName);
+            // 点击确认按钮时保存
+            this.saveProjectName();
           } else {
+            // 进入编辑模式
             this.tempProjectName = this.project.name;
+            this.isEditingProjectName = true;
           }
-          this.isEditingProjectName = !this.isEditingProjectName;
         })
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
       .margin({ bottom: 5 })
 
-      // --- 2. 项目统计 ---
+      // --- 项目统计 ---
       Row() {
         Text(`总任务数: ${this.project.tasks.length}`)
           .fontSize(12)
@@ -95,7 +109,7 @@ export struct Sidebar {
       .margin({ bottom: 10 })
 
 
-      // --- 3. 带图标的操作按钮 ---
+      // --- 带图标的操作按钮 ---
       Button({ type: ButtonType.Capsule, stateEffect: true }) {
         Row({ space: 8 }) {
           Image($r('app.media.ic_add')).width(18).height(18).fillColor(Color.White)
@@ -122,9 +136,8 @@ export struct Sidebar {
 
       Divider().margin({ top: 15, bottom: 5 })
 
-      // --- 4. 优化的任务列表 ---
+      // --- 优化的任务列表 ---
       if (this.project.tasks.length === 0) {
-        // 5. 更友好的空状态
         this.EmptyState()
       } else {
         List({ space: 8 }) {

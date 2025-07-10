@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\SowrJam\\.ohos\\config\\default_MyApplication3_Q3FG28pGFrG9I7bvQch7wexnXHgDtJVEiPW5FR5ek4U=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B8E2129396777E0526BCBC43D893A0D354585E9FB946DD7F4102EE89F63D95990EC115475D1E71C",
+          "profile": "C:\\Users\\SowrJam\\.ohos\\config\\default_MyApplication3_Q3FG28pGFrG9I7bvQch7wexnXHgDtJVEiPW5FR5ek4U=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\SowrJam\\.ohos\\config\\default_MyApplication3_Q3FG28pGFrG9I7bvQch7wexnXHgDtJVEiPW5FR5ek4U=.p12",
+          "storePassword": "0000001B83735D270BF044642C1612644FBA480ED672DAE94A430AD0C4332C61AFC6DC74FC445A95108B7B"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "5.0.5(17)",
+        "compatibleSdkVersion": "5.0.5(17)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

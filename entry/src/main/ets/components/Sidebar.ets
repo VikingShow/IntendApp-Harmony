@@ -1,0 +1,186 @@
+// File: entry/src/main/ets/components/Sidebar.ets
+
+import { Project, TaskNode } from '../model/ProjectData';
+import { TaskEditor } from './TaskEditor';
+
+@Component
+export struct Sidebar {
+  @ObjectLink project: Project;
+  @Link selectedTask: TaskNode | null;
+
+  // 新增：用于编辑项目名称的状态
+  @State isEditingProjectName: boolean = false;
+  @State tempProjectName: string = '';
+
+  // 回调函数
+  onAddTask: () => void = () => {};
+  onUpdateTask: (id: string, name: string, duration: number) => void = () => {};
+  onDeleteTask: (id: string) => void = () => {};
+  onStartConnecting: () => void = () => {};
+  onCalculate: () => void = () => {};
+  // 新增：更新项目名称的回调
+  onUpdateProjectName: (newName: string) => void = () => {};
+
+  build() {
+    Column() {
+      if (this.selectedTask === null) {
+        this.ProjectView()
+      } else {
+        TaskEditor({
+          task: this.selectedTask,
+          onUpdateTask: this.onUpdateTask,
+          onDeleteTask: this.onDeleteTask,
+          onStartConnecting: this.onStartConnecting,
+          onBack: () => {
+            this.selectedTask = null;
+          }
+        })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F3F4F6')
+    .padding(15)
+  }
+
+  @Builder
+  ProjectView() {
+    Column({ space: 10 }) {
+      // --- 1. 可编辑的项目标题 ---
+      Row({ space: 8 }) {
+        if (this.isEditingProjectName) {
+          TextInput({ text: this.tempProjectName })
+            .layoutWeight(1)
+            .fontSize(24)
+            .fontWeight(FontWeight.Bold)
+            .onSubmit(() => {
+              this.onUpdateProjectName(this.tempProjectName);
+              this.isEditingProjectName = false;
+            })
+        } else {
+          Text(this.project.name)
+            .fontSize(24)
+            .fontWeight(FontWeight.Bold)
+            .layoutWeight(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .maxLines(1)
+        }
+        Button() {
+          Image(this.isEditingProjectName ? $r('app.media.ic_confirm') : $r('app.media.ic_edit'))
+            .width(20).height(20).fillColor(Color.Black)
+        }
+        .width(40).height(40)
+        .type(ButtonType.Circle)
+        .backgroundColor('#EFEFEF')
+        .onClick(() => {
+          if (this.isEditingProjectName) {
+            this.onUpdateProjectName(this.tempProjectName);
+          } else {
+            this.tempProjectName = this.project.name;
+          }
+          this.isEditingProjectName = !this.isEditingProjectName;
+        })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: 5 })
+
+      // --- 2. 项目统计 ---
+      Row() {
+        Text(`总任务数: ${this.project.tasks.length}`)
+          .fontSize(12)
+          .fontColor(Color.Gray)
+      }
+      .width('100%')
+      .margin({ bottom: 10 })
+
+
+      // --- 3. 带图标的操作按钮 ---
+      Button({ type: ButtonType.Capsule, stateEffect: true }) {
+        Row({ space: 8 }) {
+          Image($r('app.media.ic_add')).width(18).height(18).fillColor(Color.White)
+          Text('添加新任务').fontSize(16)
+        }
+      }
+      .width('100%')
+      .height(45)
+      .backgroundColor('#007DFF')
+      .onClick(() => { this.onAddTask() })
+
+      Button({ type: ButtonType.Normal, stateEffect: true }) {
+        Row({ space: 8 }) {
+          Image($r('app.media.ic_calculate')).width(18).height(18).fillColor(Color.Black)
+          Text('计算关键路径').fontSize(16)
+        }
+      }
+      .width('100%')
+      .height(45)
+      .margin({ top: 10 })
+      .backgroundColor('#EFEFEF')
+      .fontColor(Color.Black)
+      .onClick(() => { this.onCalculate() })
+
+      Divider().margin({ top: 15, bottom: 5 })
+
+      // --- 4. 优化的任务列表 ---
+      if (this.project.tasks.length === 0) {
+        // 5. 更友好的空状态
+        this.EmptyState()
+      } else {
+        List({ space: 8 }) {
+          ForEach(this.project.tasks, (task: TaskNode) => {
+            ListItem() {
+              Row({ space: 12 }) {
+                Column()
+                  .width(5)
+                  .height(30)
+                  .backgroundColor(task.isCritical ? '#D0021B' : '#007DFF')
+                  .borderRadius(5)
+
+                Column({ space: 4 }) {
+                  Text(task.name)
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(Color.Black)
+                  Text(`工期: ${task.duration} 天`)
+                    .fontSize(12)
+                    .fontColor(Color.Gray)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+              }
+              .width('100%')
+              .padding({ top: 12, bottom: 12, left: 10, right: 10 })
+              .backgroundColor(this.selectedTask?.id === task.id ? '#E0EFFF' : Color.White)
+              .borderRadius(8)
+              .border({
+                width: this.selectedTask?.id === task.id ? 2 : 0,
+                color: '#007DFF',
+                radius: 8
+              })
+              .onClick(() => { this.selectedTask = task; })
+            }
+          })
+        }
+        .layoutWeight(1)
+      }
+    }
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  EmptyState() {
+    Column({ space: 16 }) {
+      Image($r('app.media.ic_empty_box')).width(80).height(80).opacity(0.5)
+      Text('项目中还没有任务')
+        .fontSize(16)
+        .fontColor(Color.Gray)
+      Text('点击上方 "添加新任务" 来开始吧！')
+        .fontSize(14)
+        .fontColor(Color.Gray)
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
+    .layoutWeight(1)
+  }
+}

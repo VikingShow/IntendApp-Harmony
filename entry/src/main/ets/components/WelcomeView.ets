@@ -55,3 +55,53 @@ export struct WelcomeView {
     .alignItems(VerticalAlign.Top)
   }
 }
+
+// 新建方式选择弹窗
+@Component
+export struct NewProjectDialog {
+  onBlank: () => void = () => {};
+  onTemplate: () => void = () => {};
+  onClose: () => void = () => {};
+
+  build() {
+    Column() {
+      Row() {
+        Text('新建项目')
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+        Button() {
+          Text('×').fontSize(20)
+        }
+        .onClick(() => this.onClose())
+      }
+      .padding({ left: 24, right: 24, top: 24, bottom: 12 })
+
+      Button() {
+        Text('新建空白图').fontSize(16).fontColor(Color.White)
+      }
+      .width('100%')
+      .height(48)
+      .backgroundColor('#007DFF')
+      .borderRadius(8)
+      .margin({ top: 12 })
+      .onClick(() => this.onBlank())
+
+      Button() {
+        Text('选择模板').fontSize(16).fontColor('#007DFF')
+      }
+      .width('100%')
+      .height(48)
+      .backgroundColor('#F3F4F6')
+      .borderRadius(8)
+      .margin({ top: 12 })
+      .onClick(() => this.onTemplate())
+    }
+    .width(320)
+    .backgroundColor('#FFF')
+    .borderRadius(16)
+    .shadow({ radius: 16, color: '#00000020', offsetX: 0, offsetY: 8 })
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+  }
+}

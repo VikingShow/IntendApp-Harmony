@@ -2,6 +2,8 @@
 
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
+import { NewProjectDialog } from './WelcomeView';
+import { TemplateDialog } from './TemplateDialog';
 import promptAction from '@ohos.promptAction';
 
 @Component
@@ -12,6 +14,8 @@ export struct Sidebar {
 
   @State isEditingProjectName: boolean = false;
   @State tempProjectName: string = '';
+  @State showNewProjectDialog: boolean = false;
+  @State showTemplateDialog: boolean = false;
 
   onUpdateTask: (task: TaskNode) => void = () => {};
   onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => void = () => {};
@@ -208,7 +212,7 @@ export struct Sidebar {
               Text('＋')
                 .fontSize(18)
                 .fontColor(Color.White)
-              Text('添加新任务')
+              Text('新建项目')
                 .fontSize(15)
                 .fontColor(Color.White)
                 .fontWeight(FontWeight.Medium)
@@ -219,7 +223,7 @@ export struct Sidebar {
           .backgroundColor('#007DFF')
           .borderRadius(8)
           .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
-          .onClick(() => { this.onAddTask() })
+          .onClick(() => { this.showNewProjectDialog = true })
 
           Button() {
             Row({ space: 8 }) {
@@ -318,6 +322,35 @@ export struct Sidebar {
         .layoutWeight(1)
       }
       .alignItems(HorizontalAlign.Start)
+    }
+    // 新建方式选择弹窗
+    if (this.showNewProjectDialog) {
+      NewProjectDialog({
+        onBlank: () => {
+          this.showNewProjectDialog = false;
+          // 直接新建空白项目并进入编辑页面
+          this.onAddTask();
+        },
+        onTemplate: () => {
+          this.showNewProjectDialog = false;
+          this.showTemplateDialog = true;
+        },
+        onClose: () => {
+          this.showNewProjectDialog = false;
+        }
+      })
+    }
+    // 模板选择弹窗
+    if (this.showTemplateDialog) {
+      TemplateDialog({
+        visible: true,
+        onClose: () => { this.showTemplateDialog = false; },
+        onTemplateSelected: (templateId: string, projectName: string) => {
+          this.showTemplateDialog = false;
+          // 这里可以调用onAddTask或其它逻辑进入编辑页面
+          this.onAddTask();
+        }
+      })
     }
   }
 }

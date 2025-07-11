@@ -3,6 +3,7 @@
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { CommonButton } from './CommonButton';
 import { ThemeConfig } from '../utils/ThemeConfig';
+import promptAction from '@ohos.promptAction';
 
 @Component
 export struct TemplateDialog {
@@ -21,6 +22,13 @@ export struct TemplateDialog {
       Column() {
         // 标题
         Row({ space: ThemeConfig.spacingM }) {
+          Button() {
+            Text('←').fontSize(22).fontColor(ThemeConfig.primaryColor)
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor('transparent')
+          .onClick(() => { this.onClose(); })
           Text('📋')
             .fontSize(ThemeConfig.fontSizeXXL)
             .fontColor(ThemeConfig.primaryColor)
@@ -41,16 +49,18 @@ export struct TemplateDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(ThemeConfig.gray800)
 
-          Row({ space: ThemeConfig.spacingS }) {
+          Row({ space: ThemeConfig.spacingM }) {
             ForEach(['development', 'design', 'marketing'], (category: string) => {
               Button() {
                 Text(this.getCategoryName(category))
-                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontSize(ThemeConfig.fontSizeL)
+                  .fontWeight(FontWeight.Bold)
                   .fontColor(this.selectedCategory === category ? Color.White : ThemeConfig.gray700)
               }
-              .height(32)
+              .height(48)
+              .width(96)
               .backgroundColor(this.selectedCategory === category ? ThemeConfig.primaryColor : ThemeConfig.gray100)
-              .borderRadius(ThemeConfig.radiusSmall)
+              .borderRadius(ThemeConfig.radiusMedium)
               .onClick(() => {
                 this.selectedCategory = category;
               })
@@ -79,16 +89,16 @@ export struct TemplateDialog {
         .padding(ThemeConfig.spacingL)
 
         // 项目名称输入
-        if (this.selectedTemplate) {
-          Column({ space: ThemeConfig.spacingS }) {
-            Text('项目名称')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(ThemeConfig.gray800)
+        Column({ space: ThemeConfig.spacingS }) {
+          Text('项目名称')
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ThemeConfig.gray800)
 
+          if (this.selectedTemplate) {
             TextInput({ 
               placeholder: '请输入项目名称',
-              text: this.projectName 
+              text: this.projectName
             })
               .backgroundColor(ThemeConfig.gray50)
               .borderRadius(ThemeConfig.radiusMedium)
@@ -96,9 +106,15 @@ export struct TemplateDialog {
               .onChange((value: string) => {
                 this.projectName = value;
               })
+          } else {
+            Text('请先选择模板')
+              .backgroundColor(ThemeConfig.gray50)
+              .borderRadius(ThemeConfig.radiusMedium)
+              .padding(ThemeConfig.spacingM)
+              .fontColor(ThemeConfig.gray400)
           }
-          .padding(ThemeConfig.spacingL)
         }
+        .padding(ThemeConfig.spacingL)
 
         // 底部按钮
         Row({ space: ThemeConfig.spacingM }) {
@@ -180,11 +196,8 @@ export struct TemplateDialog {
       radius: ThemeConfig.radiusMedium 
     })
     .onClick(() => {
-      if (this.selectedTemplate?.id === template.id && this.projectName.trim()) {
-        this.createProject();
-      } else {
-        this.selectedTemplate = template;
-      }
+      this.selectedTemplate = template;
+      promptAction.showToast({ message: `已选中模板：${template.name}` });
     })
   }
 

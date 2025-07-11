@@ -21,6 +21,7 @@ struct Index {
   @State project: Project | null = null;
   @State selectedTask: TaskNode | null = null;
   @State isConnecting: boolean = false;
+  @State connectingFromTaskId: string | null = null;
   @State isDraggingNode: boolean = false;
   @State dragOffsetX: number = 0;
   @State dragOffsetY: number = 0;
@@ -275,6 +276,7 @@ struct Index {
   handleStartConnecting() {
     if (this.selectedTask) {
       this.isConnecting = true;
+      this.connectingFromTaskId = this.selectedTask.id;
       this.drawGraph();
     }
   }
@@ -456,6 +458,34 @@ struct Index {
             }
             switch (event.type) {
               case TouchType.Down:
+                if (this.isConnecting && this.connectingFromTaskId) {
+                  if (hitNode) {
+                    // 不能依赖自己
+                    if (this.connectingFromTaskId !== (hitNode as TaskNode).id) {
+                      // 检查是否已存在该依赖
+                      const exists = this.project.dependencies.some(dep => dep.fromId === this.connectingFromTaskId && dep.toId === (hitNode as TaskNode).id);
+                      if (!exists) {
+                        this.project.dependencies = [
+                          ...this.project.dependencies,
+                          { fromId: this.connectingFromTaskId, toId: (hitNode as TaskNode).id }
+                        ];
+                        this.handleCalculateCriticalPath();
+                        promptAction.showToast({ message: '依赖已创建' });
+                      } else {
+                        promptAction.showToast({ message: '该依赖已存在' });
+                      }
+                    } else {
+                        promptAction.showToast({ message: '不能依赖自己' });
+                    }
+                  } else {
+                    promptAction.showToast({ message: '请点击目标任务节点' });
+                  }
+                  // 结束连接模式
+                  this.isConnecting = false;
+                  this.connectingFromTaskId = null;
+                  this.drawGraph();
+                  break;
+                }
                 if (hitNode) {
                   this.selectedTask = hitNode;
                   this.isDraggingNode = true;

@@ -174,12 +174,12 @@ export struct Sidebar {
     if (this.project) {
       Column({ space: 16 }) {
         // --- 顶部操作栏 ---
-        Row({space: 12}) {
+        Row({space: 16}) {
           // 返回主页按钮
           Button() {
             Image($r('app.media.ic_back'))
-              .width(18)
-              .height(18)
+              .width(20)
+              .height(20)
               .fillColor('#666666')
           }
           .width(44)
@@ -189,26 +189,40 @@ export struct Sidebar {
           .shadow({ radius: 4, color: '#00000010', offsetX: 0, offsetY: 2 })
           .onClick(() => { this.onBack() })
 
-          // 保存项目按钮
-          Button({ type: ButtonType.Capsule }) {
-            Row({ space: 8 }) {
-              Image($r('app.media.ic_save'))
-                .width(18)
-                .height(18)
+          // 新建任务按钮（仅编辑页显示）
+          if (!this.isHomePage) {
+            Button({ type: ButtonType.Circle }) {
+              Image($r('app.media.ic_add'))
+                .width(20)
+                .height(20)
                 .fillColor(Color.White)
-              Text('保存项目')
-                .fontSize(15)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
             }
+            .width(44)
+            .height(44)
+            .backgroundColor('#10B981')
+            .shadow({ radius: 4, color: '#10B98130', offsetX: 0, offsetY: 2 })
+            .onClick(() => { this.onAddTask() })
+            .margin({ left: 0, right: 0 })
           }
-          .layoutWeight(1)
+
+          // 保存项目按钮
+          Button({ type: ButtonType.Circle }) {
+            Image($r('app.media.ic_save'))
+              .width(20)
+              .height(20)
+              .fillColor(Color.White)
+          }
+          .width(44)
           .height(44)
           .backgroundColor('#007DFF')
-          .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
+          .shadow({ radius: 4, color: '#007DFF30', offsetX: 0, offsetY: 2 })
           .onClick(() => { this.onSave() })
+
+          // 占位拉伸
+          Blank().layoutWeight(1)
         }
         .width('100%')
+        .margin({ bottom: 12 })
 
         // 项目标题区域
         Column({ space: 8 }) {

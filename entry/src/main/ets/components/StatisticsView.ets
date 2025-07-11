@@ -43,6 +43,7 @@ export struct StatisticsView {
     this.isLoading = true;
     try {
       this.globalStats = await this.statisticsService.getGlobalStatistics();
+      console.log('【统计日志】globalStats:', JSON.stringify(this.globalStats));
     } catch (error) {
       console.error('加载统计数据失败:', error);
     } finally {
@@ -58,7 +59,13 @@ export struct StatisticsView {
       if (this.isLoading) {
         this.LoadingState()
       } else if (this.globalStats) {
-        // 统计内容
+        // 调试：直接显示统计数据内容
+        Text(JSON.stringify(this.globalStats))
+          .fontSize(12)
+          .fontColor('#D0021B')
+          .width('100%')
+          .margin({ bottom: 12 })
+        // 原有统计内容
         Scroll() {
           Column({ space: ThemeConfig.spacingL }) {
             // 概览卡片

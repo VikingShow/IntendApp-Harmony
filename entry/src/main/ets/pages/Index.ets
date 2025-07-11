@@ -24,6 +24,13 @@ struct Index {
   @State isDraggingNode: boolean = false;
   @State dragOffsetX: number = 0;
   @State dragOffsetY: number = 0;
+  @State sidebarVisible: boolean = true;
+  @State canvasOffsetX: number = 0;
+  @State canvasOffsetY: number = 0;
+  @State isDraggingCanvas: boolean = false;
+  @State lastTouchX: number = 0;
+  @State lastTouchY: number = 0;
+  @State isCanvasLocked: boolean = false;
 
   private storageService: StorageService | null = null;
   private cpmService: CriticalPathService = new CriticalPathService();
@@ -34,6 +41,9 @@ struct Index {
     // 初始化存储服务
     const context = getContext(this);
     this.storageService = StorageService.getInstance(context.filesDir);
+    // --- 修正：进入页面时强制初始化画布偏移 ---
+    this.canvasOffsetX = 0;
+    this.canvasOffsetY = 0;
 
     // 从路由参数中获取projectId
     const params = router.getParams() as RouterParams;
@@ -316,10 +326,11 @@ struct Index {
       const toNode = this.project!.tasks.find(t => t.id === dep.toId);
       if (fromNode && toNode) {
         const isCriticalDep = fromNode.isCritical && toNode.isCritical;
-        const fromCenterX = fromNode.x + 200 / 2;
-        const fromCenterY = fromNode.y + 120 / 2;
-        const toCenterX = toNode.x + 200 / 2;
-        const toCenterY = toNode.y + 120 / 2;
+        // --- 修正：连线渲染加canvasOffset ---
+        const fromCenterX = fromNode.x + this.canvasOffsetX + 200 / 2;
+        const fromCenterY = fromNode.y + this.canvasOffsetY + 120 / 2;
+        const toCenterX = toNode.x + this.canvasOffsetX + 200 / 2;
+        const toCenterY = toNode.y + this.canvasOffsetY + 120 / 2;
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
@@ -333,26 +344,29 @@ struct Index {
       const NODE_WIDTH = 200;
       const NODE_HEIGHT = 120;
       const isSelected = task.id === this.selectedTask?.id;
+      // --- 修正：节点渲染全部加canvasOffset ---
+      const drawX = task.x + this.canvasOffsetX;
+      const drawY = task.y + this.canvasOffsetY;
       this.context.fillStyle = task.isCritical ? '#FADBD8' : '#AECBFA';
       this.context.beginPath();
-      this.context.rect(task.x, task.y, NODE_WIDTH, NODE_HEIGHT);
+      this.context.rect(drawX, drawY, NODE_WIDTH, NODE_HEIGHT);
       this.context.fill();
       this.context.strokeStyle = isSelected ? '#FF8C00' : (task.isCritical ? '#D0021B' : '#4A90E2');
       this.context.lineWidth = isSelected ? 4 : 2;
       this.context.stroke();
       this.context.fillStyle = '#000000';
       this.context.font = `bold 16px HarmonyOS Sans`;
-      this.context.fillText(task.name, task.x + 15, task.y + 25);
+      this.context.fillText(task.name, drawX + 15, drawY + 25);
       this.context.font = `14px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
-      this.context.fillText(`📅 ${dateString}`, task.x + 15, task.y + 45);
+      this.context.fillText(`📅 ${dateString}`, drawX + 15, drawY + 45);
       const timeProgress = this.getTimeProgress(task);
       const completionProgress = this.getCompletionProgress(task);
       this.context.font = `12px HarmonyOS Sans`;
-      this.context.fillText(`⌛ 时间: ${timeProgress}%`, task.x + 15, task.y + 70);
-      this.drawProgressBar(task.x + 15, task.y + 75, NODE_WIDTH - 30, 8, timeProgress, '#4A90E2');
-      this.context.fillText(`✓ 完成: ${completionProgress}%`, task.x + 15, task.y + 95);
-      this.drawProgressBar(task.x + 15, task.y + 100, NODE_WIDTH - 30, 8, completionProgress, '#2ECC71');
+      this.context.fillText(`⌛ 时间: ${timeProgress}%`, drawX + 15, drawY + 70);
+      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, '#4A90E2');
+      this.context.fillText(`✓ 完成: ${completionProgress}%`, drawX + 15, drawY + 95);
+      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, '#2ECC71');
     });
   }
 
@@ -366,10 +380,26 @@ struct Index {
 
   build() {
     Row() {
-      if (this.project) {
+      // 展开/收起按钮始终在最左侧
+      Button() {
+        Text(this.sidebarVisible ? '<' : '>')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(48)
+      .backgroundColor('#F3F4F6')
+      .borderRadius(8)
+      .margin({ left: 0, right: 0, top: 24, bottom: 24 })
+      .zIndex(100)
+      .onClick(() => { this.sidebarVisible = !this.sidebarVisible })
+
+      // 侧边栏
+      if (this.sidebarVisible) {
         Sidebar({
           project: this.project,
           selectedTask: $selectedTask,
+          isHomePage: false,
           onUpdateProjectName: (newName) => { this.handleUpdateProjectName(newName) },
           onAddTask: () => { this.handleAddTask() },
           onUpdateTask: (task) => { this.handleUpdateTask(task as TaskNode) },
@@ -390,67 +420,109 @@ struct Index {
             this.selectedTask = null;
           }
         })
-        // 侧边栏宽度占比为 2 / (2+4) = 33.3%
-          .layoutWeight(2)
+        .width(340)
       }
-
-      Canvas(this.context)
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#FFFFFF')
-        .layoutWeight(4)
-        .borderRadius(12)
-        .margin(16)
-        .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
-        .onReady(() => { this.drawGraph(); })
-        .onTouch((event: TouchEvent) => {
-          if (!event.touches || event.touches.length === 0 || !this.project) return;
-          const touchX = event.touches[0].x;
-          const touchY = event.touches[0].y;
-          let hitNode: TaskNode | null = null;
-          for (let i = this.project.tasks.length - 1; i >= 0; i--) {
-            const task = this.project.tasks[i];
-            if (touchX >= task.x && touchX <= task.x + 200 && touchY >= task.y && touchY <= task.y + 120) {
-              hitNode = task;
-              break;
+      // 画布
+      Stack() {
+        Canvas(this.context)
+          .height('100%')
+          .backgroundColor('#FFFFFF')
+          .borderRadius(12)
+          .margin({ top: 16, right: 16, bottom: 16, left: 0 }) // 左侧不留空，紧贴Sidebar或按钮
+          .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
+          .onReady(() => { this.drawGraph(); })
+          .onTouch((event: TouchEvent) => {
+            if (!this.project) return;
+            if (this.isCanvasLocked) return;
+            const buttonWidth = 32;
+            // 只用第一个触点，始终只减去左侧按钮宽度
+            const realTouchX = event.touches[0].x - buttonWidth;
+            const realTouchY = event.touches[0].y;
+            let hitNode: TaskNode | null = null;
+            // 命中检测区域适当扩大
+            const HIT_PADDING = 8;
+            // --- 优化：无论Sidebar展开与否，命中检测和拖拽都可用 ---
+            for (let i = this.project.tasks.length - 1; i >= 0; i--) {
+              const task = this.project.tasks[i];
+              const nodeLeft = task.x + this.canvasOffsetX - HIT_PADDING;
+              const nodeTop = task.y + this.canvasOffsetY - HIT_PADDING;
+              const nodeRight = nodeLeft + 200 + HIT_PADDING * 2;
+              const nodeBottom = nodeTop + 120 + HIT_PADDING * 2;
+              if (realTouchX >= nodeLeft && realTouchX <= nodeRight &&
+                  realTouchY >= nodeTop && realTouchY <= nodeBottom) {
+                hitNode = task;
+                break;
+              }
             }
-          }
-          if (this.isConnecting) {
-            if (event.type === TouchType.Down) {
-              if (hitNode && this.selectedTask && hitNode.id !== this.selectedTask.id) {
-                const depExists = this.project.dependencies.some(d => d.fromId === this.selectedTask!.id && d.toId === hitNode!.id);
-                if (!depExists) {
-                  this.project.dependencies.push({ fromId: this.selectedTask.id, toId: hitNode.id });
-                  this.handleCalculateCriticalPath();
+            switch (event.type) {
+              case TouchType.Down:
+                if (hitNode) {
+                  this.selectedTask = hitNode;
+                  this.isDraggingNode = true;
+                  this.isDraggingCanvas = false;
+                  this.dragOffsetX = realTouchX - (hitNode.x + this.canvasOffsetX);
+                  this.dragOffsetY = realTouchY - (hitNode.y + this.canvasOffsetY);
+                } else {
+                  this.isDraggingCanvas = true;
+                  this.isDraggingNode = false;
+                  this.lastTouchX = realTouchX;
+                  this.lastTouchY = realTouchY;
                 }
-              }
-              this.isConnecting = false;
-              this.drawGraph();
-            }
-            return;
-          }
-          switch (event.type) {
-            case TouchType.Down:
-              this.selectedTask = hitNode;
-              if (hitNode) {
-                this.isDraggingNode = true;
-                this.dragOffsetX = touchX - hitNode.x;
-                this.dragOffsetY = touchY - hitNode.y;
-              }
-              this.drawGraph();
-              break;
-            case TouchType.Move:
-              if (this.isDraggingNode && this.selectedTask) {
-                this.selectedTask.x = touchX - this.dragOffsetX;
-                this.selectedTask.y = touchY - this.dragOffsetY;
                 this.drawGraph();
-              }
-              break;
-            case TouchType.Up:
-              this.isDraggingNode = false;
-              break;
+                break;
+              case TouchType.Move:
+                if (this.isDraggingNode && this.selectedTask) {
+                  this.selectedTask.x = realTouchX - this.dragOffsetX - this.canvasOffsetX;
+                  this.selectedTask.y = realTouchY - this.dragOffsetY - this.canvasOffsetY;
+                  this.drawGraph();
+                } else if (this.isDraggingCanvas) {
+                  this.canvasOffsetX += realTouchX - this.lastTouchX;
+                  this.canvasOffsetY += realTouchY - this.lastTouchY;
+                  this.lastTouchX = realTouchX;
+                  this.lastTouchY = realTouchY;
+                  this.drawGraph();
+                }
+                break;
+              case TouchType.Up:
+                this.isDraggingCanvas = false;
+                this.isDraggingNode = false;
+                break;
+            }
+          })
+        // 右上角复原/锁定按钮
+        Column() {
+          Row() {
+            Button() {
+              Text(this.isCanvasLocked ? '解锁画布' : '锁定画布')
+                .fontSize(13)
+                .fontColor('#007DFF')
+            }
+            .width(80)
+            .height(32)
+            .backgroundColor('#F3F4F6')
+            .borderRadius(8)
+            .margin({ right: 12, top: 12 })
+            .onClick(() => { this.isCanvasLocked = !this.isCanvasLocked })
+            Button() {
+              Text('复原')
+                .fontSize(13)
+                .fontColor('#10B981')
+            }
+            .width(60)
+            .height(32)
+            .backgroundColor('#F3F4F6')
+            .borderRadius(8)
+            .margin({ right: 12, top: 12 })
+            .onClick(() => { this.canvasOffsetX = 0; this.canvasOffsetY = 0; this.drawGraph(); })
           }
-        })
+          .justifyContent(FlexAlign.End)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.End)
+        .position({ x: 0, y: 0 })
+      }
+      .layoutWeight(1)
+      .height('100%')
     }
     .width('100%')
     .height('100%')

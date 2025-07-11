@@ -127,6 +127,7 @@ export class StatisticsService {
     }
 
     const projectList = await this.storageService.getProjectList();
+    console.log('【统计日志】projectList:', JSON.stringify(projectList));
     const projectStats: ProjectStatistics[] = [];
     let totalTasks = 0;
     let totalCompletedTasks = 0;
@@ -143,6 +144,8 @@ export class StatisticsService {
         console.error(`获取项目 ${meta.id} 统计失败:`, error);
       }
     }
+
+    console.log('【统计日志】projectStats:', JSON.stringify(projectStats));
 
     const mostActiveProject = projectStats.length > 0 
       ? projectStats.reduce((max, current) => 

@@ -12,6 +12,7 @@ struct HomePage {
   @State projectList: ProjectMeta[] = [];
   @State selectedProjectDetail: Project | null = null;
   @State selectedProjectId: string | null = null;
+  @State componentKey: number = 0;
 
   private storageService: StorageService | null = null;
 
@@ -37,8 +38,21 @@ struct HomePage {
 
   async onSelectProject(projectId: string) {
     if (this.storageService) {
+      console.log(`[Home] Selecting project: ${projectId}`);
       this.selectedProjectId = projectId;
-      this.selectedProjectDetail = await this.storageService.getProject(projectId);
+      
+      // 先清空当前数据，触发UI更新
+      this.selectedProjectDetail = null;
+      this.componentKey++;
+      
+      // 加载新项目数据
+      const loadedProject = await this.storageService.getProject(projectId);
+      console.log(`[Home] Project loaded: ${loadedProject?.name} with ${loadedProject?.tasks.length} tasks`);
+      
+      // 设置新数据
+      this.selectedProjectDetail = loadedProject;
+      this.componentKey++;
+      console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
     }
   }
 
@@ -107,13 +121,15 @@ struct HomePage {
       // --- 右侧内容区 ---
       Column() {
         if (this.selectedProjectDetail) {
+          // 使用 key 属性强制重新创建组件
           DashboardView({ project: this.selectedProjectDetail })
+            .key(`${this.selectedProjectDetail.id}_${this.componentKey}`)
         } else {
           WelcomeView()
         }
       }
       .layoutWeight(2)
-      .backgroundColor('#F9F9F9')
+      .backgroundColor('#F8FAFC')
     }
     .width('100%')
     .height('100%')
@@ -121,62 +137,128 @@ struct HomePage {
 
   @Builder
   Sidebar() {
-    Column({ space: 15 }) {
-      Row({ space: 10 }) {
+    Column({ space: 20 }) {
+      // 标题区域
+      Row({ space: 12 }) {
+        Text('📁')
+          .fontSize(24)
+          .fontColor('#007DFF')
         Text('我的项目')
-          .fontSize(28)
+          .fontSize(24)
           .fontWeight(FontWeight.Bold)
+          .fontColor('#1F2937')
           .layoutWeight(1)
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          Image($r('app.media.ic_add')).width(20).height(20)
+          Image($r('app.media.ic_add'))
+            .width(20)
+            .height(20)
+            .fillColor(Color.White)
         }
-        .width(44).height(44)
+        .width(48)
+        .height(48)
+        .backgroundColor('#007DFF')
+        .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
         .onClick(() => {
           // FIX: Call the new, robust creation method.
           this.createAndOpenNewProject();
         })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-      List({ space: 10 }) {
-        ForEach(this.projectList, (meta: ProjectMeta) => {
-          ListItem() {
-            this.ProjectCard(meta)
-          }
-          .onClick(() => this.onSelectProject(meta.id))
-        })
+      // 项目列表
+      if (this.projectList.length === 0) {
+        Column({ space: 16 }) {
+          Image($r('app.media.ic_empty_box'))
+            .width(80)
+            .height(80)
+            .opacity(0.6)
+          Text('暂无项目')
+            .fontSize(18)
+            .fontColor('#6B7280')
+            .fontWeight(FontWeight.Medium)
+          Text('点击右上角的"+"按钮创建您的第一个项目')
+            .fontSize(14)
+            .fontColor('#9CA3AF')
+            .textAlign(TextAlign.Center)
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      } else {
+        List({ space: 12 }) {
+          ForEach(this.projectList, (meta: ProjectMeta) => {
+            ListItem() {
+              this.ProjectCard(meta)
+            }
+            .onClick(() => {
+              console.log(`[Home] Project card clicked: ${meta.id}`);
+              this.onSelectProject(meta.id);
+            })
+          })
+        }
+        .layoutWeight(1)
       }
-      .layoutWeight(1)
     }
-    .padding(20)
+    .padding(24)
     .backgroundColor('#FFFFFF')
-    .border({ width: { right: 1 }, color: '#E0E0E0' })
+    .border({ width: { right: 1 }, color: '#E5E7EB' })
     .layoutWeight(1)
   }
 
   @Builder
   ProjectCard(meta: ProjectMeta) {
-    Row({ space: 12 }) {
+    Row({ space: 16 }) {
+      // 项目图标
       Column() {
-        Image($r('app.media.ic_project_file')).width(24).height(24)
-      }.width(48).height(48).backgroundColor('#E0EFFF').justifyContent(FlexAlign.Center).borderRadius(8)
-
-      Column({ space: 4 }) {
-        Text(meta.name).fontSize(16).fontWeight(FontWeight.Medium).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`).fontSize(12).fontColor(Color.Gray)
-      }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-
-      Button() {
-        Image($r('app.media.ic_delete')).width(18).height(18).fillColor('#F16363')
+        Image($r('app.media.ic_project_file'))
+          .width(24)
+          .height(24)
+          .fillColor('#007DFF')
       }
-      .width(40).height(40).type(ButtonType.Circle).backgroundColor(Color.Transparent)
+      .width(48)
+      .height(48)
+      .backgroundColor('#EFF6FF')
+      .justifyContent(FlexAlign.Center)
+      .borderRadius(10)
+      .border({ width: 1, color: '#DBEAFE', radius: 10 })
+
+      // 项目信息
+      Column({ space: 6 }) {
+        Text(meta.name)
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#1F2937')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
+          .fontSize(12)
+          .fontColor('#6B7280')
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      // 删除按钮
+      Button() {
+        Image($r('app.media.ic_delete'))
+          .width(16)
+          .height(16)
+          .fillColor('#EF4444')
+      }
+      .width(36)
+      .height(36)
+      .type(ButtonType.Circle)
+      .backgroundColor('#FEF2F2')
+      .border({ width: 1, color: '#FECACA', radius: 18 })
       .onClick(() => this.deleteProject(meta.id))
       .hitTestBehavior(HitTestMode.Block)
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(10)
-    .backgroundColor(this.selectedProjectId === meta.id ? '#F0F8FF' : Color.Transparent)
+    .padding(16)
+    .backgroundColor(this.selectedProjectId === meta.id ? '#EFF6FF' : '#FFFFFF')
+    .borderRadius(12)
+    .shadow({ radius: 4, color: this.selectedProjectId === meta.id ? '#007DFF20' : '#00000008', offsetX: 0, offsetY: 1 })
+    .border({ width: this.selectedProjectId === meta.id ? 2 : 0, color: '#007DFF', radius: 12 })
   }
 
   @Builder

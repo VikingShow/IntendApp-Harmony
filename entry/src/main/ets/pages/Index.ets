@@ -389,6 +389,9 @@ struct Index {
         .height('100%')
         .backgroundColor('#FFFFFF')
         .layoutWeight(4)
+        .borderRadius(12)
+        .margin(16)
+        .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
         .onReady(() => { this.drawGraph(); })
         .onTouch((event: TouchEvent) => {
           if (!event.touches || event.touches.length === 0 || !this.project) return;

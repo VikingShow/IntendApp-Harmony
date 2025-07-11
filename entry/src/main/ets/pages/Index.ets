@@ -7,6 +7,7 @@ import { Sidebar } from '../components/Sidebar';
 import { CriticalPathService, TaskWithDuration } from '../services/CriticalPathService';
 import { StorageService } from '../services/StorageService';
 import common from '@ohos.app.ability.common';
+import { TemplateService } from '../services/TemplateService';
 
 // FIX: Define an interface for the router parameters to avoid type errors.
 interface RouterParams {
@@ -378,7 +379,16 @@ struct Index {
           onStartConnecting: () => { this.handleStartConnecting() },
           onCalculate: () => { this.handleCalculateCriticalPath() },
           onSave: () => { this.handleSaveProject() },
-          onBack: () => { this.handleBackToHome() }
+          onBack: () => { this.handleBackToHome() },
+          onCreateBlankProject: () => {
+            this.project = new Project(undefined, '新项目');
+            this.selectedTask = null;
+          },
+          onCreateProjectFromTemplate: (templateId: string, projectName: string) => {
+            const templateService = TemplateService.getInstance();
+            this.project = templateService.createProjectFromTemplate(templateId, projectName);
+            this.selectedTask = null;
+          }
         })
         // 侧边栏宽度占比为 2 / (2+4) = 33.3%
           .layoutWeight(2)

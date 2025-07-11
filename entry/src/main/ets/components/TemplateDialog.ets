@@ -14,139 +14,193 @@ export struct TemplateDialog {
   @State selectedTemplate: ProjectTemplate | null = null;
   @State projectName: string = '';
   @State selectedCategory: string = 'development';
+  @State showPreview: boolean = false;
+  @State previewTemplate: ProjectTemplate | null = null;
 
   private templateService: TemplateService = TemplateService.getInstance();
 
   build() {
     if (this.visible) {
-      Column() {
-        // 标题
-        Row({ space: ThemeConfig.spacingM }) {
-          Button() {
-            Text('←').fontSize(22).fontColor(ThemeConfig.primaryColor)
-          }
-          .width(44)
-          .height(44)
-          .backgroundColor('transparent')
-          .onClick(() => { this.onClose(); })
-          Text('📋')
-            .fontSize(ThemeConfig.fontSizeXXL)
-            .fontColor(ThemeConfig.primaryColor)
-          Text('选择项目模板')
-            .fontSize(ThemeConfig.fontSizeXXL)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ThemeConfig.gray800)
-            .layoutWeight(1)
-        }
-        .width('100%')
-        .padding(ThemeConfig.spacingL)
-        .alignItems(VerticalAlign.Center)
-
-        // 分类选择
-        Column({ space: ThemeConfig.spacingM }) {
-          Text('项目类型')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ThemeConfig.gray800)
-
+      Stack() {
+        // 主内容
+        Column() {
+          // 标题
           Row({ space: ThemeConfig.spacingM }) {
-            ForEach(['development', 'design', 'marketing'], (category: string) => {
-              Button() {
-                Text(this.getCategoryName(category))
-                  .fontSize(ThemeConfig.fontSizeL)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(this.selectedCategory === category ? Color.White : ThemeConfig.gray700)
-              }
-              .height(48)
-              .width(96)
-              .backgroundColor(this.selectedCategory === category ? ThemeConfig.primaryColor : ThemeConfig.gray100)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .onClick(() => {
-                this.selectedCategory = category;
-              })
-            })
+            Button() {
+              Text('←').fontSize(22).fontColor(ThemeConfig.primaryColor)
+            }
+            .width(44)
+            .height(44)
+            .backgroundColor('transparent')
+            .onClick(() => { this.onClose(); })
+            Text('📋')
+              .fontSize(ThemeConfig.fontSizeXXL)
+              .fontColor(ThemeConfig.primaryColor)
+            Text('选择项目模板')
+              .fontSize(ThemeConfig.fontSizeXXL)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(ThemeConfig.gray800)
+              .layoutWeight(1)
           }
           .width('100%')
-        }
-        .padding(ThemeConfig.spacingL)
+          .padding(ThemeConfig.spacingL)
+          .alignItems(VerticalAlign.Center)
 
-        // 模板列表
-        Column({ space: ThemeConfig.spacingM }) {
-          Text('可用模板')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ThemeConfig.gray800)
+          // 分类选择
+          Column({ space: ThemeConfig.spacingM }) {
+            Text('项目类型')
+              .fontSize(ThemeConfig.fontSizeM)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ThemeConfig.gray800)
 
-          List({ space: ThemeConfig.spacingS }) {
-            ForEach(this.getTemplatesByCategory(), (template: ProjectTemplate) => {
-              ListItem() {
-                this.TemplateCard(template)
-              }
-            })
-          }
-          .layoutWeight(1)
-        }
-        .padding(ThemeConfig.spacingL)
-
-        // 项目名称输入
-        Column({ space: ThemeConfig.spacingS }) {
-          Text('项目名称')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ThemeConfig.gray800)
-
-          if (this.selectedTemplate) {
-            TextInput({ 
-              placeholder: '请输入项目名称',
-              text: this.projectName
-            })
-              .backgroundColor(ThemeConfig.gray50)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .padding(ThemeConfig.spacingM)
-              .onChange((value: string) => {
-                this.projectName = value;
+            Row({ space: ThemeConfig.spacingM }) {
+              ForEach(['development', 'design', 'marketing'], (category: string) => {
+                Button() {
+                  Text(this.getCategoryName(category))
+                    .fontSize(ThemeConfig.fontSizeL)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(this.selectedCategory === category ? Color.White : ThemeConfig.gray700)
+                }
+                .height(48)
+                .width(96)
+                .backgroundColor(this.selectedCategory === category ? ThemeConfig.primaryColor : ThemeConfig.gray100)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .onClick(() => {
+                  this.selectedCategory = category;
+                })
               })
-          } else {
-            Text('请先选择模板')
-              .backgroundColor(ThemeConfig.gray50)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .padding(ThemeConfig.spacingM)
-              .fontColor(ThemeConfig.gray400)
-          }
-        }
-        .padding(ThemeConfig.spacingL)
-
-        // 底部按钮
-        Row({ space: ThemeConfig.spacingM }) {
-          CommonButton({
-            text: '取消',
-            type: 'secondary',
-            onButtonClick: () => {
-              this.onClose();
             }
-          })
-          .layoutWeight(1)
+            .width('100%')
+          }
+          .padding(ThemeConfig.spacingL)
 
-          if (this.selectedTemplate && this.projectName.trim()) {
+          // 模板列表
+          Column({ space: ThemeConfig.spacingM }) {
+            Text('可用模板')
+              .fontSize(ThemeConfig.fontSizeM)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ThemeConfig.gray800)
+
+            List({ space: ThemeConfig.spacingS }) {
+              ForEach(this.getTemplatesByCategory(), (template: ProjectTemplate) => {
+                ListItem() {
+                  this.TemplateCard(template)
+                }
+              })
+            }
+            .layoutWeight(1)
+          }
+          .padding(ThemeConfig.spacingL)
+
+          // 项目名称输入
+          Column({ space: ThemeConfig.spacingS }) {
+            Text('项目名称')
+              .fontSize(ThemeConfig.fontSizeM)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ThemeConfig.gray800)
+
+            if (this.selectedTemplate) {
+              TextInput({ 
+                placeholder: '请输入项目名称',
+                text: this.projectName
+              })
+                .backgroundColor(ThemeConfig.gray50)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .padding(ThemeConfig.spacingM)
+                .onChange((value: string) => {
+                  this.projectName = value;
+                })
+            } else {
+              Text('请先选择模板')
+                .backgroundColor(ThemeConfig.gray50)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .padding(ThemeConfig.spacingM)
+                .fontColor(ThemeConfig.gray400)
+            }
+          }
+          .padding(ThemeConfig.spacingL)
+
+          // 底部按钮
+          Row({ space: ThemeConfig.spacingM }) {
             CommonButton({
-              text: '创建项目',
-              type: 'primary',
+              text: '取消',
+              type: 'secondary',
               onButtonClick: () => {
-                this.createProject();
+                this.onClose();
               }
             })
             .layoutWeight(1)
-            .height(52)
-            .padding({ top: 8, bottom: 8 })
+
+            if (this.selectedTemplate && this.projectName.trim()) {
+              CommonButton({
+                text: '创建项目',
+                type: 'primary',
+                onButtonClick: () => {
+                  this.createProject();
+                }
+              })
+              .layoutWeight(1)
+              .height(52)
+              .padding({ top: 8, bottom: 8 })
+            }
           }
+          .padding(ThemeConfig.spacingL)
         }
-        .padding(ThemeConfig.spacingL)
+        .width('100%')
+        .backgroundColor(ThemeConfig.white)
+        .borderRadius(ThemeConfig.radiusLarge)
+        .shadow(ThemeConfig.shadowLarge)
+        .margin(ThemeConfig.spacingL)
+        // 预览弹窗
+        if (this.showPreview && this.previewTemplate) {
+          Column() {
+            Text(this.previewTemplate.name)
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .margin({ top: 24, bottom: 8 })
+            Text(this.previewTemplate.description)
+              .fontSize(16)
+              .fontColor(ThemeConfig.gray600)
+              .margin({ bottom: 8 })
+            Text(`包含任务数：${this.previewTemplate.tasks.length}`)
+              .fontSize(14)
+              .fontColor(ThemeConfig.gray500)
+              .margin({ bottom: 16 })
+            // 可扩展：显示任务列表等详细内容
+            Row({ space: ThemeConfig.spacingM }) {
+              CommonButton({
+                text: '取消',
+                type: 'secondary',
+                onButtonClick: () => {
+                  this.showPreview = false;
+                  this.previewTemplate = null;
+                }
+              })
+              .layoutWeight(1)
+              CommonButton({
+                text: '创建项目',
+                type: 'primary',
+                onButtonClick: () => {
+                  this.onTemplateSelected(this.previewTemplate!.id, this.previewTemplate!.name);
+                  this.showPreview = false;
+                  this.previewTemplate = null;
+                  this.selectedTemplate = null;
+                  this.projectName = '';
+                }
+              })
+              .layoutWeight(1)
+            }
+            .margin({ top: 24, bottom: 24 })
+          }
+          .width(340)
+          .backgroundColor('#FFF')
+          .borderRadius(16)
+          .shadow({ radius: 16, color: '#00000020', offsetX: 0, offsetY: 8 })
+          .alignItems(HorizontalAlign.Center)
+          .justifyContent(FlexAlign.Center)
+          .position({ x: '50%', y: '50%' })
+        }
       }
-      .width('100%')
-      .backgroundColor(ThemeConfig.white)
-      .borderRadius(ThemeConfig.radiusLarge)
-      .shadow(ThemeConfig.shadowLarge)
-      .margin(ThemeConfig.spacingL)
     }
   }
 
@@ -196,8 +250,8 @@ export struct TemplateDialog {
       radius: ThemeConfig.radiusMedium 
     })
     .onClick(() => {
-      this.selectedTemplate = template;
-      promptAction.showToast({ message: `已选中模板：${template.name}` });
+      this.previewTemplate = template;
+      this.showPreview = true;
     })
   }
 

@@ -5,12 +5,15 @@ import { TaskEditor } from './TaskEditor';
 import { NewProjectDialog } from './WelcomeView';
 import { TemplateDialog } from './TemplateDialog';
 import promptAction from '@ohos.promptAction';
+import { TemplateService } from '../services/TemplateService';
 
 @Component
 export struct Sidebar {
   // project现在可能为null，直到它被加载
   @ObjectLink project: Project | null;
   @Link selectedTask: TaskNode | null;
+  onCreateBlankProject: () => void = () => {};
+  onCreateProjectFromTemplate: (templateId: string, projectName: string) => void = () => {};
 
   @State isEditingProjectName: boolean = false;
   @State tempProjectName: string = '';
@@ -40,6 +43,31 @@ export struct Sidebar {
 
   build() {
     Column() {
+      // 新建按钮和弹窗逻辑始终可用
+      Row({ space: 12 }) {
+        Button() {
+          Row({ space: 8 }) {
+            Text('＋')
+              .fontSize(18)
+              .fontColor(Color.White)
+            Text('新建项目')
+              .fontSize(15)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Medium)
+          }
+        }
+        .width('100%')
+        .height(48)
+        .backgroundColor('#007DFF')
+        .borderRadius(8)
+        .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
+        .onClick(() => {
+          this.showNewProjectDialog = true;
+          this.showTemplateDialog = false;
+        })
+      }
+      .margin({ bottom: 16 })
+
       // 只有当项目加载完成后才显示内容
       if (this.project) {
         if (this.selectedTask === null) {
@@ -72,6 +100,34 @@ export struct Sidebar {
         .width('100%')
         .height('100%')
         .justifyContent(FlexAlign.Center)
+      }
+
+      // 新建方式选择弹窗
+      if (this.showNewProjectDialog) {
+        NewProjectDialog({
+          onBlank: () => {
+            this.showNewProjectDialog = false;
+            this.onCreateBlankProject();
+          },
+          onTemplate: () => {
+            this.showNewProjectDialog = false;
+            this.showTemplateDialog = true;
+          },
+          onClose: () => {
+            this.showNewProjectDialog = false;
+          }
+        })
+      }
+      // 模板选择弹窗
+      if (this.showTemplateDialog) {
+        TemplateDialog({
+          visible: true,
+          onClose: () => { this.showTemplateDialog = false; },
+          onTemplateSelected: (templateId: string, projectName: string) => {
+            this.showTemplateDialog = false;
+            this.onCreateProjectFromTemplate(templateId, projectName);
+          }
+        })
       }
     }
     .width('100%')
@@ -209,24 +265,6 @@ export struct Sidebar {
         Column({ space: 12 }) {
           Button() {
             Row({ space: 8 }) {
-              Text('＋')
-                .fontSize(18)
-                .fontColor(Color.White)
-              Text('新建项目')
-                .fontSize(15)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .width('100%')
-          .height(48)
-          .backgroundColor('#007DFF')
-          .borderRadius(8)
-          .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
-          .onClick(() => { this.showNewProjectDialog = true })
-
-          Button() {
-            Row({ space: 8 }) {
               Text('💡')
                 .fontSize(16)
                 .fontColor(Color.White)
@@ -322,35 +360,6 @@ export struct Sidebar {
         .layoutWeight(1)
       }
       .alignItems(HorizontalAlign.Start)
-    }
-    // 新建方式选择弹窗
-    if (this.showNewProjectDialog) {
-      NewProjectDialog({
-        onBlank: () => {
-          this.showNewProjectDialog = false;
-          // 直接新建空白项目并进入编辑页面
-          this.onAddTask();
-        },
-        onTemplate: () => {
-          this.showNewProjectDialog = false;
-          this.showTemplateDialog = true;
-        },
-        onClose: () => {
-          this.showNewProjectDialog = false;
-        }
-      })
-    }
-    // 模板选择弹窗
-    if (this.showTemplateDialog) {
-      TemplateDialog({
-        visible: true,
-        onClose: () => { this.showTemplateDialog = false; },
-        onTemplateSelected: (templateId: string, projectName: string) => {
-          this.showTemplateDialog = false;
-          // 这里可以调用onAddTask或其它逻辑进入编辑页面
-          this.onAddTask();
-        }
-      })
     }
   }
 }

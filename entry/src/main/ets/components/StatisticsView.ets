@@ -59,13 +59,7 @@ export struct StatisticsView {
       if (this.isLoading) {
         this.LoadingState()
       } else if (this.globalStats) {
-        // 调试：直接显示统计数据内容
-        Text(JSON.stringify(this.globalStats))
-          .fontSize(12)
-          .fontColor('#D0021B')
-          .width('100%')
-          .margin({ bottom: 12 })
-        // 原有统计内容
+        // 去除调试用的JSON展示，只保留美观的统计UI
         Scroll() {
           Column({ space: ThemeConfig.spacingL }) {
             // 概览卡片

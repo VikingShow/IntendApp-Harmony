@@ -398,7 +398,7 @@ struct Index {
       if (this.sidebarVisible) {
         Sidebar({
           project: this.project,
-          selectedTask: $selectedTask,
+          selectedTask: this.selectedTask,
           isHomePage: false,
           onUpdateProjectName: (newName) => { this.handleUpdateProjectName(newName) },
           onAddTask: () => { this.handleAddTask() },

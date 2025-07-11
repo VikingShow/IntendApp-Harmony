@@ -31,6 +31,7 @@ export class Project {
   id: string; // 新增：项目的唯一ID
   name: string = '新项目';
   lastModified: number; // 新增：最后修改时间的时间戳
+  category: string = '其他'; // 新增：项目分类
 
   tasks: TaskNode[] = [];
   dependencies: Dependency[] = [];

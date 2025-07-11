@@ -11,7 +11,8 @@ import { TemplateService } from '../services/TemplateService';
 export struct Sidebar {
   // project现在可能为null，直到它被加载
   @ObjectLink project: Project | null;
-  @Link selectedTask: TaskNode | null;
+  @Prop selectedTask: TaskNode | null;
+  @State private selectedTaskForEditor: TaskNode | null = null;
   // 新增参数：区分首页和编辑页
   isHomePage: boolean = false;
   onCreateBlankProject: () => void = () => {};
@@ -21,6 +22,14 @@ export struct Sidebar {
   @State tempProjectName: string = '';
   @State showNewProjectDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
+  @State private taskEditorKey: number = 0;
+
+  aboutToAppear() {
+    this.selectedTaskForEditor = this.selectedTask;
+  }
+  aboutToUpdate() {
+    this.selectedTaskForEditor = this.selectedTask;
+  }
 
   onUpdateTask: (task: TaskNode) => void = () => {};
   onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => void = () => {};
@@ -76,18 +85,18 @@ export struct Sidebar {
         }
         // 只有当项目加载完成后才显示内容
         if (this.project) {
-          if (this.selectedTask === null) {
+          if (this.selectedTaskForEditor === null) {
             this.ProjectView()
           } else {
             TaskEditor({
-              task: this.selectedTask,
+              task: this.selectedTaskForEditor,
               onUpdateTask: this.onUpdateTask,
               onUpdateChecklist: this.onUpdateChecklist,
               onAddChecklistItem: this.onAddChecklistItem,
               onDeleteTask: this.onDeleteTask,
               onStartConnecting: this.onStartConnecting,
               onBack: () => {
-                this.selectedTask = null;
+                this.selectedTaskForEditor = null;
               }
             })
           }

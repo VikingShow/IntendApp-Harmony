@@ -7,6 +7,7 @@ export interface ProjectMeta {
   id: string;
   name: string;
   lastModified: number; // Stored as a timestamp
+  category: string; // 新增：项目分类
 }
 
 // --- Define intermediate types for storage to handle Date objects safely ---
@@ -18,6 +19,7 @@ interface StorableTaskNode extends Omit<TaskNode, 'startDate' | 'endDate'> {
 
 interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
   tasks: StorableTaskNode[];
+  category: string;
 }
 
 
@@ -77,7 +79,8 @@ export class StorageService {
       const projectMeta: ProjectMeta = {
         id: project.id,
         name: project.name,
-        lastModified: Date.now()
+        lastModified: Date.now(),
+        category: project.category || '其他'
       };
 
       const existingIndex = list.findIndex(p => p.id === project.id);
@@ -109,7 +112,8 @@ export class StorageService {
             startDate: task.startDate.toISOString(),
             endDate: task.endDate.toISOString(),
           };
-        })
+        }),
+        category: project.category || '其他'
       };
 
       const projectJSON = JSON.stringify(storableProject);
@@ -149,6 +153,8 @@ export class StorageService {
             endDate: new Date(task.endDate),
           };
         });
+        // 还原category字段
+        project.category = storableProject.category || '其他';
         return project;
       }
       return null;

@@ -127,25 +127,23 @@ export class StatisticsService {
     }
 
     const projectList = await this.storageService.getProjectList();
-    console.log('【统计日志】projectList:', JSON.stringify(projectList));
+    const allProjects: Project[] = [];
+    for (const meta of projectList) {
+      const project = await this.storageService.getProject(meta.id);
+      if (project) allProjects.push(project);
+    }
     const projectStats: ProjectStatistics[] = [];
     let totalTasks = 0;
     let totalCompletedTasks = 0;
 
-    for (const meta of projectList) {
-      try {
-        const stats = await this.getProjectStatistics(meta.id);
-        if (stats) {
-          projectStats.push(stats);
-          totalTasks += stats.totalTasks;
-          totalCompletedTasks += stats.completedTasks;
-        }
-      } catch (error) {
-        console.error(`获取项目 ${meta.id} 统计失败:`, error);
+    for (const project of allProjects) {
+      const stats = await this.getProjectStatistics(project.id);
+      if (stats) {
+        projectStats.push(stats);
+        totalTasks += stats.totalTasks;
+        totalCompletedTasks += stats.completedTasks;
       }
     }
-
-    console.log('【统计日志】projectStats:', JSON.stringify(projectStats));
 
     const mostActiveProject = projectStats.length > 0 
       ? projectStats.reduce((max, current) => 
@@ -153,10 +151,8 @@ export class StatisticsService {
         )
       : undefined;
 
-    // 计算最近活动（简化版本）
-    const recentActivity = this.calculateRecentActivity(projectStats);
-
-    // 计算分类分布（简化版本）
+    // 真实最近活动
+    const recentActivity = this.calculateRecentActivity(allProjects);
     const categoryDistribution = this.calculateCategoryDistribution(projectList);
 
     return {
@@ -242,32 +238,29 @@ export class StatisticsService {
     return trend;
   }
 
-  /**
-   * 计算最近活动
-   */
-  private calculateRecentActivity(projectStats: ProjectStatistics[]): ActivityData[] {
+  // 真实最近活动统计
+  private calculateRecentActivity(allProjects: Project[]): ActivityData[] {
     const now = new Date();
     const recentActivity: ActivityData[] = [];
-
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
-
-      // 简化计算，实际应用中需要更精确的数据
-      const completedTasks = projectStats.reduce((sum, stats) => {
-        // 模拟基于最后修改时间的完成情况
-        const daysSinceModified = Math.ceil((now.getTime() - stats.lastModified) / (1000 * 60 * 60 * 24));
-        return sum + (daysSinceModified === i ? Math.floor(stats.completedTasks * 0.1) : 0);
-      }, 0);
-
-      const activityData: ActivityData = {
-        date: dateStr,
-        completedTasks: completedTasks,
-        newTasks: Math.floor(Math.random() * 2) // 模拟数据
-      };
-      recentActivity.push(activityData);
+      let completedTasks = 0;
+      let newTasks = 0;
+      for (const project of allProjects) {
+        for (const task of project.tasks) {
+          // 新增
+          if (task.startDate.toISOString().split('T')[0] === dateStr) newTasks++;
+          // 完成
+          if (
+            task.checklist.length > 0 &&
+            task.checklist.every(item => item.isCompleted) &&
+            task.endDate.toISOString().split('T')[0] === dateStr
+          ) completedTasks++;
+        }
+      }
+      recentActivity.push({ date: dateStr, completedTasks, newTasks });
     }
-
     return recentActivity;
   }
 
@@ -275,23 +268,21 @@ export class StatisticsService {
    * 计算分类分布
    */
   private calculateCategoryDistribution(projectList: ProjectMeta[]): CategoryData[] {
-    const categories = ['开发', '设计', '营销', '研究', '其他'];
-    const distribution: CategoryData[] = [];
-    
-    for (const category of categories) {
-      const categoryData: CategoryData = {
-        category: category,
-        count: Math.floor(Math.random() * 10) + 1, // 模拟数据
-        percentage: 0
-      };
-      distribution.push(categoryData);
+    const categoryMap = new Map<string, number>();
+    for (const meta of projectList) {
+      const category = meta.category || '其他';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
     }
-
-    const total = distribution.reduce((sum, item) => sum + item.count, 0);
-    distribution.forEach(item => {
-      item.percentage = Math.round((item.count / total) * 100);
+    const total = projectList.length;
+    return Array.from(categoryMap.entries()).map(entry => {
+      const category = entry[0];
+      const count = entry[1];
+      const item: CategoryData = {
+        category: category,
+        count: count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0
+      };
+      return item;
     });
-
-    return distribution;
   }
 } 

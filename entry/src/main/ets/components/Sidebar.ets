@@ -126,10 +126,13 @@ export struct Sidebar {
 
         // 操作按钮
         Button('＋ 添加新任务')
-          .width('100%').height(45).type(ButtonType.Normal).backgroundColor(Color.White)
+          .width('100%').height(45).type(ButtonType.Normal).backgroundColor('#007DFF')
+          .fontColor(Color.White)
           .onClick(() => { this.onAddTask() })
         Button('💡 计算关键路径')
-          .width('100%').height(45).type(ButtonType.Normal).backgroundColor(Color.White).margin({ top: 10 })
+          .width('100%').height(45).type(ButtonType.Normal).backgroundColor('#28A745')
+          .fontColor(Color.White)
+          .margin({ top: 10 })
           .onClick(() => { this.onCalculate() })
 
         Divider().margin({ top: 15, bottom: 5 })
@@ -150,7 +153,9 @@ export struct Sidebar {
                 }
                 .width('100%').padding(12).backgroundColor(this.selectedTask?.id === task.id ? '#E0EFFF' : Color.White).borderRadius(8)
                 .border({ width: this.selectedTask?.id === task.id ? 2 : 0, color: '#007DFF', radius: 8 })
-                .onClick(() => { this.selectedTask = task; })
+                .onClick(() => { 
+                  this.selectedTask = task; 
+                })
               }
             })
           }.layoutWeight(1)

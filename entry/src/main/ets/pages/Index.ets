@@ -38,12 +38,15 @@ struct Index {
     const params = router.getParams() as RouterParams;
     const projectId = params?.projectId;
 
+    console.log(`[EasyFlow] Index.ets aboutToAppear - projectId: ${projectId}`);
+
     if (projectId) {
       // 如果有ID，则加载现有项目
       console.log(`[EasyFlow] Loading existing project with ID: ${projectId}`);
       const loadedProject = await this.storageService.getProject(projectId);
       if (loadedProject) {
         this.project = loadedProject;
+        console.log(`[EasyFlow] Project loaded successfully with ${loadedProject.tasks.length} tasks`);
         this.handleCalculateCriticalPath();
       } else {
         promptAction.showToast({ message: `加载项目失败: ${projectId}` });
@@ -52,12 +55,12 @@ struct Index {
     } else {
       // 如果没有ID，则创建新项目并填充示例数据
       console.log("[EasyFlow] Creating new project with example data.");
-      this.createNewExampleProject();
+      await this.createNewExampleProject();
     }
   }
 
   // --- 新增：创建示例项目的方法 ---
-  createNewExampleProject() {
+  async createNewExampleProject() {
     const newProject = new Project(undefined, '新移动应用开发计划');
     const today = new Date();
 
@@ -115,6 +118,13 @@ struct Index {
     ];
 
     this.project = newProject;
+    
+    // 保存新项目到存储
+    if (this.storageService) {
+      await this.storageService.saveProject(newProject);
+      console.log(`[EasyFlow] New project saved with ID: ${newProject.id}`);
+    }
+    
     this.handleCalculateCriticalPath();
   }
 

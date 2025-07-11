@@ -49,6 +49,8 @@ struct HomePage {
       return;
     }
 
+    console.log("[EasyFlow] Creating new project from Home page");
+
     // 1. Create a new project with example data.
     const newProject = new Project(undefined, '新移动应用开发计划');
     const today = new Date();
@@ -75,6 +77,7 @@ struct HomePage {
 
     // 2. Save the new project to storage immediately.
     await this.storageService.saveProject(newProject);
+    console.log(`[EasyFlow] Project saved with ID: ${newProject.id}`);
     promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
 
     // 3. Navigate to the editor page with the new project's ID.

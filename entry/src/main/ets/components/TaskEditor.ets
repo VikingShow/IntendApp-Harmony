@@ -46,7 +46,6 @@ export struct TaskEditor {
             TextInput({ text: this.task.name })
               .onChange((value: string) => {
                 if (this.task) {
-                  // FIX: Replaced object spread with explicit property assignment
                   const updatedTask: TaskNode = {
                     id: this.task.id,
                     name: value,
@@ -54,7 +53,12 @@ export struct TaskEditor {
                     endDate: this.task.endDate,
                     checklist: this.task.checklist,
                     x: this.task.x,
-                    y: this.task.y
+                    y: this.task.y,
+                    isCritical: this.task.isCritical,
+                    earlyStart: this.task.earlyStart,
+                    earlyFinish: this.task.earlyFinish,
+                    lateStart: this.task.lateStart,
+                    lateFinish: this.task.lateFinish
                   };
                   this.onUpdateTask(updatedTask);
                 }
@@ -72,7 +76,6 @@ export struct TaskEditor {
                     if (this.task) {
                       const newStartDate = value;
                       const newEndDate = this.task.endDate < newStartDate ? newStartDate : this.task.endDate;
-                      // FIX: Replaced object spread with explicit property assignment
                       const updatedTask: TaskNode = {
                         id: this.task.id,
                         name: this.task.name,
@@ -80,7 +83,12 @@ export struct TaskEditor {
                         endDate: newEndDate,
                         checklist: this.task.checklist,
                         x: this.task.x,
-                        y: this.task.y
+                        y: this.task.y,
+                        isCritical: this.task.isCritical,
+                        earlyStart: this.task.earlyStart,
+                        earlyFinish: this.task.earlyFinish,
+                        lateStart: this.task.lateStart,
+                        lateFinish: this.task.lateFinish
                       };
                       this.onUpdateTask(updatedTask);
                     }
@@ -98,7 +106,6 @@ export struct TaskEditor {
                     if (this.task) {
                       const newEndDate = value;
                       const newStartDate = this.task.startDate > newEndDate ? newEndDate : this.task.startDate;
-                      // FIX: Replaced object spread with explicit property assignment
                       const updatedTask: TaskNode = {
                         id: this.task.id,
                         name: this.task.name,
@@ -106,7 +113,12 @@ export struct TaskEditor {
                         endDate: newEndDate,
                         checklist: this.task.checklist,
                         x: this.task.x,
-                        y: this.task.y
+                        y: this.task.y,
+                        isCritical: this.task.isCritical,
+                        earlyStart: this.task.earlyStart,
+                        earlyFinish: this.task.earlyFinish,
+                        lateStart: this.task.lateStart,
+                        lateFinish: this.task.lateFinish
                       };
                       this.onUpdateTask(updatedTask);
                     }
@@ -147,6 +159,7 @@ export struct TaskEditor {
 
           // 子任务列表
           Column({ space: 5 }) {
+            // FIX: 为ForEach增加key生成器，确保列表能可靠更新
             ForEach(this.task.checklist, (item: ChecklistItem) => {
               Row({ space: 10 }) {
                 Checkbox({ name: item.id, group: 'checklist' })
@@ -155,7 +168,6 @@ export struct TaskEditor {
                     if (this.task) {
                       const newChecklist = this.task.checklist.map(i => {
                         if (i.id === item.id) {
-                          // FIX: Replaced object spread with explicit property assignment
                           return {
                             id: i.id,
                             text: i.text,
@@ -172,7 +184,7 @@ export struct TaskEditor {
                   .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
               }
               .padding({ top: 5, bottom: 5 })
-            }, (item: ChecklistItem) => item.id)
+            }, (item: ChecklistItem) => item.id) // key生成器
           }
           .alignItems(HorizontalAlign.Start)
           .width('100%')

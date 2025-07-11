@@ -256,7 +256,13 @@ export struct TemplateDialog {
   }
 
   private getTemplatesByCategory(): ProjectTemplate[] {
-    return this.templateService.getTemplatesByCategory(this.selectedCategory);
+    const templates = this.templateService.getTemplatesByCategory(this.selectedCategory);
+    // 获取空白模板
+    const blank = this.templateService.getTemplateById('blank');
+    if (blank) {
+      return [blank, ...templates];
+    }
+    return templates;
   }
 
   private getCategoryName(category: string): string {

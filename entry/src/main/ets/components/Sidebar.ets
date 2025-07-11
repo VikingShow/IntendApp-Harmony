@@ -12,6 +12,8 @@ export struct Sidebar {
   // project现在可能为null，直到它被加载
   @ObjectLink project: Project | null;
   @Link selectedTask: TaskNode | null;
+  // 新增参数：区分首页和编辑页
+  isHomePage: boolean = false;
   onCreateBlankProject: () => void = () => {};
   onCreateProjectFromTemplate: (templateId: string, projectName: string) => void = () => {};
 
@@ -42,98 +44,129 @@ export struct Sidebar {
   }
 
   build() {
-    Column() {
-      // 新建按钮和弹窗逻辑始终可用
-      Row({ space: 12 }) {
-        Button() {
-          Row({ space: 8 }) {
-            Text('＋')
-              .fontSize(18)
-              .fontColor(Color.White)
-            Text('新建项目')
-              .fontSize(15)
-              .fontColor(Color.White)
-              .fontWeight(FontWeight.Medium)
+    Stack() {
+      // 主内容
+      Column() {
+        // 只有首页才显示新建项目按钮
+        if (this.isHomePage) {
+          Row({ space: 12 }) {
+            Button() {
+              Row({ space: 8 }) {
+                Text('＋')
+                  .fontSize(18)
+                  .fontColor(Color.White)
+                Text('新建项目')
+                  .fontSize(15)
+                  .fontColor(Color.White)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .width('100%')
+            .height(48)
+            .backgroundColor('#007DFF')
+            .borderRadius(8)
+            .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
+            .onClick(() => {
+              console.log('点击+号');
+              this.showNewProjectDialog = true;
+              this.showTemplateDialog = false;
+            })
           }
+          .margin({ bottom: 16 })
         }
-        .width('100%')
-        .height(48)
-        .backgroundColor('#007DFF')
-        .borderRadius(8)
-        .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
-        .onClick(() => {
-          this.showNewProjectDialog = true;
-          this.showTemplateDialog = false;
-        })
-      }
-      .margin({ bottom: 16 })
-
-      // 只有当项目加载完成后才显示内容
-      if (this.project) {
-        if (this.selectedTask === null) {
-          this.ProjectView()
+        // 只有当项目加载完成后才显示内容
+        if (this.project) {
+          if (this.selectedTask === null) {
+            this.ProjectView()
+          } else {
+            TaskEditor({
+              task: this.selectedTask,
+              onUpdateTask: this.onUpdateTask,
+              onUpdateChecklist: this.onUpdateChecklist,
+              onAddChecklistItem: this.onAddChecklistItem,
+              onDeleteTask: this.onDeleteTask,
+              onStartConnecting: this.onStartConnecting,
+              onBack: () => {
+                this.selectedTask = null;
+              }
+            })
+          }
         } else {
-          TaskEditor({
-            task: this.selectedTask,
-            onUpdateTask: this.onUpdateTask,
-            onUpdateChecklist: this.onUpdateChecklist,
-            onAddChecklistItem: this.onAddChecklistItem,
-            onDeleteTask: this.onDeleteTask,
-            onStartConnecting: this.onStartConnecting,
-            onBack: () => {
-              this.selectedTask = null;
+          // 项目加载中或加载失败时显示的内容
+          Column() {
+            LoadingProgress()
+              .width(40)
+              .height(40)
+              .color('#007DFF')
+            Text('正在加载项目...')
+              .fontSize(16)
+              .fontColor('#666666')
+              .margin({ top: 12 })
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#F8FAFC')
+      .padding(20)
+
+      // 弹窗遮罩层
+      // 只有首页才显示新建相关弹窗
+      if (this.isHomePage && this.showNewProjectDialog) {
+        Column() {
+          NewProjectDialog({
+            onBlank: () => {
+              console.log('点击新建空白图');
+              this.showNewProjectDialog = false;
+              this.showTemplateDialog = false;
+              this.onCreateBlankProject();
+            },
+            onTemplate: () => {
+              console.log('点击选择模板');
+              this.showNewProjectDialog = false;
+              this.showTemplateDialog = true;
+            },
+            onClose: () => {
+              console.log('关闭新建方式弹窗');
+              this.showNewProjectDialog = false;
+              this.showTemplateDialog = false;
             }
           })
         }
-      } else {
-        // 项目加载中或加载失败时显示的内容
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.25)')
+        .alignItems(HorizontalAlign.Center)
+        .justifyContent(FlexAlign.Center)
+        .zIndex(100)
+      } else if (this.isHomePage && this.showTemplateDialog) {
         Column() {
-          LoadingProgress()
-            .width(40)
-            .height(40)
-            .color('#007DFF')
-          Text('正在加载项目...')
-            .fontSize(16)
-            .fontColor('#666666')
-            .margin({ top: 12 })
+          TemplateDialog({
+            visible: true,
+            onClose: () => { 
+              console.log('关闭模板弹窗');
+              this.showTemplateDialog = false; 
+            },
+            onTemplateSelected: (templateId: string, projectName: string) => {
+              console.log('模板弹窗创建项目', templateId, projectName);
+              this.showTemplateDialog = false;
+              this.onCreateProjectFromTemplate(templateId, projectName);
+            }
+          })
         }
         .width('100%')
         .height('100%')
+        .backgroundColor('rgba(0,0,0,0.25)')
+        .alignItems(HorizontalAlign.Center)
         .justifyContent(FlexAlign.Center)
-      }
-
-      // 新建方式选择弹窗
-      if (this.showNewProjectDialog) {
-        NewProjectDialog({
-          onBlank: () => {
-            this.showNewProjectDialog = false;
-            this.onCreateBlankProject();
-          },
-          onTemplate: () => {
-            this.showNewProjectDialog = false;
-            this.showTemplateDialog = true;
-          },
-          onClose: () => {
-            this.showNewProjectDialog = false;
-          }
-        })
-      }
-      // 模板选择弹窗
-      if (this.showTemplateDialog) {
-        TemplateDialog({
-          visible: true,
-          onClose: () => { this.showTemplateDialog = false; },
-          onTemplateSelected: (templateId: string, projectName: string) => {
-            this.showTemplateDialog = false;
-            this.onCreateProjectFromTemplate(templateId, projectName);
-          }
-        })
+        .zIndex(100)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F8FAFC')
-    .padding(20)
   }
 
   @Builder
@@ -143,7 +176,7 @@ export struct Sidebar {
         // --- 顶部操作栏 ---
         Row({space: 12}) {
           // 返回主页按钮
-          Button() { 
+          Button() {
             Image($r('app.media.ic_back'))
               .width(18)
               .height(18)
@@ -199,7 +232,7 @@ export struct Sidebar {
                 .maxLines(1)
                 .fontColor('#1F2937')
             }
-            Button() { 
+            Button() {
               Image(this.isEditingProjectName ? $r('app.media.ic_confirm') : $r('app.media.ic_edit'))
                 .width(18)
                 .height(18)
@@ -348,8 +381,8 @@ export struct Sidebar {
                   .borderRadius(10)
                   .shadow({ radius: 4, color: this.selectedTask?.id === task.id ? '#007DFF20' : '#00000008', offsetX: 0, offsetY: 1 })
                   .border({ width: this.selectedTask?.id === task.id ? 2 : 0, color: '#007DFF', radius: 10 })
-                  .onClick(() => { 
-                    this.selectedTask = task; 
+                  .onClick(() => {
+                    this.selectedTask = task;
                   })
                 }
               })

@@ -28,6 +28,8 @@ struct HomePage {
   @State showTemplateDialog: boolean = false;
   @State showSearchView: boolean = false;
   @State showStatisticsView: boolean = false;
+  @State emptyProject: Project | null = null;
+  @State emptyTask: TaskNode | null = null;
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
@@ -255,7 +257,6 @@ struct HomePage {
         Row() {
           // --- 左侧边栏 ---
           this.Sidebar()
-
           // --- 右侧内容区 ---
           Column() {
             if (this.isLoading) {

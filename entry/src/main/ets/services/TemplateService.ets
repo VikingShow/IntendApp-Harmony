@@ -56,6 +56,16 @@ export class TemplateService {
   }
 
   private initializeTemplates() {
+    // 空白项目模板
+    const blankTemplate: ProjectTemplate = {
+      id: 'blank',
+      name: '空白项目',
+      description: '不包含任何任务的空白项目',
+      category: 'other',
+      tasks: [],
+      dependencies: []
+    };
+    this.templates.set(blankTemplate.id, blankTemplate);
     // 移动应用开发模板
     const mobileAppTemplate: ProjectTemplate = {
       id: 'mobile_app',

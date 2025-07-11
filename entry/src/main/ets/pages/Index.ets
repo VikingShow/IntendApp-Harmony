@@ -119,13 +119,13 @@ struct Index {
     ];
 
     this.project = newProject;
-    
+
     // 保存新项目到存储
     if (this.storageService) {
       await this.storageService.saveProject(newProject);
       console.log(`[EasyFlow] New project saved with ID: ${newProject.id}`);
     }
-    
+
     this.handleCalculateCriticalPath();
   }
 

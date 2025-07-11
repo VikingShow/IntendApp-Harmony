@@ -1,6 +1,9 @@
 // File: entry/src/main/ets/components/TaskEditor.ets
 
 import { TaskNode, ChecklistItem } from '../model/ProjectData';
+import { CommonButton } from './CommonButton';
+import { ValidationUtils } from '../utils/ValidationUtils';
+import promptAction from '@ohos.promptAction';
 
 @Component
 export struct TaskEditor {
@@ -25,6 +28,13 @@ export struct TaskEditor {
   // 封装一个统一的添加函数
   private submitNewChecklistItem() {
     if (this.task && this.newChecklistItemText.trim() !== '') {
+      // 验证清单项
+      const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
+      if (!validation.isValid) {
+        promptAction.showToast({ message: validation.message });
+        return;
+      }
+      
       this.onAddChecklistItem(this.task.id, this.newChecklistItemText);
       this.newChecklistItemText = '';
     }
@@ -57,13 +67,20 @@ export struct TaskEditor {
                 .fontSize(14)
                 .fontWeight(FontWeight.Medium)
                 .fontColor('#374151')
-              TextInput({ text: this.task.name })
+              TextInput({ text: this.task?.name || '' })
                 .backgroundColor('#F9FAFB')
                 .borderRadius(8)
                 .padding(12)
                 .fontSize(16)
                 .onChange((value: string) => {
                   if (this.task) {
+                    // 验证任务名称
+                    const validation = ValidationUtils.validateProjectName(value);
+                    if (!validation.isValid) {
+                      promptAction.showToast({ message: validation.message });
+                      return;
+                    }
+                    
                     const updatedTask: TaskNode = {
                       id: this.task.id,
                       name: value,
@@ -93,11 +110,12 @@ export struct TaskEditor {
                 DatePicker({
                   start: new Date('2020-01-01'),
                   end: new Date('2030-12-31'),
-                  selected: this.task.startDate
+                  selected: this.task?.startDate || new Date()
                 })
                   .backgroundColor('#F9FAFB')
                   .borderRadius(8)
                   .padding(12)
+                  .border({ width: 1, color: '#E5E7EB', radius: 8 })
                   .onDateChange((value: Date) => {
                     if (this.task) {
                       const newStartDate = value;
@@ -129,11 +147,12 @@ export struct TaskEditor {
                 DatePicker({
                   start: new Date('2020-01-01'),
                   end: new Date('2030-12-31'),
-                  selected: this.task.endDate
+                  selected: this.task?.endDate || new Date()
                 })
                   .backgroundColor('#F9FAFB')
                   .borderRadius(8)
                   .padding(12)
+                  .border({ width: 1, color: '#E5E7EB', radius: 8 })
                   .onDateChange((value: Date) => {
                     if (this.task) {
                       const newEndDate = value;
@@ -222,7 +241,7 @@ export struct TaskEditor {
             }
 
             // 子任务列表
-            if (this.task.checklist.length === 0) {
+            if (!this.task || this.task.checklist.length === 0) {
               Column({ space: 8 }) {
                 Image($r('app.media.ic_empty_box'))
                   .width(40)
@@ -235,7 +254,7 @@ export struct TaskEditor {
               .width('100%')
               .padding(20)
               .justifyContent(FlexAlign.Center)
-            } else {
+            } else if (this.task) {
               Column({ space: 8 }) {
                 ForEach(this.task.checklist, (item: ChecklistItem) => {
                   Row({ space: 12 }) {
@@ -279,63 +298,49 @@ export struct TaskEditor {
 
           // --- 底部操作按钮 ---
           Column({ space: 12 }) {
-            Button() {
-              Row({ space: 8 }) {
-                Text('🔗')
-                  .fontSize(16)
-                  .fontColor(Color.White)
-                Text('创建依赖从此任务开始')
-                  .fontSize(15)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Medium)
-              }
-            }
-            .width('100%')
-            .height(48)
-            .backgroundColor('#6366F1')
-            .borderRadius(8)
-            .shadow({ radius: 6, color: '#6366F130', offsetX: 0, offsetY: 3 })
-            .onClick(() => { this.onStartConnecting() })
+            CommonButton({
+              text: '创建依赖从此任务开始',
+              icon: '🔗',
+              type: 'primary',
+              onButtonClick: () => { this.onStartConnecting() }
+            })
 
-            Button() {
-              Row({ space: 8 }) {
-                Text('🗑️')
-                  .fontSize(16)
-                  .fontColor(Color.White)
-                Text('删除此任务')
-                  .fontSize(15)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Medium)
-              }
-            }
-            .width('100%')
-            .height(48)
-            .backgroundColor('#EF4444')
-            .borderRadius(8)
-            .shadow({ radius: 6, color: '#EF444430', offsetX: 0, offsetY: 3 })
-            .onClick(() => {
-              if (this.task) {
-                this.onDeleteTask(this.task.id);
+            CommonButton({
+              text: '删除此任务',
+              icon: '🗑️',
+              type: 'danger',
+              onButtonClick: () => {
+                if (this.task) {
+                  // 添加删除确认对话框
+                  AlertDialog.show({
+                    title: '确认删除任务',
+                    message: `确定要删除任务"${this.task.name}"吗？删除后无法恢复。`,
+                    primaryButton: {
+                      value: '取消',
+                      action: () => {
+                        // 取消删除
+                      }
+                    },
+                    secondaryButton: {
+                      value: '删除',
+                      fontColor: '#EF4444',
+                      action: () => {
+                        if (this.task) {
+                          this.onDeleteTask(this.task.id);
+                        }
+                      }
+                    }
+                  });
+                }
               }
             })
 
-            Button() {
-              Row({ space: 8 }) {
-                Text('←')
-                  .fontSize(16)
-                  .fontColor('#374151')
-                Text('返回列表')
-                  .fontSize(15)
-                  .fontColor('#374151')
-                  .fontWeight(FontWeight.Medium)
-              }
-            }
-            .width('100%')
-            .height(48)
-            .backgroundColor('#F9FAFB')
-            .borderRadius(8)
-            .border({ width: 1, color: '#D1D5DB', radius: 8 })
-            .onClick(() => { this.onBack() })
+            CommonButton({
+              text: '返回列表',
+              icon: '←',
+              type: 'secondary',
+              onButtonClick: () => { this.onBack() }
+            })
           }
         }
         .padding(20)

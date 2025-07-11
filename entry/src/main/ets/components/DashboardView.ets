@@ -94,6 +94,7 @@ export struct DashboardView {
             }
           }
           .height(48)
+          .width(120)
           .backgroundColor('#007DFF')
           .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
           .onClick(() => {

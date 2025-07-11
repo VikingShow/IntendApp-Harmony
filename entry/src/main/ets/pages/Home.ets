@@ -5,6 +5,7 @@ import promptAction from '@ohos.promptAction';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
+import { LoadingView } from '../components/LoadingView';
 
 @Entry
 @Component
@@ -13,6 +14,7 @@ struct HomePage {
   @State selectedProjectDetail: Project | null = null;
   @State selectedProjectId: string | null = null;
   @State componentKey: number = 0;
+  @State isLoading: boolean = false;
 
   private storageService: StorageService | null = null;
 
@@ -41,76 +43,121 @@ struct HomePage {
       console.log(`[Home] Selecting project: ${projectId}`);
       this.selectedProjectId = projectId;
       
+      // 显示加载状态
+      this.isLoading = true;
+      
       // 先清空当前数据，触发UI更新
       this.selectedProjectDetail = null;
       this.componentKey++;
       
-      // 加载新项目数据
-      const loadedProject = await this.storageService.getProject(projectId);
-      console.log(`[Home] Project loaded: ${loadedProject?.name} with ${loadedProject?.tasks.length} tasks`);
-      
-      // 设置新数据
-      this.selectedProjectDetail = loadedProject;
-      this.componentKey++;
-      console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
+      try {
+        // 加载新项目数据
+        const loadedProject = await this.storageService.getProject(projectId);
+        console.log(`[Home] Project loaded: ${loadedProject?.name} with ${loadedProject?.tasks.length} tasks`);
+        
+        // 设置新数据
+        this.selectedProjectDetail = loadedProject;
+        this.componentKey++;
+        console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
+      } catch (error) {
+        this.handleError(error as Error, "onSelectProject");
+      } finally {
+        // 隐藏加载状态
+        this.isLoading = false;
+      }
     }
   }
 
   // FIX: New method to handle project creation, saving, and navigation.
   async createAndOpenNewProject() {
     if (!this.storageService) {
-      promptAction.showToast({ message: "存储服务未初始化" });
+      this.handleError(new Error("存储服务未初始化"), "createAndOpenNewProject");
       return;
     }
 
-    console.log("[EasyFlow] Creating new project from Home page");
+    try {
+      console.log("[EasyFlow] Creating new project from Home page");
 
-    // 1. Create a new project with example data.
-    const newProject = new Project(undefined, '新移动应用开发计划');
-    const today = new Date();
-    const task1: TaskNode = {
-      id: 'task_1', name: '需求分析与原型设计',
-      startDate: today,
-      endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
-      checklist: [
-        { id: 'c1_1', text: '收集用户反馈', isCompleted: true },
-        { id: 'c1_2', text: '绘制线框图', isCompleted: true },
-        { id: 'c1_3', text: '制作交互原型', isCompleted: false },
-      ],
-      x: 50, y: 150
-    };
-    const task2: TaskNode = {
-      id: 'task_2', name: 'UI/UX视觉设计',
-      startDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
-      endDate: new Date(today.getTime() + 9 * 24 * 60 * 60 * 1000),
-      checklist: [],
-      x: 350, y: 50
-    };
-    newProject.tasks = [task1, task2];
-    newProject.dependencies = [{ fromId: 'task_1', toId: 'task_2' }];
+      // 1. Create a new project with example data.
+      const newProject = new Project(undefined, '新移动应用开发计划');
+      const today = new Date();
+      const task1: TaskNode = {
+        id: 'task_1', name: '需求分析与原型设计',
+        startDate: today,
+        endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
+        checklist: [
+          { id: 'c1_1', text: '收集用户反馈', isCompleted: true },
+          { id: 'c1_2', text: '绘制线框图', isCompleted: true },
+          { id: 'c1_3', text: '制作交互原型', isCompleted: false },
+        ],
+        x: 50, y: 150
+      };
+      const task2: TaskNode = {
+        id: 'task_2', name: 'UI/UX视觉设计',
+        startDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
+        endDate: new Date(today.getTime() + 9 * 24 * 60 * 60 * 1000),
+        checklist: [],
+        x: 350, y: 50
+      };
+      newProject.tasks = [task1, task2];
+      newProject.dependencies = [{ fromId: 'task_1', toId: 'task_2' }];
 
-    // 2. Save the new project to storage immediately.
-    await this.storageService.saveProject(newProject);
-    console.log(`[EasyFlow] Project saved with ID: ${newProject.id}`);
-    promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
+      // 2. Save the new project to storage immediately.
+      await this.storageService.saveProject(newProject);
+      console.log(`[EasyFlow] Project saved with ID: ${newProject.id}`);
+      promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
 
-    // 3. Navigate to the editor page with the new project's ID.
-    router.pushUrl({
-      url: 'pages/Index',
-      params: { projectId: newProject.id }
+      // 3. Navigate to the editor page with the new project's ID.
+      router.pushUrl({
+        url: 'pages/Index',
+        params: { projectId: newProject.id }
+      });
+    } catch (error) {
+      this.handleError(error as Error, "createAndOpenNewProject");
+    }
+  }
+
+  // 统一的错误处理
+  private handleError(error: Error, context: string) {
+    console.error(`[${context}] Error:`, error);
+    promptAction.showToast({ 
+      message: `操作失败: ${error.message}`,
+      duration: 3000
     });
   }
 
   async deleteProject(projectId: string) {
-    if (this.storageService) {
-      await this.storageService.deleteProject(projectId);
-      promptAction.showToast({ message: '项目已删除' });
-      if (this.selectedProjectId === projectId) {
-        this.selectedProjectId = null;
-        this.selectedProjectDetail = null;
+    // 添加删除确认对话框
+    AlertDialog.show({
+      title: '确认删除',
+      message: '确定要删除这个项目吗？删除后无法恢复。',
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 取消删除
+        }
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: '#EF4444',
+        action: async () => {
+          if (this.storageService) {
+            try {
+              await this.storageService.deleteProject(projectId);
+              promptAction.showToast({ message: '项目已删除' });
+              if (this.selectedProjectId === projectId) {
+                this.selectedProjectId = null;
+                this.selectedProjectDetail = null;
+              }
+              await this.loadProjects();
+            } catch (error) {
+              promptAction.showToast({ message: '删除失败，请重试' });
+              console.error('[Home] Delete project error:', error);
+            }
+          }
+        }
       }
-      await this.loadProjects();
-    }
+    });
   }
 
   build() {
@@ -120,7 +167,9 @@ struct HomePage {
 
       // --- 右侧内容区 ---
       Column() {
-        if (this.selectedProjectDetail) {
+        if (this.isLoading) {
+          LoadingView({ message: '加载项目中...' })
+        } else if (this.selectedProjectDetail) {
           // 使用 key 属性强制重新创建组件
           DashboardView({ project: this.selectedProjectDetail })
             .key(`${this.selectedProjectDetail.id}_${this.componentKey}`)
@@ -148,7 +197,7 @@ struct HomePage {
           .fontWeight(FontWeight.Bold)
           .fontColor('#1F2937')
           .layoutWeight(1)
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
+        Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_add'))
             .width(20)
             .height(20)
@@ -257,8 +306,18 @@ struct HomePage {
     .padding(16)
     .backgroundColor(this.selectedProjectId === meta.id ? '#EFF6FF' : '#FFFFFF')
     .borderRadius(12)
-    .shadow({ radius: 4, color: this.selectedProjectId === meta.id ? '#007DFF20' : '#00000008', offsetX: 0, offsetY: 1 })
-    .border({ width: this.selectedProjectId === meta.id ? 2 : 0, color: '#007DFF', radius: 12 })
+    .shadow({ 
+      radius: 4, 
+      color: this.selectedProjectId === meta.id ? '#007DFF20' : '#00000008', 
+      offsetX: 0, 
+      offsetY: 1 
+    })
+    .border({ 
+      width: this.selectedProjectId === meta.id ? 2 : 0, 
+      color: '#007DFF', 
+      radius: 12 
+    })
+    .useEffect(true)
   }
 
   @Builder

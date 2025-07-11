@@ -1,11 +1,12 @@
 // File: entry/src/main/ets/pages/Home.ets
 import router from '@ohos.router';
 import { StorageService, ProjectMeta } from '../services/StorageService';
-import promptAction from '@ohos.promptAction';
+import { LoadingService } from '../services/LoadingService';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import { LoadingView } from '../components/LoadingView';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
@@ -17,10 +18,19 @@ struct HomePage {
   @State isLoading: boolean = false;
 
   private storageService: StorageService | null = null;
+  private loadingService: LoadingService = LoadingService.getInstance();
 
   async aboutToAppear() {
     const context = getContext(this).getApplicationContext();
     this.storageService = StorageService.getInstance(context.filesDir);
+    
+    // 注册加载状态监听器
+    this.loadingService.addListener((key: string, loading: boolean) => {
+      if (key === 'project_loading') {
+        this.isLoading = loading;
+      }
+    });
+    
     await this.loadProjects();
   }
 
@@ -30,10 +40,18 @@ struct HomePage {
 
   async loadProjects() {
     if (this.storageService) {
-      const list = await this.storageService.getProjectList();
-      this.projectList = list.sort((a, b) => b.lastModified - a.lastModified);
-      if (this.selectedProjectId) {
-        await this.onSelectProject(this.selectedProjectId);
+      try {
+        this.loadingService.setLoading('project_loading', true);
+        const list = await this.storageService.getProjectList();
+        this.projectList = list.sort((a, b) => b.lastModified - a.lastModified);
+        if (this.selectedProjectId) {
+          await this.onSelectProject(this.selectedProjectId);
+        }
+      } catch (error) {
+        promptAction.showToast({ message: '加载项目列表失败' });
+        console.error('[Home] Load projects error:', error);
+      } finally {
+        this.loadingService.setLoading('project_loading', false);
       }
     }
   }
@@ -44,7 +62,7 @@ struct HomePage {
       this.selectedProjectId = projectId;
       
       // 显示加载状态
-      this.isLoading = true;
+      this.loadingService.setLoading('project_loading', true);
       
       // 先清空当前数据，触发UI更新
       this.selectedProjectDetail = null;
@@ -59,11 +77,14 @@ struct HomePage {
         this.selectedProjectDetail = loadedProject;
         this.componentKey++;
         console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
+        
+        promptAction.showToast({ message: `已切换到项目: ${loadedProject?.name}` });
       } catch (error) {
+        promptAction.showToast({ message: '加载项目失败' });
         this.handleError(error as Error, "onSelectProject");
       } finally {
         // 隐藏加载状态
-        this.isLoading = false;
+        this.loadingService.setLoading('project_loading', false);
       }
     }
   }
@@ -120,10 +141,7 @@ struct HomePage {
   // 统一的错误处理
   private handleError(error: Error, context: string) {
     console.error(`[${context}] Error:`, error);
-    promptAction.showToast({ 
-      message: `操作失败: ${error.message}`,
-      duration: 3000
-    });
+    promptAction.showToast({ message: `操作失败: ${error.message}` });
   }
 
   async deleteProject(projectId: string) {
@@ -161,24 +179,28 @@ struct HomePage {
   }
 
   build() {
-    Row() {
-      // --- 左侧边栏 ---
-      this.Sidebar()
+    Stack() {
+      Row() {
+        // --- 左侧边栏 ---
+        this.Sidebar()
 
-      // --- 右侧内容区 ---
-      Column() {
-        if (this.isLoading) {
-          LoadingView({ message: '加载项目中...' })
-        } else if (this.selectedProjectDetail) {
-          // 使用 key 属性强制重新创建组件
-          DashboardView({ project: this.selectedProjectDetail })
-            .key(`${this.selectedProjectDetail.id}_${this.componentKey}`)
-        } else {
-          WelcomeView()
+        // --- 右侧内容区 ---
+        Column() {
+          if (this.isLoading) {
+            LoadingView({ message: '加载项目中...' })
+          } else if (this.selectedProjectDetail) {
+            // 使用 key 属性强制重新创建组件
+            DashboardView({ project: this.selectedProjectDetail })
+              .key(`${this.selectedProjectDetail.id}_${this.componentKey}`)
+          } else {
+            WelcomeView()
+          }
         }
+        .layoutWeight(2)
+        .backgroundColor('#F8FAFC')
       }
-      .layoutWeight(2)
-      .backgroundColor('#F8FAFC')
+      .width('100%')
+      .height('100%')
     }
     .width('100%')
     .height('100%')

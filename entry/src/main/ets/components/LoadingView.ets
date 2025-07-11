@@ -17,15 +17,9 @@ export struct LoadingView {
   }
 
   private startRotation() {
-    // 使用animateTo创建循环动画
+    // 使用新的动画API
     const animate = () => {
-      animateTo({ 
-        duration: 1000, 
-        curve: Curve.Linear,
-        iterations: 1
-      }, () => {
-        this.rotation = 360;
-      });
+      this.rotation = 360;
       
       setTimeout(() => {
         this.rotation = 0;

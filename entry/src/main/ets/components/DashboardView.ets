@@ -101,7 +101,7 @@ export struct DashboardView {
             router.pushUrl({
               url: 'pages/Index',
               params: { projectId: this.project.id }
-            });
+            } as router.RouterOptions);
           })
         }
         .width('100%')

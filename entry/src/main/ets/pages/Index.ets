@@ -31,7 +31,7 @@ struct Index {
 
   async aboutToAppear() {
     // 初始化存储服务
-    const context = getContext(this).getApplicationContext();
+    const context = getContext(this);
     this.storageService = StorageService.getInstance(context.filesDir);
 
     // 从路由参数中获取projectId

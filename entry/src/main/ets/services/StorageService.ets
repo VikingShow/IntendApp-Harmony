@@ -1,5 +1,5 @@
 // File: entry/src/main/ets/services/StorageService.ts
-import storage from '@ohos.data.storage';
+import preferences from '@ohos.data.preferences';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 
 // Defines the structure for project metadata used in the project list.
@@ -22,14 +22,16 @@ interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
 
 
 const PROJECT_LIST_KEY = 'project_list';
+const STORE_NAME = 'project_storage';
 
 export class StorageService {
   private static instance: StorageService;
-  private store: storage.Storage;
+  private store: Promise<preferences.Preferences>;
 
   // FIX: The constructor now only accepts the filesDir string it needs.
   private constructor(filesDir: string) {
-    this.store = storage.getStorageSync(filesDir + '/project_storage');
+    // 使用preferences替代storage
+    this.store = preferences.getPreferences(getContext(), STORE_NAME);
     console.log('StorageService initialized.');
   }
 
@@ -47,7 +49,8 @@ export class StorageService {
 
   public async getProjectList(): Promise<ProjectMeta[]> {
     try {
-      const value = await this.store.get(PROJECT_LIST_KEY, '[]');
+      const preferences = await this.store;
+      const value = await preferences.get(PROJECT_LIST_KEY, '[]');
       return JSON.parse(value.toString()) as ProjectMeta[];
     } catch (e) {
       console.error('Failed to get project list.', JSON.stringify(e));
@@ -57,8 +60,9 @@ export class StorageService {
 
   private async saveProjectList(list: ProjectMeta[]): Promise<void> {
     try {
-      await this.store.put(PROJECT_LIST_KEY, JSON.stringify(list));
-      await this.store.flush();
+      const preferences = await this.store;
+      await preferences.put(PROJECT_LIST_KEY, JSON.stringify(list));
+      await preferences.flush();
     } catch (e) {
       console.error('Failed to save project list.', JSON.stringify(e));
     }
@@ -109,8 +113,9 @@ export class StorageService {
       };
 
       const projectJSON = JSON.stringify(storableProject);
-      await this.store.put(project.id, projectJSON);
-      await this.store.flush();
+      const preferences = await this.store;
+      await preferences.put(project.id, projectJSON);
+      await preferences.flush();
       console.log(`Project ${project.id} saved successfully.`);
     } catch (e) {
       console.error(`Failed to save project ${project.id}.`, JSON.stringify(e));
@@ -119,7 +124,8 @@ export class StorageService {
 
   public async getProject(projectId: string): Promise<Project | null> {
     try {
-      const value = await this.store.get(projectId, '');
+      const preferences = await this.store;
+      const value = await preferences.get(projectId, '');
       if (value) {
         const storableProject = JSON.parse(value.toString()) as StorableProject;
 
@@ -158,8 +164,9 @@ export class StorageService {
       list = list.filter(p => p.id !== projectId);
       await this.saveProjectList(list);
 
-      await this.store.delete(projectId);
-      await this.store.flush();
+      const preferences = await this.store;
+      await preferences.delete(projectId);
+      await preferences.flush();
       console.log(`Project ${projectId} deleted successfully.`);
     } catch (e) {
       console.error(`Failed to delete project ${projectId}.`, JSON.stringify(e));

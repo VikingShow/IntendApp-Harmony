@@ -349,22 +349,23 @@ struct Index {
       // --- 修正：节点渲染全部加canvasOffset ---
       const drawX = task.x + this.canvasOffsetX;
       const drawY = task.y + this.canvasOffsetY;
-      this.context.fillStyle = task.isCritical ? '#FADBD8' : '#AECBFA';
-      this.context.beginPath();
-      this.context.rect(drawX, drawY, NODE_WIDTH, NODE_HEIGHT);
+      // 节点背景（白色圆角）
+      this.context.fillStyle = '#FFFFFF';
+      this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
+      // 节点边框（圆角）
       this.context.strokeStyle = isSelected ? '#FF8C00' : (task.isCritical ? '#D0021B' : '#4A90E2');
       this.context.lineWidth = isSelected ? 4 : 2;
       this.context.stroke();
       this.context.fillStyle = '#000000';
-      this.context.font = `bold 16px HarmonyOS Sans`;
+      this.context.font = `bold 28px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 25);
-      this.context.font = `14px HarmonyOS Sans`;
+      this.context.font = `22px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
       this.context.fillText(`📅 ${dateString}`, drawX + 15, drawY + 45);
       const timeProgress = this.getTimeProgress(task);
       const completionProgress = this.getCompletionProgress(task);
-      this.context.font = `12px HarmonyOS Sans`;
+      this.context.font = `19px HarmonyOS Sans`;
       this.context.fillText(`⌛ 时间: ${timeProgress}%`, drawX + 15, drawY + 70);
       this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, '#4A90E2');
       this.context.fillText(`✓ 完成: ${completionProgress}%`, drawX + 15, drawY + 95);
@@ -372,12 +373,33 @@ struct Index {
     });
   }
 
+  private drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
   private drawProgressBar(x: number, y: number, width: number, height: number, progress: number, color: string) {
+    const radius = height / 2;
+    // 背景
     this.context.fillStyle = '#E0E0E0';
-    this.context.fillRect(x, y, width, height);
+    this.drawRoundRect(this.context, x, y, width, height, radius);
+    this.context.fill();
+    // 进度
     this.context.fillStyle = color;
     const progressWidth = (width * progress) / 100;
-    this.context.fillRect(x, y, progressWidth, height);
+    if (progressWidth > 0) {
+      this.drawRoundRect(this.context, x, y, progressWidth, height, radius);
+      this.context.fill();
+    }
   }
 
   build() {

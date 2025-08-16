@@ -7,8 +7,9 @@ import promptAction from '@ohos.promptAction';
 
 @Component
 export struct TaskEditor {
-  task: TaskNode | null = null;
+  @Prop task: TaskNode | null;
   @State newChecklistItemText: string = '';
+  @State private localTask: TaskNode | null = null;
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
@@ -22,16 +23,30 @@ export struct TaskEditor {
   onAddChecklistItem: (taskId: string, text: string) => void = () => {
   };
 
+  aboutToAppear() {
+    this.localTask = this.task;
+  }
+
+  aboutToUpdate() {
+    // 当task变化时，更新localTask
+    if (this.localTask?.id !== this.task?.id) {
+      this.localTask = this.task;
+    } else if (this.task && this.localTask) {
+      // 如果ID相同但内容可能不同，同步更新内容
+      this.localTask = this.task;
+    }
+  }
+
   private getDuration(): number {
-    if (!this.task) return 0;
-    const diffTime = this.task.endDate.getTime() - this.task.startDate.getTime();
+    if (!this.localTask) return 0;
+    const diffTime = this.localTask.endDate.getTime() - this.localTask.startDate.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(1, diffDays);
   }
 
   // 封装一个统一的添加函数
   private submitNewChecklistItem() {
-    if (this.task && this.newChecklistItemText.trim() !== '') {
+    if (this.localTask && this.newChecklistItemText.trim() !== '') {
       // 验证清单项
       const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
       if (!validation.isValid) {
@@ -39,43 +54,46 @@ export struct TaskEditor {
         return;
       }
 
-      this.onAddChecklistItem(this.task.id, this.newChecklistItemText);
+      this.onAddChecklistItem(this.localTask.id, this.newChecklistItemText);
       this.newChecklistItemText = '';
     }
   }
 
   build() {
-    if (this.task) {
-      // FIX: 将根布局改为Scroll，以确保整个编辑器在内容溢出时可以滚动
+    // 使用localTask来确保响应式更新
+    if (this.localTask) {
+      // 苹果风格：使用更大的间距和更优雅的布局
       Scroll() {
-        Column({ space: 12 }) {
-          // --- 头部信息卡片 ---
-          Column({ space: 10 }) {
-            // 标题区域
+        Column({ space: 20 }) {
+          // --- 头部信息卡片 - 苹果风格：更大的圆角、更精致的阴影 ---
+          Column({ space: 16 }) {
+            // 标题区域 - 苹果风格：更优雅的字体权重和颜色
             Row({ space: 12 }) {
-              Text('编辑任务')
-                .fontSize(16)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#1F2937')
-                .layoutWeight(1)
+                             Text('编辑任务')
+                 .fontSize(20)
+                 .fontWeight(FontWeight.Medium)
+                 .fontColor('#1D1D1F') // 苹果深色文字
+                 .layoutWeight(1)
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 任务名称输入
-            Column({ space: 6 }) {
+            // 任务名称输入 - 苹果风格：更精致的输入框设计
+            Column({ space: 8 }) {
               Text('任务名称')
-                .fontSize(12)
+                .fontSize(13)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#374151')
-              TextInput({ text: this.task?.name || '' })
-                .backgroundColor('#F9FAFB')
-                .borderRadius(8)
-                .padding(6)
-                .fontSize(14)
+                .fontColor('#86868B') // 苹果次要文字颜色
+              TextInput({ text: this.localTask.name || '' })
+                .backgroundColor('#F5F5F7') // 苹果浅灰背景
+                .borderRadius(12) // 苹果风格圆角
+                .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+                .fontSize(16)
                 .width('100%')
+                .fontColor('#1D1D1F')
+                .placeholderColor('#86868B')
                 .onChange((value: string) => {
-                  if (this.task) {
+                  if (this.localTask) {
                     // 验证任务名称
                     const validation = ValidationUtils.validateProjectName(value);
                     if (!validation.isValid) {
@@ -84,112 +102,119 @@ export struct TaskEditor {
                     }
 
                     // 只传递需要更新的字段，而不是整个TaskNode对象
-                    this.onUpdateTask(this.task.id, { name: value });
+                    this.onUpdateTask(this.localTask.id, { name: value });
                   }
                 })
             }
 
-            // 日期选择区域
-            Row({ space: 8 }) {
-              Column({ space: 8 }) {
-                Text('开始日期')
-                  .fontSize(12)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor('#374151')
-                DatePicker({
-                  start: new Date('2020-01-01'),
-                  end: new Date('2030-12-31'),
-                  selected: this.task?.startDate || new Date()
-                })
-                  .backgroundColor('#F9FAFB')
-                  .borderRadius(8)
-                  .padding(6)
-                  .border({ width: 1, color: '#E5E7EB', radius: 8 })
-                  .width('100%')
-                  .onDateChange((value: Date) => {
-                    if (this.task) {
-                      const newStartDate = value;
-                      const newEndDate = this.task.endDate < newStartDate ? newStartDate : this.task.endDate;
-                      
-                      // 只传递需要更新的字段
-                      this.onUpdateTask(this.task.id, { 
-                        startDate: newStartDate,
-                        endDate: newEndDate
-                      });
-                    }
-                  })
-              }.layoutWeight(1)
+                         // 日期选择区域 - 苹果风格：更优雅的日期选择器，优化宽度显示
+             Column({ space: 12 }) {
+               // 开始日期 - 独占一行，确保有足够宽度
+               Column({ space: 8 }) {
+                 Text('开始日期')
+                   .fontSize(13)
+                   .fontWeight(FontWeight.Medium)
+                   .fontColor('#86868B')
+                 DatePicker({
+                   start: new Date('2020-01-01'),
+                   end: new Date('2030-12-31'),
+                   selected: this.localTask.startDate || new Date()
+                 })
+                   .backgroundColor('#F5F5F7')
+                   .borderRadius(12)
+                   .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+                   .border({ width: 0, radius: 12 })
+                   .width('100%')
+                   .onDateChange((value: Date) => {
+                     if (this.localTask) {
+                       const newStartDate = value;
+                       const newEndDate = this.localTask.endDate < newStartDate ? newStartDate : this.localTask.endDate;
+                       
+                       // 只传递需要更新的字段
+                       this.onUpdateTask(this.localTask.id, { 
+                         startDate: newStartDate,
+                         endDate: newEndDate
+                       });
+                     }
+                   })
+               }
 
-              Column({ space: 8 }) {
-                Text('结束日期')
-                  .fontSize(12)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor('#374151')
-                DatePicker({
-                  start: new Date('2020-01-01'),
-                  end: new Date('2030-12-31'),
-                  selected: this.task?.endDate || new Date()
-                })
-                  .backgroundColor('#F9FAFB')
-                  .borderRadius(8)
-                  .padding(6)
-                  .border({ width: 1, color: '#E5E7EB', radius: 8 })
-                  .width('100%')
-                  .onDateChange((value: Date) => {
-                    if (this.task) {
-                      const newEndDate = value;
-                      const newStartDate = this.task.startDate > newEndDate ? newEndDate : this.task.startDate;
-                      
-                      // 只传递需要更新的字段
-                      this.onUpdateTask(this.task.id, { 
-                        startDate: newStartDate,
-                        endDate: newEndDate
-                      });
-                    }
-                  })
-              }.layoutWeight(1)
-            }
+               // 结束日期 - 独占一行，确保有足够宽度
+               Column({ space: 8 }) {
+                 Text('结束日期')
+                   .fontSize(13)
+                   .fontWeight(FontWeight.Medium)
+                   .fontColor('#86868B')
+                 DatePicker({
+                   start: new Date('2020-01-01'),
+                   end: new Date('2030-12-31'),
+                   selected: this.localTask.endDate || new Date()
+                 })
+                   .backgroundColor('#F5F5F7')
+                   .borderRadius(12)
+                   .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+                   .border({ width: 0, radius: 12 })
+                   .width('100%')
+                   .onDateChange((value: Date) => {
+                     if (this.localTask) {
+                       const newEndDate = value;
+                       const newStartDate = this.localTask.startDate > newEndDate ? newEndDate : this.localTask.startDate;
+                       
+                       // 只传递需要更新的字段
+                       this.onUpdateTask(this.localTask.id, { 
+                         startDate: newStartDate,
+                         endDate: newEndDate
+                       });
+                     }
+                   })
+               }
+             }
 
-            // 工期显示
+            // 工期显示 - 苹果风格：更优雅的信息展示
             Row({ space: 8 }) {
               Text(`工期: ${this.getDuration()} 天`)
-                .fontSize(12)
-                .fontColor('#6B7280')
+                .fontSize(13)
+                .fontColor('#86868B')
                 .fontWeight(FontWeight.Medium)
             }
             .width('100%')
             .justifyContent(FlexAlign.End)
           }
-          .padding(10)
+          .padding(20) // 苹果风格：更大的内边距
           .backgroundColor('#FFFFFF')
-          .borderRadius(12)
+          .borderRadius(16) // 苹果风格：更大的圆角
           .shadow({
-            radius: 8,
-            color: '#0000000A',
+            radius: 20,
+            color: '#00000008', // 苹果风格：更柔和的阴影
             offsetX: 0,
-            offsetY: 2
+            offsetY: 4
           })
 
-          // --- 任务清单卡片 ---
-          Column({ space: 10 }) {
+          // --- 任务清单卡片 - 苹果风格：更精致的清单设计 ---
+          Column({ space: 16 }) {
             // 清单标题
             Row({ space: 8 }) {
-              Text('任务清单')
-                .fontSize(16)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#1F2937')
+                             Text('任务清单')
+                 .fontSize(18)
+                 .fontWeight(FontWeight.Medium)
+                 .fontColor('#1D1D1F')
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 添加新子任务
-            Row({ space: 8 }) {
-              TextInput({ placeholder: '添加一个子任务...', text: this.newChecklistItemText })
+            // 添加新子任务 - 苹果风格：更优雅的输入设计
+            Row({ space: 12 }) {
+              TextInput({ 
+                placeholder: '添加一个子任务...', 
+                text: this.newChecklistItemText 
+              })
                 .layoutWeight(1)
-                .backgroundColor('#F9FAFB')
-                .borderRadius(8)
-                .padding(6)
-                .fontSize(12)
+                .backgroundColor('#F5F5F7')
+                .borderRadius(12)
+                .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+                .fontSize(15)
+                .fontColor('#1D1D1F')
+                .placeholderColor('#86868B')
                 .onChange((value: string) => {
                   this.newChecklistItemText = value;
                 })
@@ -197,18 +222,18 @@ export struct TaskEditor {
                   this.submitNewChecklistItem();
                 })
               Button() {
-                Text('+')
-                  .fontSize(14)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Bold)
+                                 Text('+')
+                   .fontSize(18)
+                   .fontColor(Color.White)
+                   .fontWeight(FontWeight.Medium)
               }
-              .width(36)
-              .height(36)
-              .backgroundColor('#007DFF')
-              .borderRadius(8)
+              .width(44) // 苹果风格：更大的按钮尺寸
+              .height(44)
+              .backgroundColor('#007AFF') // 苹果蓝色
+              .borderRadius(12)
               .shadow({
-                radius: 4,
-                color: '#007DFF30',
+                radius: 8,
+                color: '#007AFF30',
                 offsetX: 0,
                 offsetY: 2
               })
@@ -217,29 +242,29 @@ export struct TaskEditor {
               })
             }
 
-            // 子任务列表
-            if (!this.task || this.task.checklist.length === 0) {
-              Column({ space: 8 }) {
+            // 子任务列表 - 苹果风格：更精致的列表项设计
+            if (!this.localTask || !this.localTask.checklist || this.localTask.checklist.length === 0) {
+              Column({ space: 12 }) {
                 Image($r('app.media.ic_empty_box'))
-                  .width(28)
-                  .height(28)
-                  .opacity(0.5)
+                  .width(32)
+                  .height(32)
+                  .opacity(0.4)
                 Text('暂无子任务')
-                  .fontSize(12)
-                  .fontColor('#9CA3AF')
+                  .fontSize(14)
+                  .fontColor('#86868B')
               }
               .width('100%')
-              .padding(10)
+              .padding(24)
               .justifyContent(FlexAlign.Center)
-            } else if (this.task) {
+            } else if (this.localTask && this.localTask.checklist) {
               Column({ space: 8 }) {
-                ForEach(this.task.checklist, (item: ChecklistItem) => {
+                ForEach(this.localTask.checklist, (item: ChecklistItem) => {
                   Row({ space: 12 }) {
                     Checkbox({ name: item.id, group: 'checklist' })
                       .select(item.isCompleted)
                       .onChange((value: boolean) => {
-                        if (this.task) {
-                          const newChecklist = this.task.checklist.map(i => {
+                        if (this.localTask && this.localTask.checklist) {
+                          const newChecklist = this.localTask.checklist.map(i => {
                             if (i.id === item.id) {
                               return {
                                 id: i.id,
@@ -249,37 +274,41 @@ export struct TaskEditor {
                             }
                             return i;
                           });
-                          this.onUpdateChecklist(this.task.id, newChecklist);
+                          this.onUpdateChecklist(this.localTask.id, newChecklist);
                         }
                       })
                     Text(item.text)
-                      .fontSize(12)
-                      .fontColor(item.isCompleted ? '#9CA3AF' : '#374151')
+                      .fontSize(15)
+                      .fontColor(item.isCompleted ? '#86868B' : '#1D1D1F')
                       .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)
                   }
                   .width('100%')
-                  .padding(8)
-                  .backgroundColor(item.isCompleted ? '#F9FAFB' : '#FFFFFF')
-                  .borderRadius(8)
-                  .border({ width: 1, color: item.isCompleted ? '#E5E7EB' : '#D1D5DB', radius: 8 })
+                  .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+                  .backgroundColor(item.isCompleted ? '#F5F5F7' : '#FFFFFF')
+                  .borderRadius(12)
+                  .border({ 
+                    width: 1, 
+                    color: item.isCompleted ? '#E5E5E7' : '#E5E5E7', 
+                    radius: 12 
+                  })
                 }, (item: ChecklistItem) => item.id)
               }
             }
           }
-          .padding(10)
+          .padding(20)
           .backgroundColor('#FFFFFF')
-          .borderRadius(12)
+          .borderRadius(16)
           .shadow({
-            radius: 8,
-            color: '#0000000A',
+            radius: 20,
+            color: '#00000008',
             offsetX: 0,
-            offsetY: 2
+            offsetY: 4
           })
 
-          // --- 底部操作按钮 ---
-          Column({ space: 8 }) {
+          // --- 底部操作按钮 - 苹果风格：更优雅的按钮设计 ---
+          Column({ space: 12 }) {
             CommonButton({
               text: '创建依赖从此任务开始',
               icon: '🔗',
@@ -294,11 +323,11 @@ export struct TaskEditor {
               icon: '🗑️',
               type: 'danger',
               onButtonClick: () => {
-                if (this.task) {
+                if (this.localTask) {
                   // 添加删除确认对话框
                   AlertDialog.show({
                     title: '确认删除任务',
-                    message: `确定要删除任务"${this.task.name}"吗？删除后无法恢复。`,
+                    message: `确定要删除任务"${this.localTask.name}"吗？删除后无法恢复。`,
                     primaryButton: {
                       value: '取消',
                       action: () => {
@@ -307,10 +336,10 @@ export struct TaskEditor {
                     },
                     secondaryButton: {
                       value: '删除',
-                      fontColor: '#EF4444',
+                      fontColor: '#FF3B30', // 苹果红色
                       action: () => {
-                        if (this.task) {
-                          this.onDeleteTask(this.task.id);
+                        if (this.localTask) {
+                          this.onDeleteTask(this.localTask.id);
                         }
                       }
                     }
@@ -328,8 +357,9 @@ export struct TaskEditor {
               }
             })
           }
-          .padding(10)
+          .padding(20)
         }
+        .padding(20) // 苹果风格：更大的外边距
       }
     }
   }

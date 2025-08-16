@@ -9,7 +9,7 @@ import promptAction from '@ohos.promptAction';
 export struct TaskEditor {
   task: TaskNode | null = null;
   @State newChecklistItemText: string = '';
-  onUpdateTask: (task: TaskNode) => void = () => {
+  onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
   };
@@ -83,21 +83,8 @@ export struct TaskEditor {
                       return;
                     }
 
-                    const updatedTask: TaskNode = {
-                      id: this.task.id,
-                      name: value,
-                      startDate: this.task.startDate,
-                      endDate: this.task.endDate,
-                      checklist: this.task.checklist,
-                      x: this.task.x,
-                      y: this.task.y,
-                      isCritical: this.task.isCritical,
-                      earlyStart: this.task.earlyStart,
-                      earlyFinish: this.task.earlyFinish,
-                      lateStart: this.task.lateStart,
-                      lateFinish: this.task.lateFinish
-                    };
-                    this.onUpdateTask(updatedTask);
+                    // 只传递需要更新的字段，而不是整个TaskNode对象
+                    this.onUpdateTask(this.task.id, { name: value });
                   }
                 })
             }
@@ -123,21 +110,12 @@ export struct TaskEditor {
                     if (this.task) {
                       const newStartDate = value;
                       const newEndDate = this.task.endDate < newStartDate ? newStartDate : this.task.endDate;
-                      const updatedTask: TaskNode = {
-                        id: this.task.id,
-                        name: this.task.name,
+                      
+                      // 只传递需要更新的字段
+                      this.onUpdateTask(this.task.id, { 
                         startDate: newStartDate,
-                        endDate: newEndDate,
-                        checklist: this.task.checklist,
-                        x: this.task.x,
-                        y: this.task.y,
-                        isCritical: this.task.isCritical,
-                        earlyStart: this.task.earlyStart,
-                        earlyFinish: this.task.earlyFinish,
-                        lateStart: this.task.lateStart,
-                        lateFinish: this.task.lateFinish
-                      };
-                      this.onUpdateTask(updatedTask);
+                        endDate: newEndDate
+                      });
                     }
                   })
               }.layoutWeight(1)
@@ -161,21 +139,12 @@ export struct TaskEditor {
                     if (this.task) {
                       const newEndDate = value;
                       const newStartDate = this.task.startDate > newEndDate ? newEndDate : this.task.startDate;
-                      const updatedTask: TaskNode = {
-                        id: this.task.id,
-                        name: this.task.name,
+                      
+                      // 只传递需要更新的字段
+                      this.onUpdateTask(this.task.id, { 
                         startDate: newStartDate,
-                        endDate: newEndDate,
-                        checklist: this.task.checklist,
-                        x: this.task.x,
-                        y: this.task.y,
-                        isCritical: this.task.isCritical,
-                        earlyStart: this.task.earlyStart,
-                        earlyFinish: this.task.earlyFinish,
-                        lateStart: this.task.lateStart,
-                        lateFinish: this.task.lateFinish
-                      };
-                      this.onUpdateTask(updatedTask);
+                        endDate: newEndDate
+                      });
                     }
                   })
               }.layoutWeight(1)

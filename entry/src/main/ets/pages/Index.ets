@@ -5,7 +5,7 @@ import { ProjectManager } from '../core/ProjectManager';
 import { CanvasController } from '../core/CanvasController';
 import { Sidebar } from '../components/Sidebar';
 import { StorageService } from '../services/StorageService';
-import { TaskNode, Project } from '../model/ProjectData';
+import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 
@@ -236,14 +236,19 @@ struct Index {
           onAddTask: () => {
             this.projectManager.getActions().addTask();
           },
-          onUpdateTask: (task) => {
-            this.projectManager.getActions().updateTask(task);
+          onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
+            this.projectManager.getActions().updateTask(taskId, updates);
           },
           onUpdateChecklist: (taskId, checklist) => {
             this.projectManager.getActions().updateChecklist(taskId, checklist);
           },
           onAddChecklistItem: (taskId, text) => {
-            this.projectManager.getActions().addChecklistItem(taskId, text);
+            const newItem: ChecklistItem = {
+              id: `item_${Date.now()}`,
+              text: text,
+              isCompleted: false
+            };
+            this.projectManager.getActions().addChecklistItem(taskId, newItem);
           },
           onDeleteTask: (id) => {
             this.projectManager.getActions().deleteTask(id);

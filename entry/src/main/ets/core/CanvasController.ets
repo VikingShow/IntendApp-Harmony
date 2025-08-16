@@ -72,12 +72,12 @@ export class CanvasController {
 
   public getActions(): CanvasActions {
     return {
-      handleTouch: this.handleTouch.bind(this),
-      resetCanvas: this.resetCanvas.bind(this),
-      toggleCanvasLock: this.toggleCanvasLock.bind(this),
-      startConnecting: this.startConnecting.bind(this),
-      stopConnecting: this.stopConnecting.bind(this),
-      getRenderConfig: this.getRenderConfig.bind(this)
+      handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => this.handleTouch(event, project, selectedTaskId),
+      resetCanvas: () => this.resetCanvas(),
+      toggleCanvasLock: () => this.toggleCanvasLock(),
+      startConnecting: (taskId: string) => this.startConnecting(taskId),
+      stopConnecting: () => this.stopConnecting(),
+      getRenderConfig: (selectedTaskId: string | null) => this.getRenderConfig(selectedTaskId)
     };
   }
 

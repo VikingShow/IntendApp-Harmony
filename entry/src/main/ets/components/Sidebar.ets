@@ -36,7 +36,7 @@ export struct Sidebar {
     }
   }
 
-  onUpdateTask: (task: TaskNode) => void = () => {};
+  onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {};
   onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => void = () => {};
   onAddChecklistItem: (taskId: string, text: string) => void = () => {};
   onUpdateProjectName: (newName: string) => void = () => {};
@@ -95,7 +95,9 @@ export struct Sidebar {
           } else {
             TaskEditor({
               task: this.selectedTaskForEditor,
-              onUpdateTask: this.onUpdateTask,
+              onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
+                this.onUpdateTask(taskId, updates);
+              },
               onUpdateChecklist: this.onUpdateChecklist,
               onAddChecklistItem: this.onAddChecklistItem,
               onDeleteTask: this.onDeleteTask,

@@ -46,4 +46,5 @@ export class Project {
   addTask(task: TaskNode) {
     this.tasks.push(task);
   }
+
 }

@@ -21,11 +21,11 @@ export interface ProjectActions {
   saveProject: () => Promise<void>;
   updateProjectName: (name: string) => void;
   addTask: () => void;
-  updateTask: (task: TaskNode) => void;
+  updateTask: (taskId: string, updates: Partial<TaskNode>) => void;
   deleteTask: (taskId: string) => void;
   selectTask: (task: TaskNode | null) => void;
   updateChecklist: (taskId: string, checklist: ChecklistItem[]) => void;
-  addChecklistItem: (taskId: string, text: string) => void;
+  addChecklistItem: (taskId: string, item: ChecklistItem) => void;
   addDependency: (fromId: string, toId: string) => void;
   removeDependency: (fromId: string, toId: string) => void;
   calculateCriticalPath: () => void;
@@ -38,6 +38,7 @@ export class ProjectManager {
   private cpmService: CriticalPathService = new CriticalPathService();
   private templateService: TemplateService = TemplateService.getInstance();
   private eventBus: EventBus = EventBus.getInstance();
+  private autoSaveTimer: number | null = null;
 
   private state: ProjectState = {
     project: null,
@@ -67,21 +68,21 @@ export class ProjectManager {
   // 获取所有操作方法
   public getActions(): ProjectActions {
     return {
-      loadProject: this.loadProject.bind(this),
-      createNewProject: this.createNewProject.bind(this),
-      createFromTemplate: this.createFromTemplate.bind(this),
-      saveProject: this.saveProject.bind(this),
-      updateProjectName: this.updateProjectName.bind(this),
-      addTask: this.addTask.bind(this),
-      updateTask: this.updateTask.bind(this),
-      deleteTask: this.deleteTask.bind(this),
-      selectTask: this.selectTask.bind(this),
-      updateChecklist: this.updateChecklist.bind(this),
-      addChecklistItem: this.addChecklistItem.bind(this),
-      addDependency: this.addDependency.bind(this),
-      removeDependency: this.removeDependency.bind(this),
-      calculateCriticalPath: this.calculateCriticalPath.bind(this),
-      moveTask: this.moveTask.bind(this)
+      loadProject: (projectId: string) => this.loadProject(projectId),
+      createNewProject: (name?: string) => this.createNewProject(name),
+      createFromTemplate: (templateId: string, projectName: string) => this.createFromTemplate(templateId, projectName),
+      saveProject: () => this.saveProject(),
+      updateProjectName: (name: string) => this.updateProjectName(name),
+      addTask: () => this.addTask(),
+      updateTask: (taskId: string, updates: Partial<TaskNode>) => this.updateTask(taskId, updates),
+      deleteTask: (taskId: string) => this.deleteTask(taskId),
+      selectTask: (task: TaskNode | null) => this.selectTask(task),
+      updateChecklist: (taskId: string, checklist: ChecklistItem[]) => this.updateChecklist(taskId, checklist),
+      addChecklistItem: (taskId: string, item: ChecklistItem) => this.addChecklistItem(taskId, item),
+      addDependency: (fromId: string, toId: string) => this.addDependency(fromId, toId),
+      removeDependency: (fromId: string, toId: string) => this.removeDependency(fromId, toId),
+      calculateCriticalPath: () => this.calculateCriticalPath(),
+      moveTask: (taskId: string, x: number, y: number) => this.moveTask(taskId, x, y)
     };
   }
 
@@ -186,20 +187,47 @@ export class ProjectManager {
     promptAction.showToast({ message: '新任务已添加' });
   }
 
-  private updateTask(task: TaskNode): void {
+  private updateTask(taskId: string, updates: Partial<TaskNode>): void {
     if (!this.state.project) return;
 
-    this.state.project.tasks = this.state.project.tasks.map(t => 
-      t.id === task.id ? task : t
-    );
+    const taskIndex = this.state.project.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
 
-    if (this.state.selectedTask?.id === task.id) {
-      this.state.selectedTask = task;
+    // 更新任务属性
+    const originalTask = this.state.project.tasks[taskIndex];
+    const updatedTask = this.copyTaskNode(originalTask);
+    
+    // 手动更新属性
+    if (updates.name !== undefined) updatedTask.name = updates.name;
+    if (updates.startDate !== undefined) updatedTask.startDate = updates.startDate;
+    if (updates.endDate !== undefined) updatedTask.endDate = updates.endDate;
+    if (updates.checklist !== undefined) updatedTask.checklist = updates.checklist.slice();
+    if (updates.x !== undefined) updatedTask.x = updates.x;
+    if (updates.y !== undefined) updatedTask.y = updates.y;
+    if (updates.isCritical !== undefined) updatedTask.isCritical = updates.isCritical;
+    if (updates.earlyStart !== undefined) updatedTask.earlyStart = updates.earlyStart;
+    if (updates.earlyFinish !== undefined) updatedTask.earlyFinish = updates.earlyFinish;
+    if (updates.lateStart !== undefined) updatedTask.lateStart = updates.lateStart;
+    if (updates.lateFinish !== undefined) updatedTask.lateFinish = updates.lateFinish;
+    
+    this.state.project.tasks[taskIndex] = updatedTask;
+
+    // 更新selectedTask以保持同步
+    if (this.state.selectedTask?.id === taskId) {
+      this.state.selectedTask = this.copyTaskNode(updatedTask);
     }
 
-    this.eventBus.emit(Events.TASK_UPDATED, task);
+    // 先触发任务更新事件
+    this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
+    
+    // 然后触发项目保存事件
     this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+    
+    // 最后重新计算关键路径
     this.calculateCriticalPath();
+    
+    // 自动保存到存储
+    this.autoSaveProject();
   }
 
   private deleteTask(taskId: string): void {
@@ -234,24 +262,29 @@ export class ProjectManager {
       if (this.state.selectedTask?.id === taskId) {
         this.state.selectedTask = this.copyTaskNode(updatedTask);
       }
+      
+      // 触发事件和自动保存
+      this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+      this.autoSaveProject();
     }
   }
 
-  private addChecklistItem(taskId: string, text: string): void {
+  private addChecklistItem(taskId: string, item: ChecklistItem): void {
     if (!this.state.project) return;
 
     const task = this.state.project.tasks.find(t => t.id === taskId);
     if (task) {
-      const newItem: ChecklistItem = {
-        id: `item_${Date.now()}`,
-        text,
-        isCompleted: false
-      };
-      task.checklist = task.checklist.concat([newItem]);
+      task.checklist = task.checklist.concat([item]);
       
       if (this.state.selectedTask?.id === taskId) {
         this.state.selectedTask = this.copyTaskNode(task);
       }
+      
+      // 触发事件和自动保存
+      this.eventBus.emit(Events.TASK_UPDATED, task);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+      this.autoSaveProject();
     }
   }
 
@@ -352,6 +385,28 @@ export class ProjectManager {
     const diffTime = task.endDate.getTime() - task.startDate.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(1, diffDays);
+  }
+
+  // 自动保存项目到存储（带防抖）
+  private autoSaveProject(): void {
+    // 清除之前的定时器
+    if (this.autoSaveTimer !== null) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    
+    // 设置新的定时器，延迟500ms后保存
+    this.autoSaveTimer = setTimeout(async () => {
+      if (this.state.project && this.storageService) {
+        try {
+          await this.storageService.saveProject(this.state.project);
+          console.log('[ProjectManager] 项目已自动保存');
+        } catch (error) {
+          console.error('[ProjectManager] 自动保存失败:', error);
+          this.setError('自动保存失败');
+        }
+      }
+      this.autoSaveTimer = null;
+    }, 500);
   }
 
   private setLoading(loading: boolean): void {

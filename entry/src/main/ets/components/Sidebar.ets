@@ -9,8 +9,9 @@ import { TemplateService } from '../services/TemplateService';
 
 @Component
 export struct Sidebar {
-  // project现在可能为null，直到它被加载
+  // 使用@ObjectLink来响应Project状态变化（Project是@Observed类）
   @ObjectLink project: Project | null;
+  // 使用@Prop来响应TaskNode状态变化（TaskNode是接口）
   @Prop selectedTask: TaskNode | null;
   @State private selectedTaskForEditor: TaskNode | null = null;
   // 新增参数：区分首页和编辑页
@@ -27,8 +28,12 @@ export struct Sidebar {
   aboutToAppear() {
     this.selectedTaskForEditor = this.selectedTask;
   }
+  
   aboutToUpdate() {
-    this.selectedTaskForEditor = this.selectedTask;
+    // 当selectedTask变化时，更新selectedTaskForEditor
+    if (this.selectedTaskForEditor?.id !== this.selectedTask?.id) {
+      this.selectedTaskForEditor = this.selectedTask;
+    }
   }
 
   onUpdateTask: (task: TaskNode) => void = () => {};

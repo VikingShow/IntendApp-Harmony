@@ -48,6 +48,11 @@
           }
         ],
       }
-    ]
+    ],
+//    "requestPermissions": [
+//      {
+////        "name": "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY"
+//      }
+//    ]
   }
 }

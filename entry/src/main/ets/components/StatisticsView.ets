@@ -104,7 +104,7 @@ export struct StatisticsView {
         this.onClose();
       })
 
-      Text('📊 项目统计')
+      Text('项目统计')
         .fontSize(ThemeConfig.fontSizeXXL)
         .fontWeight(FontWeight.Bold)
         .fontColor(ThemeConfig.gray800)
@@ -116,6 +116,7 @@ export struct StatisticsView {
           .fontColor(ThemeConfig.primaryColor)
       }
       .height(32)
+      .layoutWeight(48)
       .backgroundColor(ThemeConfig.primaryLight)
       .borderRadius(ThemeConfig.radiusSmall)
       .onClick(() => {

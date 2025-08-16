@@ -309,6 +309,7 @@ export struct SearchView {
             .fontColor(Color.White)
         }
         .height(28)
+        .layoutWeight(0.1)
         .backgroundColor(ThemeConfig.primaryColor)
         .borderRadius(ThemeConfig.radiusSmall)
         .onClick(() => {
@@ -337,7 +338,7 @@ export struct SearchView {
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
               
-              Text(task.checklist.every(item => item.isCompleted) ? '✅' : '⏳')
+              Text(task.checklist.every(item => item.isCompleted) ? '✅已完成' : '⏳未完成')
                 .fontSize(ThemeConfig.fontSizeS)
                 .fontColor(ThemeConfig.gray500)
             }

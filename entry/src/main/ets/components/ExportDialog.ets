@@ -4,6 +4,10 @@ import { ExportService } from '../services/ExportService';
 import { CommonButton } from './CommonButton';
 import { ThemeConfig } from '../utils/ThemeConfig';
 import promptAction from '@ohos.promptAction';
+import { picker } from '@kit.CoreFileKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { common } from '@kit.AbilityKit';
 
 @Component
 export struct ExportDialog {
@@ -62,7 +66,7 @@ export struct ExportDialog {
           Column({ space: ThemeConfig.spacingS }) {
             CommonButton({
               text: '导出当前项目',
-              icon: '📋',
+              // icon: '📋',
               type: 'primary',
               onButtonClick: () => {
                 this.exportCurrentProject();
@@ -71,7 +75,7 @@ export struct ExportDialog {
 
             CommonButton({
               text: '导出项目报告',
-              icon: '📊',
+              // icon: '📊',
               type: 'primary',
               onButtonClick: () => {
                 this.exportProjectReport();
@@ -80,7 +84,7 @@ export struct ExportDialog {
 
             CommonButton({
               text: '导出所有项目',
-              icon: '📁',
+              // icon: '📁',
               type: 'secondary',
               onButtonClick: () => {
                 this.exportAllProjects();
@@ -120,7 +124,31 @@ export struct ExportDialog {
 
     try {
       const exportData = await this.exportService.exportProject(this.projectId);
-      // 这里可以添加文件保存逻辑
+      // 创建文件管理器选项实例。
+      const documentSaveOptions = new picker.DocumentSaveOptions();
+      // 保存文件名（可选）。 默认为空。
+      documentSaveOptions.newFileNames = ["DocumentViewPicker01.txt"];
+      // 保存文件类型['后缀类型描述|后缀类型'],选择所有文件：'所有文件(*.*)|.*'（可选） ，如果选择项存在多个后缀（做大限制100个过滤后缀），默认选择第一个。如果不传该参数，默认无过滤后缀。
+      documentSaveOptions.fileSuffixChoices = ['文档|.txt', 'JSON|.json'];
+
+      let uris: Array<string> = [];
+      // 请在组件内获取context，确保this.getUIContext().getHostContext()返回结果为UIAbilityContext
+      let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const documentViewPicker = new picker.DocumentViewPicker(context);
+      documentViewPicker.save(documentSaveOptions).then((documentSaveResult: Array<string>) => {
+        uris = documentSaveResult;
+        console.info('documentViewPicker.save to file succeed and uris are:' + uris);
+      }).catch((err: BusinessError) => {
+        console.error(`Invoke documentViewPicker.save failed, code is ${err.code}, message is ${err.message}`);
+      })
+      const uri = '';
+      //这里需要注意接口权限参数是fs.OpenMode.READ_WRITE。
+      let file = fs.openSync(uri, fs.OpenMode.READ_WRITE);
+      console.info('file fd: ' + file.fd);
+      let writeLen: number = fs.writeSync(file.fd, 'hello, world');
+      console.info('write data to file succeed and size is:' + writeLen);
+      fs.closeSync(file);
+
       promptAction.showToast({ message: '项目数据导出成功' });
       console.log('导出数据:', exportData);
     } catch (error) {

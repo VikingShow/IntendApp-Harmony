@@ -112,16 +112,16 @@ export struct DashboardView {
           gutter: { x: 16, y: 16 }
         }) {
           GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('📋 总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
+            this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
           }
           GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('⏱️ 项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
+            this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
           }
           GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('📊 整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
+            this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
           }
           GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('🔥 关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
+            this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
           }
         }
 
@@ -136,9 +136,6 @@ export struct DashboardView {
         // 3. 即将到期的任务列表
         Column({ space: 12 }) {
           Row({ space: 8 }) {
-            Text('⏰')
-              .fontSize(20)
-              .fontColor('#F59E0B')
             Text('即将到期的任务 (未来7天)')
               .fontSize(20)
               .fontWeight(FontWeight.Bold)

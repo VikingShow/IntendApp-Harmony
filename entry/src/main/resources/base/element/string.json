@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "一思不漏"
+    },
+    {
+      "name": "permission_reason",
+      "value": "需要访问文件系统以保存和加载项目数据"
     }
   ]
 }

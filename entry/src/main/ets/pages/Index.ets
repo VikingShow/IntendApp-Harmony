@@ -5,9 +5,11 @@ import { ProjectManager } from '../core/ProjectManager';
 import { CanvasController } from '../core/CanvasController';
 import { Sidebar } from '../components/Sidebar';
 import { StorageService } from '../services/StorageService';
+import { PermissionService } from '../services/PermissionService';
 import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
+import promptAction from '@ohos.promptAction';
 
 // 定义路由参数接口
 interface RouterParams {
@@ -26,10 +28,24 @@ struct Index {
   private projectManager: ProjectManager = ProjectManager.getInstance();
   private canvasController: CanvasController = new CanvasController();
   private storageService: StorageService | null = null;
+  private permissionService: PermissionService | null = null;
 
   async aboutToAppear() {
-    // 初始化存储服务
     const context = getContext(this);
+    
+    // 初始化权限服务
+    this.permissionService = PermissionService.getInstance(context as common.UIAbilityContext);
+    
+    // 申请文件系统权限
+    const hasPermission = await this.permissionService.requestFileSystemPermission();
+    if (!hasPermission) {
+      promptAction.showToast({ 
+        message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权' 
+      });
+      return;
+    }
+    
+    // 初始化存储服务
     this.storageService = StorageService.getInstance(context.filesDir);
     
     // 初始化项目管理器

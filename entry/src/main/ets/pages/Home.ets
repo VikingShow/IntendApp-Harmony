@@ -4,16 +4,16 @@ import { StorageService, ProjectMeta } from '../services/StorageService';
 import { LoadingService } from '../services/LoadingService';
 import { ExportService } from '../services/ExportService';
 import { TemplateService } from '../services/TemplateService';
-import { SearchService } from '../services/SearchService';
-import { StatisticsService } from '../services/StatisticsService';
+import { PermissionService } from '../services/PermissionService';
+import { DataMigrationService } from '../services/DataMigrationService';
+import common from '@ohos.app.ability.common';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import { LoadingView } from '../components/LoadingView';
 import { ExportDialog } from '../components/ExportDialog';
 import { TemplateDialog } from '../components/TemplateDialog';
-import { SearchView } from '../components/SearchView';
-import { StatisticsView } from '../components/StatisticsView';
+import { StorageStatsView } from '../components/StorageStatsView';
 import promptAction from '@ohos.promptAction';
 
 @Entry
@@ -26,8 +26,6 @@ struct HomePage {
   @State isLoading: boolean = false;
   @State showExportDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
-  @State showSearchView: boolean = false;
-  @State showStatisticsView: boolean = false;
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
 
@@ -35,15 +33,33 @@ struct HomePage {
   private loadingService: LoadingService = LoadingService.getInstance();
   private exportService: ExportService = ExportService.getInstance();
   private templateService: TemplateService = TemplateService.getInstance();
-  private searchService: SearchService = SearchService.getInstance();
-  private statisticsService: StatisticsService = StatisticsService.getInstance();
+  private permissionService: PermissionService | null = null;
+  private migrationService: DataMigrationService | null = null;
 
   async aboutToAppear() {
     const context = getContext(this);
+    
+    // 初始化权限服务
+    this.permissionService = PermissionService.getInstance(context as common.UIAbilityContext);
+    
+    // 申请文件系统权限
+    const hasPermission = await this.permissionService.requestFileSystemPermission();
+    if (!hasPermission) {
+      promptAction.showToast({ 
+        message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权' 
+      });
+      return;
+    }
+    
+    // 初始化存储服务
     this.storageService = StorageService.getInstance(context.filesDir);
     this.exportService.setStorageService(this.storageService);
-    this.searchService.setStorageService(this.storageService);
-    this.statisticsService.setStorageService(this.storageService);
+    
+    // 初始化数据迁移服务
+    this.migrationService = DataMigrationService.getInstance(context.filesDir);
+    
+    // 检查并执行数据迁移
+    await this.checkAndMigrateData();
     
     // 注册加载状态监听器
     this.loadingService.addListener((key: string, loading: boolean) => {
@@ -57,6 +73,39 @@ struct HomePage {
 
   onPageShow() {
     this.loadProjects();
+  }
+
+  // 检查并执行数据迁移
+  async checkAndMigrateData() {
+    if (!this.migrationService) return;
+    
+    try {
+      const needsMigration = await this.migrationService.needsMigration();
+      if (needsMigration) {
+        console.log('[Home] 检测到需要数据迁移');
+        promptAction.showToast({ 
+          message: '正在迁移数据到新的存储系统...',
+          duration: 2000
+        });
+        
+        const result = await this.migrationService.migrateData();
+        
+        if (result.success) {
+          promptAction.showToast({ 
+            message: `数据迁移成功，已迁移 ${result.migratedCount} 个项目`,
+            duration: 3000
+          });
+        } else {
+          console.error('[Home] 数据迁移失败:', result.errors);
+          promptAction.showToast({ 
+            message: `数据迁移部分失败，${result.errors.length} 个项目迁移失败`,
+            duration: 3000
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Home] 数据迁移检查失败:', error);
+    }
   }
 
   async loadProjects() {
@@ -198,82 +247,29 @@ struct HomePage {
     this.showTemplateDialog = false;
   }
 
-  // 显示搜索视图
-  openSearchView() {
-    this.showSearchView = true;
-  }
-
-  // 关闭搜索视图
-  closeSearchView() {
-    this.showSearchView = false;
-  }
-
-  // 显示统计视图
-  openStatisticsView() {
-    this.showStatisticsView = true;
-  }
-
-  // 关闭统计视图
-  closeStatisticsView() {
-    this.showStatisticsView = false;
-  }
-
-  // 处理搜索项目选择
-  handleSearchProjectSelect(projectId: string) {
-    this.onSelectProject(projectId);
-    this.closeSearchView();
-  }
-
-  // 处理统计项目选择
-  handleStatisticsProjectSelect(projectId: string) {
-    this.onSelectProject(projectId);
-    this.closeStatisticsView();
-  }
 
   build() {
     Stack() {
-      if (this.showSearchView) {
-        // 搜索视图
-        SearchView({
-          onProjectSelect: (projectId: string) => {
-            this.handleSearchProjectSelect(projectId);
-          },
-          onClose: () => {
-            this.closeSearchView();
+      // 主界面
+      Row() {
+        // --- 左侧边栏 ---
+        this.Sidebar()
+        // --- 右侧内容区 ---
+        Column() {
+          if (this.isLoading) {
+            LoadingView({ message: '加载项目中...' })
+          } else if (this.selectedProjectDetail) {
+            // 使用 key 属性强制重新创建组件
+            DashboardView({ project: this.selectedProjectDetail })
+          } else {
+            WelcomeView()
           }
-        })
-      } else if (this.showStatisticsView) {
-        // 统计视图
-        StatisticsView({
-          onProjectSelect: (projectId: string) => {
-            this.handleStatisticsProjectSelect(projectId);
-          },
-          onClose: () => {
-            this.closeStatisticsView();
-          }
-        })
-      } else {
-        // 主界面
-        Row() {
-          // --- 左侧边栏 ---
-          this.Sidebar()
-          // --- 右侧内容区 ---
-          Column() {
-            if (this.isLoading) {
-              LoadingView({ message: '加载项目中...' })
-            } else if (this.selectedProjectDetail) {
-              // 使用 key 属性强制重新创建组件
-              DashboardView({ project: this.selectedProjectDetail })
-            } else {
-              WelcomeView()
-            }
-          }
-          .layoutWeight(2)
-          .backgroundColor('#F8FAFC')
         }
-        .width('100%')
-        .height('100%')
+        .layoutWeight(2)
+        .backgroundColor('#F8FAFC')
       }
+      .width('100%')
+      .height('100%')
 
       // 导出对话框
       if (this.showExportDialog) {
@@ -318,35 +314,6 @@ struct HomePage {
           .fontColor('#1F2937')
           .layoutWeight(1)
         
-        // 统计按钮
-        Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_calculate'))
-            .width(20)
-            .height(20)
-            .fillColor(Color.White)
-        }
-        .width(40)
-        .height(40)
-        .backgroundColor('#8B5CF6')
-        .shadow({ radius: 4, color: '#8B5CF630', offsetX: 0, offsetY: 2 })
-        .onClick(() => {
-          this.openStatisticsView();
-        })
-
-        // 搜索按钮
-        Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_calculate'))
-            .width(20)
-            .height(20)
-            .fillColor(Color.White)
-        }
-        .width(40)
-        .height(40)
-        .backgroundColor('#F59E0B')
-        .shadow({ radius: 4, color: '#F59E0B30', offsetX: 0, offsetY: 2 })
-        .onClick(() => {
-          this.openSearchView();
-        })
 
         // 新建项目按钮
         Button({ type: ButtonType.Circle }) {
@@ -397,6 +364,9 @@ struct HomePage {
         .borderRadius(12)
         .border({ width: 1, color: '#E5E7EB', radius: 12 })
       }
+
+      // 存储统计
+      StorageStatsView()
 
       // 项目列表
       if (this.projectList.length === 0) {

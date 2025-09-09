@@ -33,7 +33,7 @@ struct Index {
     this.storageService = StorageService.getInstance(context.filesDir);
     
     // 初始化项目管理器
-    this.projectManager.initialize(this.storageService);
+    await this.projectManager.initialize(context.filesDir);
     
     // 设置画布控制器回调
     this.canvasController.setCallbacks(

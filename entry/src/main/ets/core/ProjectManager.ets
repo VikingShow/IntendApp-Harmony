@@ -2,9 +2,12 @@
 
 import { Project, TaskNode, ChecklistItem, Dependency } from '../model/ProjectData';
 import { StorageService } from '../services/StorageService';
-import { CriticalPathService, TaskWithDuration } from '../services/CriticalPathService';
+import { CriticalPathService, TaskWithDuration, CriticalPathResult } from '../services/CriticalPathService';
 import { TemplateService } from '../services/TemplateService';
 import { EventBus, Events } from './EventBus';
+import { AppState } from './AppState';
+import { ErrorHandler, ErrorType } from './ErrorHandler';
+import { ServiceContainer } from './ServiceContainer';
 import promptAction from '@ohos.promptAction';
 
 export interface ProjectState {
@@ -34,20 +37,18 @@ export interface ProjectActions {
 
 export class ProjectManager {
   private static instance: ProjectManager;
-  private storageService: StorageService | null = null;
-  private cpmService: CriticalPathService = new CriticalPathService();
-  private templateService: TemplateService = TemplateService.getInstance();
-  private eventBus: EventBus = EventBus.getInstance();
+  private serviceContainer: ServiceContainer;
+  private appState: AppState;
+  private errorHandler: ErrorHandler;
+  private eventBus: EventBus;
   private autoSaveTimer: number | null = null;
 
-  private state: ProjectState = {
-    project: null,
-    selectedTask: null,
-    isLoading: false,
-    error: null
-  };
-
-  private constructor() {}
+  private constructor() {
+    this.serviceContainer = ServiceContainer.getInstance();
+    this.appState = AppState.getInstance();
+    this.errorHandler = ErrorHandler.getInstance();
+    this.eventBus = EventBus.getInstance();
+  }
 
   public static getInstance(): ProjectManager {
     if (!ProjectManager.instance) {
@@ -56,13 +57,25 @@ export class ProjectManager {
     return ProjectManager.instance;
   }
 
-  public initialize(storageService: StorageService): void {
-    this.storageService = storageService;
+  public async initialize(filesDir: string): Promise<void> {
+    try {
+      await this.serviceContainer.initialize(filesDir);
+      console.log('[ProjectManager] 初始化完成');
+    } catch (error) {
+      this.errorHandler.handle(error as Error, 'ProjectManager.initialize', ErrorType.BUSINESS);
+      const err = new Error('ProjectManager initialization failed');
+      throw err;
+    }
   }
 
   // 获取当前状态
   public getState(): ProjectState {
-    return this.state;
+    return {
+      project: this.appState.project,
+      selectedTask: this.appState.selectedTask,
+      isLoading: this.appState.isLoading,
+      error: this.appState.error
+    };
   }
 
   // 获取所有操作方法
@@ -88,84 +101,96 @@ export class ProjectManager {
 
   // 私有方法实现
   private async loadProject(projectId: string): Promise<void> {
-    if (!this.storageService) {
-      this.setError('存储服务未初始化');
+    if (!this.serviceContainer.isInitialized()) {
+      this.errorHandler.handleBusinessError('服务容器未初始化', 'ProjectManager.loadProject');
       return;
     }
 
-    this.setLoading(true);
-    this.clearError();
+    this.appState.setLoading(true);
+    this.appState.clearError();
 
     try {
-      const project = await this.storageService.getProject(projectId);
+      const storageService = this.serviceContainer.get<StorageService>('storageService');
+      const project = await storageService.getProject(projectId);
+      
       if (project) {
-        this.state.project = project;
-        this.state.selectedTask = null;
+        this.appState.setProject(project);
+        this.appState.setSelectedTask(null);
         this.calculateCriticalPath();
         this.eventBus.emit(Events.PROJECT_LOADED, project);
         promptAction.showToast({ message: `项目 "${project.name}" 已加载` });
       } else {
-        this.setError(`项目 ${projectId} 不存在`);
+        this.errorHandler.handleBusinessError(`项目 ${projectId} 不存在`, 'ProjectManager.loadProject');
       }
     } catch (error) {
-      this.setError(`加载项目失败: ${error}`);
+      this.errorHandler.handleStorageError(error as Error, 'ProjectManager.loadProject');
     } finally {
-      this.setLoading(false);
+      this.appState.setLoading(false);
     }
   }
 
   private async createNewProject(name: string = '新项目'): Promise<void> {
-    const newProject = new Project(undefined, name);
-    this.state.project = newProject;
-    this.state.selectedTask = null;
-    this.eventBus.emit(Events.PROJECT_LOADED, newProject);
-    
-    if (this.storageService) {
-      await this.saveProject();
+    try {
+      const newProject = new Project(undefined, name);
+      this.appState.setProject(newProject);
+      this.appState.setSelectedTask(null);
+      this.eventBus.emit(Events.PROJECT_LOADED, newProject);
+      
+      if (this.serviceContainer.isInitialized()) {
+        await this.saveProject();
+      }
+    } catch (error) {
+      this.errorHandler.handle(error as Error, 'ProjectManager.createNewProject', ErrorType.BUSINESS);
     }
   }
 
   private async createFromTemplate(templateId: string, projectName: string): Promise<void> {
-    const newProject = this.templateService.createProjectFromTemplate(templateId, projectName);
-    this.state.project = newProject;
-    this.state.selectedTask = null;
-    this.eventBus.emit(Events.PROJECT_LOADED, newProject);
-    
-    if (this.storageService) {
-      await this.saveProject();
+    try {
+      const templateService = this.serviceContainer.get<TemplateService>('templateService');
+      const newProject = templateService.createProjectFromTemplate(templateId, projectName);
+      this.appState.setProject(newProject);
+      this.appState.setSelectedTask(null);
+      this.eventBus.emit(Events.PROJECT_LOADED, newProject);
+      
+      if (this.serviceContainer.isInitialized()) {
+        await this.saveProject();
+      }
+    } catch (error) {
+      this.errorHandler.handle(error as Error, 'ProjectManager.createFromTemplate', ErrorType.BUSINESS);
     }
   }
 
   private async saveProject(): Promise<void> {
-    if (!this.state.project) {
-      this.setError('没有可保存的项目');
+    if (!this.appState.project) {
+      this.errorHandler.handleBusinessError('没有可保存的项目', 'ProjectManager.saveProject');
       return;
     }
 
-    if (!this.storageService) {
-      this.setError('存储服务未初始化');
+    if (!this.serviceContainer.isInitialized()) {
+      this.errorHandler.handleBusinessError('服务容器未初始化', 'ProjectManager.saveProject');
       return;
     }
 
     try {
-      this.state.project.lastModified = Date.now();
-      await this.storageService.saveProject(this.state.project);
-      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
-      promptAction.showToast({ message: `项目 "${this.state.project.name}" 已保存` });
+      this.appState.project.lastModified = Date.now();
+      const storageService = this.serviceContainer.get<StorageService>('storageService');
+      await storageService.saveProject(this.appState.project);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
+      promptAction.showToast({ message: `项目 "${this.appState.project.name}" 已保存` });
     } catch (error) {
-      this.setError(`保存项目失败: ${error}`);
+      this.errorHandler.handleStorageError(error as Error, 'ProjectManager.saveProject');
     }
   }
 
   private updateProjectName(name: string): void {
-    if (this.state.project) {
-      this.state.project.name = name;
-      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+    if (this.appState.project) {
+      this.appState.project.name = name;
+      this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
     }
   }
 
   private addTask(): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
     const today = new Date();
     const tomorrow = new Date();
@@ -181,20 +206,20 @@ export class ProjectManager {
       y: 50
     };
 
-    this.state.project.tasks = this.state.project.tasks.concat([newTask]);
+    this.appState.project.tasks = this.appState.project.tasks.concat([newTask]);
     this.calculateCriticalPath();
-    this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+    this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
     promptAction.showToast({ message: '新任务已添加' });
   }
 
   private updateTask(taskId: string, updates: Partial<TaskNode>): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const taskIndex = this.state.project.tasks.findIndex(t => t.id === taskId);
+    const taskIndex = this.appState.project.tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
 
     // 更新任务属性
-    const originalTask = this.state.project.tasks[taskIndex];
+    const originalTask = this.appState.project.tasks[taskIndex];
     const updatedTask = this.copyTaskNode(originalTask);
     
     // 手动更新属性
@@ -210,18 +235,18 @@ export class ProjectManager {
     if (updates.lateStart !== undefined) updatedTask.lateStart = updates.lateStart;
     if (updates.lateFinish !== undefined) updatedTask.lateFinish = updates.lateFinish;
     
-    this.state.project.tasks[taskIndex] = updatedTask;
+    this.appState.project.tasks[taskIndex] = updatedTask;
 
     // 更新selectedTask以保持同步
-    if (this.state.selectedTask?.id === taskId) {
-      this.state.selectedTask = this.copyTaskNode(updatedTask);
+    if (this.appState.selectedTask?.id === taskId) {
+      this.appState.setSelectedTask(this.copyTaskNode(updatedTask));
     }
 
     // 先触发任务更新事件
     this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
     
     // 然后触发项目保存事件
-    this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+    this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
     
     // 最后重新计算关键路径
     this.calculateCriticalPath();
@@ -231,67 +256,67 @@ export class ProjectManager {
   }
 
   private deleteTask(taskId: string): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    if (this.state.selectedTask?.id === taskId) {
-      this.state.selectedTask = null;
+    if (this.appState.selectedTask?.id === taskId) {
+      this.appState.setSelectedTask(null);
     }
 
-    this.state.project.tasks = this.state.project.tasks.filter(t => t.id !== taskId);
-    this.state.project.dependencies = this.state.project.dependencies.filter(
+    this.appState.project.tasks = this.appState.project.tasks.filter(t => t.id !== taskId);
+    this.appState.project.dependencies = this.appState.project.dependencies.filter(
       d => d.fromId !== taskId && d.toId !== taskId
     );
 
     this.eventBus.emit(Events.TASK_DELETED, taskId);
-    this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+    this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
     this.calculateCriticalPath();
   }
 
   private selectTask(task: TaskNode | null): void {
-    this.state.selectedTask = task;
+    this.appState.setSelectedTask(task);
     this.eventBus.emit(Events.TASK_SELECTED, task);
   }
 
   private updateChecklist(taskId: string, checklist: ChecklistItem[]): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const updatedTask = this.state.project.tasks.find(t => t.id === taskId);
+    const updatedTask = this.appState.project.tasks.find(t => t.id === taskId);
     if (updatedTask) {
       updatedTask.checklist = checklist.slice();
       
-      if (this.state.selectedTask?.id === taskId) {
-        this.state.selectedTask = this.copyTaskNode(updatedTask);
+      if (this.appState.selectedTask?.id === taskId) {
+        this.appState.setSelectedTask(this.copyTaskNode(updatedTask));
       }
       
       // 触发事件和自动保存
       this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
-      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
       this.autoSaveProject();
     }
   }
 
   private addChecklistItem(taskId: string, item: ChecklistItem): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const task = this.state.project.tasks.find(t => t.id === taskId);
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
     if (task) {
       task.checklist = task.checklist.concat([item]);
       
-      if (this.state.selectedTask?.id === taskId) {
-        this.state.selectedTask = this.copyTaskNode(task);
+      if (this.appState.selectedTask?.id === taskId) {
+        this.appState.setSelectedTask(this.copyTaskNode(task));
       }
       
       // 触发事件和自动保存
       this.eventBus.emit(Events.TASK_UPDATED, task);
-      this.eventBus.emit(Events.PROJECT_SAVED, this.state.project);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
       this.autoSaveProject();
     }
   }
 
   private addDependency(fromId: string, toId: string): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const exists = this.state.project.dependencies.some(
+    const exists = this.appState.project.dependencies.some(
       d => d.fromId === fromId && d.toId === toId
     );
 
@@ -300,7 +325,7 @@ export class ProjectManager {
         fromId: fromId,
         toId: toId
       };
-      this.state.project.dependencies = this.state.project.dependencies.concat([newDependency]);
+      this.appState.project.dependencies = this.appState.project.dependencies.concat([newDependency]);
       this.calculateCriticalPath();
       promptAction.showToast({ message: '依赖已创建' });
     } else {
@@ -309,18 +334,18 @@ export class ProjectManager {
   }
 
   private removeDependency(fromId: string, toId: string): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    this.state.project.dependencies = this.state.project.dependencies.filter(
+    this.appState.project.dependencies = this.appState.project.dependencies.filter(
       d => !(d.fromId === fromId && d.toId === toId)
     );
     this.calculateCriticalPath();
   }
 
   private calculateCriticalPath(): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const tasksWithDuration: TaskWithDuration[] = this.state.project.tasks.map(
+    const tasksWithDuration: TaskWithDuration[] = this.appState.project.tasks.map(
       (t: TaskNode): TaskWithDuration => ({
         id: t.id,
         duration: this.getDuration(t),
@@ -332,33 +357,38 @@ export class ProjectManager {
       })
     );
 
-    this.cpmService.calculate(tasksWithDuration, this.state.project.dependencies);
+    const criticalPathService = this.serviceContainer.get<CriticalPathService>('criticalPathService');
+    const result = criticalPathService.calculate(tasksWithDuration, this.appState.project.dependencies);
 
-    // 更新任务的关键路径信息
-    tasksWithDuration.forEach(calculatedTask => {
-      const originalTask = this.state.project!.tasks.find(t => t.id === calculatedTask.id);
-      if (originalTask) {
-        originalTask.isCritical = calculatedTask.isCritical;
-        originalTask.earlyStart = calculatedTask.earlyStart;
-        originalTask.earlyFinish = calculatedTask.earlyFinish;
-        originalTask.lateStart = calculatedTask.lateStart;
-        originalTask.lateFinish = calculatedTask.lateFinish;
-      }
-    });
+    if (result.success) {
+      // 更新任务的关键路径信息
+      tasksWithDuration.forEach(calculatedTask => {
+        const originalTask = this.appState.project!.tasks.find(t => t.id === calculatedTask.id);
+        if (originalTask) {
+          originalTask.isCritical = calculatedTask.isCritical;
+          originalTask.earlyStart = calculatedTask.earlyStart;
+          originalTask.earlyFinish = calculatedTask.earlyFinish;
+          originalTask.lateStart = calculatedTask.lateStart;
+          originalTask.lateFinish = calculatedTask.lateFinish;
+        }
+      });
 
-    this.eventBus.emit(Events.CRITICAL_PATH_CALCULATED, this.state.project);
+      this.eventBus.emit(Events.CRITICAL_PATH_CALCULATED, this.appState.project);
+    } else {
+      this.errorHandler.handleBusinessError(result.error || '关键路径计算失败', 'ProjectManager.calculateCriticalPath');
+    }
   }
 
   private moveTask(taskId: string, x: number, y: number): void {
-    if (!this.state.project) return;
+    if (!this.appState.project) return;
 
-    const task = this.state.project.tasks.find(t => t.id === taskId);
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
     if (task) {
       task.x = x;
       task.y = y;
       
-      if (this.state.selectedTask?.id === taskId) {
-        this.state.selectedTask = this.copyTaskNode(task);
+      if (this.appState.selectedTask?.id === taskId) {
+        this.appState.setSelectedTask(this.copyTaskNode(task));
       }
     }
   }
@@ -396,28 +426,24 @@ export class ProjectManager {
     
     // 设置新的定时器，延迟500ms后保存
     this.autoSaveTimer = setTimeout(async () => {
-      if (this.state.project && this.storageService) {
+      if (this.appState.project && this.serviceContainer.isInitialized()) {
         try {
-          await this.storageService.saveProject(this.state.project);
+          const storageService = this.serviceContainer.get<StorageService>('storageService');
+          await storageService.saveProject(this.appState.project);
           console.log('[ProjectManager] 项目已自动保存');
         } catch (error) {
-          console.error('[ProjectManager] 自动保存失败:', error);
-          this.setError('自动保存失败');
+          this.errorHandler.handleStorageError(error as Error, 'ProjectManager.autoSaveProject');
         }
       }
       this.autoSaveTimer = null;
     }, 500);
   }
 
-  private setLoading(loading: boolean): void {
-    this.state.isLoading = loading;
-  }
-
-  private setError(error: string): void {
-    this.state.error = error;
-  }
-
-  private clearError(): void {
-    this.state.error = null;
+  // 清理资源
+  public cleanup(): void {
+    if (this.autoSaveTimer !== null) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
   }
 }

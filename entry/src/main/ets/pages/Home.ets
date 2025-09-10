@@ -15,6 +15,8 @@ import { ExportDialog } from '../components/ExportDialog';
 import { TemplateDialog } from '../components/TemplateDialog';
 import { StorageStatsView } from '../components/StorageStatsView';
 import { StorageStatsDialog } from '../components/StorageStatsDialog';
+import { TemplateSelector } from '../components/TemplateSelector';
+import { NodeTemplate } from '../model/ComponentSystem';
 import promptAction from '@ohos.promptAction';
 
 @Entry
@@ -28,6 +30,7 @@ struct HomePage {
   @State showExportDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
   @State showStorageStatsDialog: boolean = false;
+  @State showTemplateSelector: boolean = false;
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
 
@@ -304,6 +307,71 @@ struct HomePage {
     this.showStorageStatsDialog = false;
   }
 
+  // 显示模板选择器
+  openTemplateSelector() {
+    this.showTemplateSelector = true;
+  }
+
+  // 关闭模板选择器
+  closeTemplateSelector() {
+    this.showTemplateSelector = false;
+  }
+
+  // 处理模板选择
+  onTemplateSelected(template: NodeTemplate) {
+    console.log(`[Home] 选择模板: ${template.name} (${template.id})`);
+    // 这里可以创建基于模板的新项目
+    this.createProjectFromNewTemplate(template);
+    this.closeTemplateSelector();
+  }
+
+  // 从新模板系统创建项目
+  async createProjectFromNewTemplate(template: NodeTemplate) {
+    if (!this.storageService) {
+      this.handleError(new Error("存储服务未初始化"), "createProjectFromNewTemplate");
+      return;
+    }
+
+    try {
+      console.log(`[Home] 从新模板创建项目: ${template.name}`);
+
+      // 生成项目名称
+      const projectName = `${template.name}_${new Date().toLocaleDateString()}`;
+      
+      // 创建基础项目结构
+      const newProject = new Project(`project_${Date.now()}`, projectName);
+      newProject.category = template.category;
+      
+      // 添加一个示例任务
+      const rootTask: TaskNode = {
+        id: `task_${Date.now()}`,
+        name: '根任务',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        checklist: [],
+        x: 100,
+        y: 100
+      };
+      newProject.addTask(rootTask);
+
+      // 保存项目
+      await this.storageService.saveProject(newProject);
+      console.log(`[Home] 项目已创建: ${newProject.id}`);
+      promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
+
+      // 刷新项目列表
+      await this.loadProjects();
+
+      // 导航到编辑器页面
+      router.pushUrl({
+        url: 'pages/Index',
+        params: { projectId: newProject.id }
+      });
+    } catch (error) {
+      this.handleError(error as Error, "createProjectFromNewTemplate");
+    }
+  }
+
 
   build() {
     Stack() {
@@ -359,6 +427,18 @@ struct HomePage {
           visible: true,
           onClose: () => {
             this.closeStorageStatsDialog();
+          }
+        })
+      }
+
+      // 模板选择器对话框
+      if (this.showTemplateSelector) {
+        TemplateSelector({
+          onTemplateSelected: (template: NodeTemplate) => {
+            this.onTemplateSelected(template);
+          },
+          onClose: () => {
+            this.closeTemplateSelector();
           }
         })
       }
@@ -450,6 +530,56 @@ struct HomePage {
       .borderRadius(8)
       .onClick(() => {
         this.openStorageStatsDialog();
+      })
+
+      // 自定义模板按钮
+      Column({ space: 8 }) {
+        Button() {
+          Row({ space: 8 }) {
+            Text('🎨')
+              .fontSize(16)
+              .fontColor(Color.White)
+            Text('选择模板创建项目')
+              .fontSize(14)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Medium)
+          }
+        }
+        .width('100%')
+        .height(40)
+        .backgroundColor('#10B981')
+        .borderRadius(8)
+        .onClick(() => {
+          this.openTemplateSelector();
+        })
+        
+        Text('选择预设模板快速创建项目，支持学习、工作、生活等场景')
+          .fontSize(12)
+          .fontColor('#6B7280')
+          .textAlign(TextAlign.Center)
+          .width('100%')
+      }
+
+      // 组件预览按钮（测试用）
+      Button() {
+        Row({ space: 8 }) {
+          Text('👁️')
+            .fontSize(16)
+            .fontColor(Color.White)
+          Text('组件预览')
+            .fontSize(14)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Medium)
+        }
+      }
+      .width('100%')
+      .height(40)
+      .backgroundColor('#8B5CF6')
+      .borderRadius(8)
+      .onClick(() => {
+        router.pushUrl({
+          url: 'pages/ComponentPreview'
+        });
       })
 
       // 项目列表

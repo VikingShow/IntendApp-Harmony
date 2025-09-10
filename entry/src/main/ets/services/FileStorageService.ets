@@ -179,6 +179,7 @@ export class FileStorageService {
   public async getProjectList(): Promise<ProjectMeta[]> {
     try {
       if (!fs.accessSync(this.metaFile)) {
+        console.log('[FileStorageService] 元数据文件不存在，返回空列表');
         return [];
       }
 
@@ -190,12 +191,87 @@ export class FileStorageService {
 
       const decoder = new util.TextDecoder();
       const content = decoder.decode(new Uint8Array(buffer));
-      const projectList = JSON.parse(content) as ProjectMeta[];
+      console.log(`[FileStorageService] 读取到的元数据文件内容: ${content}`);
       
+      // 检查内容是否为空或无效
+      if (!content || content.trim() === '') {
+        console.log('[FileStorageService] 元数据文件为空，返回空列表');
+        return [];
+      }
+      
+      const projectList = JSON.parse(content) as ProjectMeta[];
       console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
       return projectList;
     } catch (error) {
       console.error('[FileStorageService] 获取项目列表失败:', error);
+      console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
+      
+      // 如果元数据文件损坏，尝试从项目文件重建
+      return await this.rebuildProjectList();
+    }
+  }
+
+  /**
+   * 从项目文件重建元数据列表
+   */
+  private async rebuildProjectList(): Promise<ProjectMeta[]> {
+    try {
+      console.log('[FileStorageService] 开始重建项目元数据列表...');
+      
+      // 检查项目目录是否存在
+      if (!fs.accessSync(this.projectsDir)) {
+        console.log('[FileStorageService] 项目目录不存在，返回空列表');
+        return [];
+      }
+      
+      const projectList: ProjectMeta[] = [];
+      
+      // 遍历项目目录中的所有JSON文件
+      const files = fs.listFileSync(this.projectsDir);
+      console.log(`[FileStorageService] 在项目目录中找到 ${files.length} 个文件`);
+      
+      for (const fileName of files) {
+        if (fileName.endsWith('.json')) {
+          const projectId = fileName.replace('.json', '');
+          const projectFile = `${this.projectsDir}/${fileName}`;
+          
+          try {
+            // 读取项目文件
+            const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
+            const stat = fs.statSync(projectFile);
+            const buffer = new ArrayBuffer(stat.size);
+            fs.readSync(file.fd, buffer);
+            fs.closeSync(file);
+            
+            const decoder = new util.TextDecoder();
+            const content = decoder.decode(new Uint8Array(buffer));
+            const projectData = JSON.parse(content) as Record<string, string | number | boolean | object>;
+            
+            // 创建项目元数据
+            const projectMeta: ProjectMeta = {
+              id: (projectData.id as string) || projectId,
+              name: (projectData.name as string) || '未命名项目',
+              lastModified: (projectData.lastModified as number) || Date.now(),
+              category: (projectData.category as string) || '其他'
+            };
+            
+            projectList.push(projectMeta);
+            console.log(`[FileStorageService] 重建项目元数据: ${projectMeta.name} (${projectMeta.id})`);
+          } catch (error) {
+            console.error(`[FileStorageService] 读取项目文件 ${fileName} 失败:`, error);
+          }
+        }
+      }
+      
+      // 保存重建的元数据列表
+      if (projectList.length > 0) {
+        await this.saveProjectList(projectList);
+        console.log(`[FileStorageService] 重建完成，共 ${projectList.length} 个项目`);
+      }
+      
+      return projectList;
+    } catch (error) {
+      console.error('[FileStorageService] 重建项目列表失败:', error);
       return [];
     }
   }

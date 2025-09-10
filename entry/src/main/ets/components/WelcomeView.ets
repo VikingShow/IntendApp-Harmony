@@ -3,57 +3,123 @@
 @Component
 export struct WelcomeView {
   build() {
-    Column({ space: 30 }) {
-      Text('欢迎使用 EasyFlow！')
-        .fontSize(38)
-        .fontWeight(FontWeight.Bold)
-
-      Column({ space: 15 }) {
-        this.TipCard(
-          '小贴士 1',
-          '在左侧点击一个项目，即可在此处预览其详情。',
-          $r('app.media.ic_select')
-        )
-        this.TipCard(
-          '小贴士 2',
-          '点击左上角的“+”按钮，开始您的第一个项目计划。',
-          $r('app.media.ic_add_circle')
-        )
+    Stack() {
+      // 背景层 - 中国古代文化词汇
+      this.CulturalWordsBackground()
+      
+      // 主要内容层 - 铺满整个区域
+      Column({ space: 32 }) {
+        // 中心标题
+        Column({ space: 16 }) {
+          Text('一思不漏')
+            .fontSize(48)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1E293B')
+            .textAlign(TextAlign.Center)
+          Text('EazyFlow')
+            .fontSize(20)
+            .fontColor('#64748B')
+            .fontWeight(FontWeight.Medium)
+            .textAlign(TextAlign.Center)
+          Text('让每个想法都不被遗漏，让每个项目都井然有序')
+            .fontSize(16)
+            .fontColor('#64748B')
+            .textAlign(TextAlign.Center)
+            .lineHeight(24)
+            .margin({ top: 8 })
+        }
+        .alignItems(HorizontalAlign.Center)
       }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .padding({ left: 20, right: 20, top: 40, bottom: 40 })
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .padding(40)
-    .backgroundColor('#F9F9F9')
+    .backgroundColor('#F9FAFB')
   }
 
   @Builder
-  TipCard(title: string, content: string, icon: Resource) {
-    Row({ space: 20 }) {
-      Image(icon)
-        .width(40)
-        .height(40)
-        .fillColor('#007DFF')
-
-      Column({ space: 5 }) {
-        Text(title)
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-        Text(content)
-          .fontSize(14)
-          .fontColor(Color.Gray)
-          .lineHeight(20)
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+  CulturalWordsBackground() {
+    Stack() {
+      // 文化词汇 - 不同大小和位置
+      this.CulturalWord('智慧', 24, 0.15, 0.2, '#E2E8F0')
+      this.CulturalWord('创新', 20, 0.8, 0.15, '#CBD5E1')
+      this.CulturalWord('专注', 18, 0.1, 0.7, '#D1D5DB')
+      this.CulturalWord('效率', 22, 0.85, 0.8, '#E5E7EB')
+      this.CulturalWord('协作', 16, 0.3, 0.1, '#F3F4F6')
+      this.CulturalWord('规划', 19, 0.7, 0.3, '#F1F5F9')
+      this.CulturalWord('执行', 17, 0.2, 0.9, '#F8FAFC')
+      this.CulturalWord('成果', 21, 0.9, 0.6, '#F9FAFB')
+      this.CulturalWord('管理', 23, 0.05, 0.5, '#FAFBFC')
+      this.CulturalWord('团队', 18, 0.6, 0.05, '#FCFCFD')
+      
+      // 连接线
+      this.ConnectionLines()
     }
-    .padding(20)
-    .backgroundColor(Color.White)
-    .borderRadius(12)
     .width('100%')
-    .alignItems(VerticalAlign.Top)
+    .height('100%')
   }
+
+  @Builder
+  CulturalWord(text: string, fontSize: number, x: number, y: number, color: string) {
+    Text(text)
+      .fontSize(fontSize)
+      .fontColor(color)
+      .fontWeight(FontWeight.Medium)
+      .position({ x: `${x * 100}%`, y: `${y * 100}%` })
+      .opacity(0.6)
+  }
+
+  @Builder
+  ConnectionLines() {
+    // 连接线 - 使用简单的线条组件
+    Stack() {
+      // 连接线1: 智慧 -> 创新
+      Line()
+        .startPoint([150, 200])
+        .endPoint([800, 150])
+        .stroke('#E2E8F0')
+        .strokeWidth(1)
+        .opacity(0.3)
+      
+      // 连接线2: 专注 -> 效率
+      Line()
+        .startPoint([100, 700])
+        .endPoint([850, 800])
+        .stroke('#E2E8F0')
+        .strokeWidth(1)
+        .opacity(0.3)
+      
+      // 连接线3: 协作 -> 规划
+      Line()
+        .startPoint([300, 100])
+        .endPoint([700, 300])
+        .stroke('#E2E8F0')
+        .strokeWidth(1)
+        .opacity(0.3)
+      
+      // 连接线4: 执行 -> 成果
+      Line()
+        .startPoint([200, 900])
+        .endPoint([900, 600])
+        .stroke('#E2E8F0')
+        .strokeWidth(1)
+        .opacity(0.3)
+      
+      // 连接线5: 管理 -> 团队
+      Line()
+        .startPoint([50, 500])
+        .endPoint([600, 50])
+        .stroke('#E2E8F0')
+        .strokeWidth(1)
+        .opacity(0.3)
+    }
+    .width('100%')
+    .height('100%')
+  }
+
 }
 
 // 新建方式选择弹窗

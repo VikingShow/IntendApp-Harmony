@@ -335,6 +335,7 @@ export class TemplateService {
     }
 
     const project = new Project(undefined, projectName);
+    project.category = template.category; // 设置项目分类
     
     // 复制任务并生成新的ID
     const taskIdMap = new Map<string, string>();

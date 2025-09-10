@@ -71,40 +71,53 @@ export struct DashboardView {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
     Scroll() {
       Column({ space: 20 }) {
-        // 1. 项目标题和进入编辑按钮
-        Row() {
-          Text(this.project.name)
-            .fontSize(32)
-            .fontWeight(FontWeight.Bold)
-            .layoutWeight(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .maxLines(1)
-            .fontColor('#1F2937')
-
-          Button({ type: ButtonType.Capsule }) {
-            Row({ space: 8 }) {
-              Image($r('app.media.ic_edit'))
-                .width(20)
-                .height(20)
-                .fillColor(Color.White)
-              Text('进入编辑')
-                .fontSize(17)
-                .fontColor(Color.White)
+        // 1. 项目标题和进入编辑按钮 - 简约设计
+        Column({ space: 24 }) {
+          Row() {
+            Column({ space: 12 }) {
+              Text(this.project.name)
+                .fontSize(40)
+                .fontWeight(FontWeight.Bold)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .maxLines(1)
+                .fontColor('#1E293B')
+              Text(`项目ID: ${this.project.id}`)
+                .fontSize(15)
+                .fontColor('#64748B')
                 .fontWeight(FontWeight.Medium)
             }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
+
+            Button() {
+              Row({ space: 10 }) {
+                Text('编辑')
+                  .fontSize(17)
+                  .fontColor(Color.White)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(56)
+            .padding({ left: 28, right: 28 })
+            .backgroundColor('#007DFF')
+            .borderRadius(20)
+            .shadow({ radius: 6, color: '#007DFF20', offsetX: 0, offsetY: 3 })
+            .onClick(() => {
+              router.pushUrl({
+                url: 'pages/Index',
+                params: { projectId: this.project.id }
+              } as router.RouterOptions);
+            })
           }
-          .height(48)
-          .width(120)
-          .backgroundColor('#007DFF')
-          .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
-          .onClick(() => {
-            router.pushUrl({
-              url: 'pages/Index',
-              params: { projectId: this.project.id }
-            } as router.RouterOptions);
-          })
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
         }
         .width('100%')
+        .padding(28)
+        .backgroundColor('#FFFFFF')
+        .borderRadius(24)
+        .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+        .border({ width: 1, color: '#E2E8F0', radius: 24 })
 
         // 2. 核心指标统计
         GridRow({
@@ -125,21 +138,17 @@ export struct DashboardView {
           }
         }
 
-        // 调试信息
-        Text(`当前项目: ${this.project.name} (ID: ${this.project.id})`)
-          .fontSize(12)
-          .fontColor('#6B7280')
-          .width('100%')
-          .textAlign(TextAlign.Center)
-          .margin({ top: 8 })
-
-        // 3. 即将到期的任务列表
-        Column({ space: 12 }) {
-          Row({ space: 8 }) {
-            Text('即将到期的任务 (未来7天)')
-              .fontSize(20)
+        // 3. 即将到期的任务列表 - 简约设计
+        Column({ space: 20 }) {
+          Row({ space: 16 }) {
+            Text('即将到期的任务')
+              .fontSize(22)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#1F2937')
+              .fontColor('#1E293B')
+            Text('(未来7天)')
+              .fontSize(15)
+              .fontColor('#64748B')
+              .fontWeight(FontWeight.Medium)
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
@@ -154,21 +163,27 @@ export struct DashboardView {
               })
             }
           } else {
-            Column({ space: 8 }) {
-              Image($r('app.media.ic_empty_box'))
-                .width(40)
-                .height(40)
-                .opacity(0.5)
-              Text('未来7天内没有到期的任务')
-                .fontSize(14)
-                .fontColor('#9CA3AF')
+            // 没有即将到期的任务 - 简约设计
+            Column({ space: 24 }) {
+              Column({ space: 12 }) {
+                Text('暂无即将到期的任务')
+                  .fontSize(20)
+                  .fontColor('#1E293B')
+                  .fontWeight(FontWeight.Bold)
+                Text('很好！所有任务都在计划时间内')
+                  .fontSize(15)
+                  .fontColor('#64748B')
+                  .textAlign(TextAlign.Center)
+              }
             }
             .width('100%')
-            .padding(24)
+            .padding(48)
             .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
             .backgroundColor('#FFFFFF')
-            .borderRadius(12)
-            .shadow({ radius: 4, color: '#00000008', offsetX: 0, offsetY: 1 })
+            .borderRadius(20)
+            .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+            .border({ width: 1, color: '#E2E8F0', radius: 20 })
           }
         }
         .alignItems(HorizontalAlign.Start)
@@ -178,65 +193,67 @@ export struct DashboardView {
     }
   }
 
-  // 构建器：统计卡片
+  // 构建器：统计卡片 - 简约设计
   @Builder
   StatCard(title: string, value: string, bgColor: string, textColor: string) {
-    Column({ space: 8 }) {
+    Column({ space: 16 }) {
       Text(title)
-        .fontSize(14)
-        .fontColor('#6B7280')
+        .fontSize(15)
+        .fontColor('#64748B')
         .fontWeight(FontWeight.Medium)
+        .textAlign(TextAlign.Center)
       Text(value)
-        .fontSize(24)
+        .fontSize(32)
         .fontWeight(FontWeight.Bold)
         .fontColor(textColor)
+        .textAlign(TextAlign.Center)
     }
     .width('100%')
-    .padding(20)
-    .backgroundColor(bgColor)
-    .borderRadius(12)
-    .alignItems(HorizontalAlign.Start)
-    .shadow({ radius: 4, color: '#00000008', offsetX: 0, offsetY: 1 })
+    .padding(28)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(20)
+    .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+    .border({ width: 1, color: '#E2E8F0', radius: 20 })
+    .alignItems(HorizontalAlign.Center)
   }
 
-  // 构建器：即将到期的任务卡片
+  // 构建器：即将到期的任务卡片 - 简约设计
   @Builder
   UpcomingTaskCard(task: TaskNode) {
-    Row({ space: 12 }) {
-      // 任务状态指示器
-      Column()
-        .width(4)
-        .height(40)
-        .backgroundColor(task.isCritical ? '#DC2626' : '#F59E0B')
-        .borderRadius(2)
-
-      // 任务信息
-      Column({ space: 4 }) {
+    Row({ space: 20 }) {
+      // 任务信息 - 简约设计
+      Column({ space: 8 }) {
         Text(task.name)
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#1F2937')
+          .fontSize(17)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1E293B')
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(`截止于: ${task.endDate.toLocaleDateString()}`)
-          .fontSize(12)
-          .fontColor('#F59E0B')
+        Row({ space: 12 }) {
+          Text(`截止于: ${task.endDate.toLocaleDateString()}`)
+            .fontSize(13)
+            .fontColor('#64748B')
+          if (task.isCritical) {
+            Text('关键任务')
+              .fontSize(11)
+              .fontColor('#DC2626')
+              .fontWeight(FontWeight.Medium)
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .backgroundColor('#FEF2F2')
+              .borderRadius(6)
+              .border({ width: 1, color: '#FECACA', radius: 6 })
+          }
+        }
+        .width('100%')
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
-
-      // 关键任务标识
-      if (task.isCritical) {
-        Text('🔥')
-          .fontSize(14)
-          .fontColor('#DC2626')
-      }
     }
     .width('100%')
-    .padding(16)
+    .padding(24)
     .backgroundColor('#FFFFFF')
-    .borderRadius(10)
-    .shadow({ radius: 4, color: '#00000008', offsetX: 0, offsetY: 1 })
-    .border({ width: 1, color: '#FEF3C7', radius: 10 })
+    .borderRadius(20)
+    .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+    .border({ width: 1, color: '#E2E8F0', radius: 20 })
   }
 }

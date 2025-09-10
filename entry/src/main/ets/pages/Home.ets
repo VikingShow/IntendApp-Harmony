@@ -2,7 +2,6 @@
 import router from '@ohos.router';
 import { StorageService, ProjectMeta } from '../services/StorageService';
 import { LoadingService } from '../services/LoadingService';
-import { ExportService } from '../services/ExportService';
 import { TemplateService } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
@@ -11,10 +10,7 @@ import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import { LoadingView } from '../components/LoadingView';
-import { ExportDialog } from '../components/ExportDialog';
 import { TemplateDialog } from '../components/TemplateDialog';
-import { StorageStatsView } from '../components/StorageStatsView';
-import { StorageStatsDialog } from '../components/StorageStatsDialog';
 import promptAction from '@ohos.promptAction';
 
 @Entry
@@ -25,15 +21,12 @@ struct HomePage {
   @State selectedProjectId: string | null = null;
   @State componentKey: number = 0;
   @State isLoading: boolean = false;
-  @State showExportDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
-  @State showStorageStatsDialog: boolean = false;
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
-  private exportService: ExportService = ExportService.getInstance();
   private templateService: TemplateService = TemplateService.getInstance();
   private permissionService: PermissionService | null = null;
   private migrationService: DataMigrationService | null = null;
@@ -59,7 +52,6 @@ struct HomePage {
     
     // 初始化存储服务
     this.storageService = StorageService.getInstance(context.filesDir);
-    this.exportService.setStorageService(this.storageService);
     
     // 测试文件系统操作
     console.log('[Home] 开始测试文件系统操作...');
@@ -154,9 +146,11 @@ struct HomePage {
       
       const list = await this.storageService.getProjectList();
       console.log(`[Home] 加载到 ${list.length} 个项目`);
+      console.log('[Home] 项目列表详情:', JSON.stringify(list, null, 2));
       
       this.projectList = list.sort((a, b) => b.lastModified - a.lastModified);
       console.log(`[Home] 项目列表排序完成，共 ${this.projectList.length} 个项目`);
+      console.log('[Home] 排序后的项目列表:', JSON.stringify(this.projectList, null, 2));
       
       if (this.selectedProjectId) {
         console.log(`[Home] 恢复选中的项目: ${this.selectedProjectId}`);
@@ -220,9 +214,20 @@ struct HomePage {
       const newProject = this.templateService.createProjectFromTemplate(templateId, projectName);
       
       // 保存项目
+      console.log(`[Home] 准备保存项目: ${JSON.stringify(newProject, null, 2)}`);
       await this.storageService.saveProject(newProject);
       console.log(`[Home] Project created from template: ${newProject.id}`);
       promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
+
+      // 立即更新项目列表
+      console.log('[Home] 开始刷新项目列表...');
+      await this.loadProjects();
+      console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
+      
+      // 设置新创建的项目为选中状态
+      this.selectedProjectId = newProject.id;
+      this.selectedProjectDetail = newProject;
+      console.log(`[Home] 设置选中项目: ${newProject.id}`);
 
       // 导航到编辑器页面
       router.pushUrl({
@@ -274,15 +279,6 @@ struct HomePage {
     });
   }
 
-  // 显示导出对话框
-  openExportDialog() {
-    this.showExportDialog = true;
-  }
-
-  // 关闭导出对话框
-  closeExportDialog() {
-    this.showExportDialog = false;
-  }
 
   // 显示模板对话框
   openTemplateDialog() {
@@ -292,17 +288,10 @@ struct HomePage {
   // 关闭模板对话框
   closeTemplateDialog() {
     this.showTemplateDialog = false;
+    // 关闭对话框时也刷新项目列表，以防有项目被创建
+    this.loadProjects();
   }
 
-  // 显示存储统计对话框
-  openStorageStatsDialog() {
-    this.showStorageStatsDialog = true;
-  }
-
-  // 关闭存储统计对话框
-  closeStorageStatsDialog() {
-    this.showStorageStatsDialog = false;
-  }
 
 
   build() {
@@ -323,22 +312,11 @@ struct HomePage {
           }
         }
         .layoutWeight(2)
-        .backgroundColor('#F8FAFC')
+        .backgroundColor('#F9FAFB')
       }
       .width('100%')
       .height('100%')
 
-      // 导出对话框
-      if (this.showExportDialog) {
-        ExportDialog({
-          visible: true,
-          projectId: this.selectedProjectId || undefined,
-          projectName: this.selectedProjectDetail?.name,
-          onClose: () => {
-            this.closeExportDialog();
-          }
-        })
-      }
 
       // 模板对话框
       if (this.showTemplateDialog) {
@@ -353,15 +331,6 @@ struct HomePage {
         })
       }
 
-      // 存储统计对话框
-      if (this.showStorageStatsDialog) {
-        StorageStatsDialog({
-          visible: true,
-          onClose: () => {
-            this.closeStorageStatsDialog();
-          }
-        })
-      }
     }
     .width('100%')
     .height('100%')
@@ -369,148 +338,115 @@ struct HomePage {
 
   @Builder
   Sidebar() {
-    Column({ space: 20 }) {
-      // 标题区域
-      Row({ space: 12 }) {
-        Text('📁')
-          .fontSize(24)
-          .fontColor('#007DFF')
-        Text('我的项目')
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1F2937')
-          .layoutWeight(1)
-        
+    Column({ space: 0 }) {
+      // 顶部区域 - 项目列表标题和新建按钮
+      Row() {
+        // 项目列表标题
+        Column() {
+          Text('项目列表')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1E293B')
+          Text(`(${this.projectList.length})`)
+            .fontSize(14)
+            .fontColor('#64748B')
+            .fontWeight(FontWeight.Medium)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
 
-        // 新建项目按钮
-        Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_add'))
-            .width(20)
-            .height(20)
-            .fillColor(Color.White)
+        // 新建项目按钮 - 圆形设计，放在右侧
+        Button() {
+          Text('+')
+            .fontSize(20)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
         }
         .width(48)
         .height(48)
+        .type(ButtonType.Circle)
         .backgroundColor('#007DFF')
-        .shadow({ radius: 6, color: '#007DFF30', offsetX: 0, offsetY: 3 })
+        .shadow({ radius: 6, color: '#007DFF25', offsetX: 0, offsetY: 3 })
         .onClick(() => {
-          // 显示模板选择对话框
           this.openTemplateDialog();
         })
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
+      .padding({ top: 20, bottom: 16, left: 20, right: 20 })
+      .backgroundColor('#FFFFFF')
+      .border({ width: { bottom: 1 }, color: '#E2E8F0' })
 
-      // 操作按钮区域
+      // 当前项目信息区域 - 简约设计
       if (this.selectedProjectDetail) {
-        Column({ space: 12 }) {
-          // 导出按钮
-          Button() {
-            Row({ space: 8 }) {
-              Text('📤')
-                .fontSize(16)
-                .fontColor(Color.White)
-              Text('导出数据')
-                .fontSize(14)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
-            }
+        Row({ space: 16 }) {
+          Column({ space: 2 }) {
+            Text('当前项目')
+              .fontSize(11)
+              .fontColor('#64748B')
+              .fontWeight(FontWeight.Medium)
+            Text(this.selectedProjectDetail.name)
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1E293B')
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-          .width('100%')
-          .height(40)
-          .backgroundColor('#10B981')
-          .borderRadius(8)
-          .shadow({ radius: 4, color: '#10B98130', offsetX: 0, offsetY: 2 })
-          .onClick(() => {
-            this.openExportDialog();
-          })
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
         .width('100%')
-        .padding({ top: 16, bottom: 16 })
-        .backgroundColor('#F9FAFB')
-        .borderRadius(12)
-        .border({ width: 1, color: '#E5E7EB', radius: 12 })
+        .padding(12)
+        .backgroundColor('#F8FAFC')
+        .border({ width: { bottom: 1 }, color: '#E2E8F0' })
       }
 
-      // 存储统计按钮
-      Button() {
-        Row({ space: 8 }) {
-          Text('📊')
-            .fontSize(16)
-            .fontColor(Color.White)
-          Text('存储统计')
-            .fontSize(14)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Medium)
-        }
-      }
-      .width('100%')
-      .height(40)
-      .backgroundColor('#007DFF')
-      .borderRadius(8)
-      .onClick(() => {
-        this.openStorageStatsDialog();
-      })
-
-      // 项目列表
+      // 项目列表内容区域
       if (this.projectList.length === 0) {
-        Column({ space: 16 }) {
-          Image($r('app.media.ic_empty_box'))
-            .width(80)
-            .height(80)
-            .opacity(0.6)
-          Text('暂无项目')
-            .fontSize(18)
-            .fontColor('#6B7280')
-            .fontWeight(FontWeight.Medium)
-          Text('点击右上角的"+"按钮创建您的第一个项目')
-            .fontSize(14)
-            .fontColor('#9CA3AF')
-            .textAlign(TextAlign.Center)
+        // 空状态 - 简约设计
+        Column({ space: 20 }) {
+
+          Column({ space: 8 }) {
+            Text('空空如也')
+              .fontSize(18)
+              .fontColor('#64748B')
+              .fontWeight(FontWeight.Bold)
+            Text('点击右上角"+"按钮\n创建您的第一个项目')
+              .fontSize(14)
+              .fontColor('#94A3B8')
+              .textAlign(TextAlign.Center)
+              .lineHeight(20)
+          }
         }
         .width('100%')
-        .layoutWeight(1)
+        .padding(32)
         .justifyContent(FlexAlign.Center)
+        .layoutWeight(1)
       } else {
-        List({ space: 12 }) {
+        // 项目列表
+        List({ space: 8 }) {
           ForEach(this.projectList, (meta: ProjectMeta) => {
             ListItem() {
               Row({ space: 16 }) {
-                // 项目图标
-                Column() {
-                  Image($r('app.media.ic_project_file'))
-                    .width(24)
-                    .height(24)
-                    .fillColor('#007DFF')
-                }
-                .width(48)
-                .height(48)
-                .backgroundColor('#EFF6FF')
-                .justifyContent(FlexAlign.Center)
-                .borderRadius(10)
-                .border({ width: 1, color: '#DBEAFE', radius: 10 })
-
-                // 项目信息
+                // 项目信息 - 简约设计
                 Column({ space: 6 }) {
                   Text(meta.name)
-                    .fontSize(16)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor('#1F2937')
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor('#1E293B')
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
                     .fontSize(12)
-                    .fontColor('#6B7280')
+                    .fontColor('#64748B')
                 }
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
 
-                // 删除按钮
+                // 删除按钮 - 简约设计
                 Button() {
-                  Image($r('app.media.ic_delete'))
-                    .width(16)
-                    .height(16)
-                    .fillColor('#EF4444')
+                  Text('×')
+                    .fontSize(16)
+                    .fontColor('#EF4444')
                 }
                 .width(36)
                 .height(36)
@@ -522,18 +458,18 @@ struct HomePage {
               }
               .width('100%')
               .padding(16)
-              .backgroundColor(this.selectedProjectId === meta.id ? '#EFF6FF' : '#FFFFFF')
-              .borderRadius(12)
+              .backgroundColor(this.selectedProjectId === meta.id ? '#F0F9FF' : '#FFFFFF')
+              .borderRadius(16)
               .shadow({ 
-                radius: 4, 
-                color: this.selectedProjectId === meta.id ? '#007DFF20' : '#00000008', 
+                radius: this.selectedProjectId === meta.id ? 4 : 2, 
+                color: this.selectedProjectId === meta.id ? '#007DFF10' : '#00000003', 
                 offsetX: 0, 
-                offsetY: 1 
+                offsetY: this.selectedProjectId === meta.id ? 2 : 1 
               })
               .border({ 
-                width: this.selectedProjectId === meta.id ? 2 : 0, 
-                color: '#007DFF', 
-                radius: 12 
+                width: this.selectedProjectId === meta.id ? 2 : 1, 
+                color: this.selectedProjectId === meta.id ? '#007DFF' : '#E2E8F0', 
+                radius: 16 
               })
             }
             .onClick(() => {
@@ -543,11 +479,13 @@ struct HomePage {
           })
         }
         .layoutWeight(1)
+        .padding({ left: 16, right: 16, top: 8 })
       }
     }
-    .padding(24)
-    .backgroundColor('#FFFFFF')
-    .border({ width: { right: 1 }, color: '#E5E7EB' })
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#FAFBFC')
+    .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)
   }
 

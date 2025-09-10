@@ -146,20 +146,10 @@ export struct TaskList {
 
       // 排序选项
       Row({ space: 8 }) {
-        ForEach(['startDate', 'endDate', 'name', 'critical'] as const, (sortType) => {
-          Button() {
-            Text(this.getSortButtonText(sortType))
-              .fontSize(12)
-              .fontColor(this.sortBy === sortType ? '#FFFFFF' : '#666666')
-          }
-          .width(60)
-          .height(32)
-          .backgroundColor(this.sortBy === sortType ? '#007AFF' : '#F5F5F7')
-          .borderRadius(8)
-          .onClick(() => {
-            this.toggleSort(sortType);
-          })
-        })
+        this.SortButton('startDate')
+        this.SortButton('endDate')
+        this.SortButton('name')
+        this.SortButton('critical')
       }
       .width('100%')
       .justifyContent(FlexAlign.Start)
@@ -281,15 +271,42 @@ export struct TaskList {
    * 获取排序按钮文本
    */
   private getSortButtonText(sortType: 'startDate' | 'endDate' | 'name' | 'critical'): string {
-    const texts = {
-      startDate: '开始时间',
-      endDate: '结束时间',
-      name: '任务名称',
-      critical: '关键任务'
-    };
+    let text: string = '';
+    switch (sortType) {
+      case 'startDate':
+        text = '开始时间';
+        break;
+      case 'endDate':
+        text = '结束时间';
+        break;
+      case 'name':
+        text = '任务名称';
+        break;
+      case 'critical':
+        text = '关键任务';
+        break;
+    }
     
-    const text = texts[sortType];
     const order = this.sortBy === sortType ? (this.sortOrder === 'asc' ? '↑' : '↓') : '';
     return `${text}${order}`;
+  }
+
+  /**
+   * 排序按钮构建器
+   */
+  @Builder
+  SortButton(sortType: 'startDate' | 'endDate' | 'name' | 'critical') {
+    Button() {
+      Text(this.getSortButtonText(sortType))
+        .fontSize(12)
+        .fontColor(this.sortBy === sortType ? '#FFFFFF' : '#666666')
+    }
+    .width(60)
+    .height(32)
+    .backgroundColor(this.sortBy === sortType ? '#007AFF' : '#F5F5F7')
+    .borderRadius(8)
+    .onClick(() => {
+      this.toggleSort(sortType);
+    })
   }
 }

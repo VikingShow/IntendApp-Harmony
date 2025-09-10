@@ -53,6 +53,25 @@ export struct ProjectHeader {
     this.isEditingProjectName = false;
   }
 
+  /**
+   * 获取已完成任务数量
+   */
+  private getCompletedTasksCount(): number {
+    return this.project.tasks.filter(task => 
+      task.checklist && task.checklist.length > 0 && 
+      task.checklist.every(item => item.isCompleted)
+    ).length;
+  }
+
+  /**
+   * 获取项目进度百分比
+   */
+  private getProjectProgress(): number {
+    const totalTasks = this.project.tasks.length;
+    const completedTasks = this.getCompletedTasksCount();
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  }
+
   build() {
     Column({ space: 16 }) {
       // 项目标题区域
@@ -160,11 +179,7 @@ export struct ProjectHeader {
 
         // 已完成任务数
         Column() {
-          const completedTasks = this.project.tasks.filter(task => 
-            task.checklist && task.checklist.length > 0 && 
-            task.checklist.every(item => item.isCompleted)
-          ).length;
-          Text(completedTasks.toString())
+          Text(this.getCompletedTasksCount().toString())
             .fontSize(20)
             .fontWeight(FontWeight.Medium)
             .fontColor('#34C759')
@@ -188,14 +203,7 @@ export struct ProjectHeader {
             .fontWeight(FontWeight.Medium)
             .fontColor('#1D1D1F')
           
-          const totalTasks = this.project.tasks.length;
-          const completedTasks = this.project.tasks.filter(task => 
-            task.checklist && task.checklist.length > 0 && 
-            task.checklist.every(item => item.isCompleted)
-          ).length;
-          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-          
-          Text(`${progress}%`)
+          Text(`${this.getProjectProgress()}%`)
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
             .fontColor('#007AFF')
@@ -204,7 +212,7 @@ export struct ProjectHeader {
         .justifyContent(FlexAlign.SpaceBetween)
 
         // 进度条
-        Progress({ value: progress, total: 100, type: ProgressType.Linear })
+        Progress({ value: this.getProjectProgress(), total: 100, type: ProgressType.Linear })
           .width('100%')
           .height(8)
           .color('#007AFF')

@@ -17,7 +17,17 @@ export interface UserAction {
   action: string;
   context: string;
   timestamp: number;
-  data?: any;
+  data?: Record<string, string | number | boolean>;
+}
+
+/**
+ * 性能统计信息接口
+ */
+export interface PerformanceStats {
+  totalMetrics: number;
+  totalActions: number;
+  averageMetrics: Record<string, number>;
+  recentActions: UserAction[];
 }
 
 /**
@@ -73,7 +83,7 @@ export class PerformanceService {
    * @param context 上下文
    * @param data 附加数据
    */
-  public recordUserAction(action: string, context: string, data?: any): void {
+  public recordUserAction(action: string, context: string, data?: Record<string, string | number | boolean>): void {
     const userAction: UserAction = {
       action,
       context,
@@ -142,7 +152,7 @@ export class PerformanceService {
     if (name) {
       return this.metrics.filter(metric => metric.name === name);
     }
-    return [...this.metrics];
+    return this.metrics.slice();
   }
 
   /**
@@ -154,7 +164,7 @@ export class PerformanceService {
     if (action) {
       return this.userActions.filter(userAction => userAction.action === action);
     }
-    return [...this.userActions];
+    return this.userActions.slice();
   }
 
   /**
@@ -173,17 +183,30 @@ export class PerformanceService {
   }
 
   /**
+   * 获取唯一的指标名称列表
+   * @returns 指标名称数组
+   */
+  private getUniqueMetricNames(): string[] {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    
+    for (const metric of this.metrics) {
+      if (!seen.has(metric.name)) {
+        seen.add(metric.name);
+        names.push(metric.name);
+      }
+    }
+    
+    return names;
+  }
+
+  /**
    * 获取性能统计信息
    * @returns 性能统计
    */
-  public getPerformanceStats(): {
-    totalMetrics: number;
-    totalActions: number;
-    averageMetrics: { [key: string]: number };
-    recentActions: UserAction[];
-  } {
-    const averageMetrics: { [key: string]: number } = {};
-    const uniqueMetricNames = [...new Set(this.metrics.map(m => m.name))];
+  public getPerformanceStats(): PerformanceStats {
+    const averageMetrics: Record<string, number> = {};
+    const uniqueMetricNames = this.getUniqueMetricNames();
     
     uniqueMetricNames.forEach(name => {
       averageMetrics[name] = this.getAverageMetric(name);

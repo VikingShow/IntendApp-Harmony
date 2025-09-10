@@ -11,13 +11,26 @@ import { ProjectHeader } from '../components/ProjectHeader';
 import { TaskList } from '../components/TaskList';
 import { ActionButtons } from '../components/ActionButtons';
 import { TaskEditor } from '../components/TaskEditor';
-import { TaskNode, ChecklistItem } from '../model/ProjectData';
-import { EventBus, Events } from '../core/EventBus';
+import { TaskNode, ChecklistItem, Project } from '../model/ProjectData';
+import { EventBus, Events, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 
 // 定义路由参数接口
 interface RouterParams {
   projectId?: string;
+}
+
+// 定义性能记录数据接口
+interface ProjectIdData {
+  projectId: string;
+}
+
+interface TaskIdData {
+  taskId: string;
+}
+
+interface ProjectNameData {
+  newName: string;
 }
 
 @Entry
@@ -57,7 +70,8 @@ struct IndexOptimized {
 
       if (projectId) {
         // 记录用户行为
-        this.performanceService.recordUserAction('load_existing_project', 'IndexOptimized', { projectId });
+        const projectIdData: ProjectIdData = { projectId: projectId };
+        this.performanceService.recordUserAction('load_existing_project', 'IndexOptimized', projectIdData);
         
         // 加载现有项目
         console.log(`[IndexOptimized] Loading existing project with ID: ${projectId}`);
@@ -91,51 +105,57 @@ struct IndexOptimized {
     const eventBus = EventBus.getInstance();
     
     // 监听项目加载事件
-    eventBus.on(Events.PROJECT_LOADED, (...args: any[]) => {
-      const project = args[0];
+    eventBus.on(Events.PROJECT_LOADED, (...args: EventArgs[]) => {
+      const project = args[0] as Project;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('project_loaded', 'IndexOptimized', { projectId: project.id });
+      const projectIdData: ProjectIdData = { projectId: project.id };
+      this.performanceService.recordUserAction('project_loaded', 'IndexOptimized', projectIdData);
     });
     
     // 监听项目保存事件
-    eventBus.on(Events.PROJECT_SAVED, (...args: any[]) => {
-      const project = args[0];
+    eventBus.on(Events.PROJECT_SAVED, (...args: EventArgs[]) => {
+      const project = args[0] as Project;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('project_saved', 'IndexOptimized', { projectId: project.id });
+      const projectIdData: ProjectIdData = { projectId: project.id };
+      this.performanceService.recordUserAction('project_saved', 'IndexOptimized', projectIdData);
     });
     
     // 监听任务选择事件
-    eventBus.on(Events.TASK_SELECTED, (...args: any[]) => {
-      const task = args[0];
+    eventBus.on(Events.TASK_SELECTED, (...args: EventArgs[]) => {
+      const task = args[0] as TaskNode | null;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('task_selected', 'IndexOptimized', { taskId: task?.id });
+      const taskIdData: TaskIdData = { taskId: task?.id || '' };
+      this.performanceService.recordUserAction('task_selected', 'IndexOptimized', taskIdData);
     });
     
     // 监听任务更新事件
-    eventBus.on(Events.TASK_UPDATED, (...args: any[]) => {
-      const task = args[0];
+    eventBus.on(Events.TASK_UPDATED, (...args: EventArgs[]) => {
+      const task = args[0] as TaskNode;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('task_updated', 'IndexOptimized', { taskId: task.id });
+      const taskIdData: TaskIdData = { taskId: task.id };
+      this.performanceService.recordUserAction('task_updated', 'IndexOptimized', taskIdData);
     });
     
     // 监听任务删除事件
-    eventBus.on(Events.TASK_DELETED, (...args: any[]) => {
-      const taskId = args[0];
+    eventBus.on(Events.TASK_DELETED, (...args: EventArgs[]) => {
+      const taskId = args[0] as string;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('task_deleted', 'IndexOptimized', { taskId });
+      const taskIdData: TaskIdData = { taskId: taskId };
+      this.performanceService.recordUserAction('task_deleted', 'IndexOptimized', taskIdData);
     });
     
     // 监听关键路径计算事件
-    eventBus.on(Events.CRITICAL_PATH_CALCULATED, (...args: any[]) => {
-      const project = args[0];
+    eventBus.on(Events.CRITICAL_PATH_CALCULATED, (...args: EventArgs[]) => {
+      const project = args[0] as Project;
       this.updateStateFromManager();
       this.drawGraph();
-      this.performanceService.recordUserAction('critical_path_calculated', 'IndexOptimized', { projectId: project.id });
+      const projectIdData: ProjectIdData = { projectId: project.id };
+      this.performanceService.recordUserAction('critical_path_calculated', 'IndexOptimized', projectIdData);
     });
   }
 
@@ -256,7 +276,8 @@ struct IndexOptimized {
     if (this.appState.selectedTask) {
       this.canvasController.getActions().startConnecting(this.appState.selectedTask.id);
       this.drawGraph();
-      this.performanceService.recordUserAction('start_connecting', 'IndexOptimized', { taskId: this.appState.selectedTask.id });
+      const taskIdData: TaskIdData = { taskId: this.appState.selectedTask.id };
+      this.performanceService.recordUserAction('start_connecting', 'IndexOptimized', taskIdData);
     }
   }
 
@@ -297,7 +318,8 @@ struct IndexOptimized {
                   project: this.appState.project,
                   onUpdateProjectName: (newName) => {
                     this.projectManager.getActions().updateProjectName(newName);
-                    this.performanceService.recordUserAction('update_project_name', 'IndexOptimized', { newName });
+                    const projectNameData: ProjectNameData = { newName: newName };
+                    this.performanceService.recordUserAction('update_project_name', 'IndexOptimized', projectNameData);
                   }
                 })
 
@@ -325,7 +347,8 @@ struct IndexOptimized {
                   selectedTask: this.appState.selectedTask,
                   onTaskSelect: (task) => {
                     this.projectManager.getActions().selectTask(task);
-                    this.performanceService.recordUserAction('select_task', 'IndexOptimized', { taskId: task.id });
+                    const taskIdData: TaskIdData = { taskId: task.id };
+                    this.performanceService.recordUserAction('select_task', 'IndexOptimized', taskIdData);
                   }
                 })
               }
@@ -336,11 +359,13 @@ struct IndexOptimized {
                 task: this.selectedTaskForEditor,
                 onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
                   this.projectManager.getActions().updateTask(taskId, updates);
-                  this.performanceService.recordUserAction('update_task', 'IndexOptimized', { taskId, updates });
+                  const taskIdData: TaskIdData = { taskId: taskId };
+                  this.performanceService.recordUserAction('update_task', 'IndexOptimized', taskIdData);
                 },
                 onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => {
                   this.projectManager.getActions().updateChecklist(taskId, checklist);
-                  this.performanceService.recordUserAction('update_checklist', 'IndexOptimized', { taskId });
+                  const taskIdData: TaskIdData = { taskId: taskId };
+                  this.performanceService.recordUserAction('update_checklist', 'IndexOptimized', taskIdData);
                 },
                 onAddChecklistItem: (taskId: string, text: string) => {
                   const newItem: ChecklistItem = {
@@ -349,11 +374,13 @@ struct IndexOptimized {
                     isCompleted: false
                   };
                   this.projectManager.getActions().addChecklistItem(taskId, newItem);
-                  this.performanceService.recordUserAction('add_checklist_item', 'IndexOptimized', { taskId });
+                  const taskIdData: TaskIdData = { taskId: taskId };
+                  this.performanceService.recordUserAction('add_checklist_item', 'IndexOptimized', taskIdData);
                 },
                 onDeleteTask: (id: string) => {
                   this.projectManager.getActions().deleteTask(id);
-                  this.performanceService.recordUserAction('delete_task', 'IndexOptimized', { taskId: id });
+                  const taskIdData: TaskIdData = { taskId: id };
+                  this.performanceService.recordUserAction('delete_task', 'IndexOptimized', taskIdData);
                 },
                 onStartConnecting: () => this.handleStartConnecting(),
                 onBack: () => {

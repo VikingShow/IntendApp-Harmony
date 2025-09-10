@@ -3,8 +3,9 @@ import { ProjectManager } from '../core/ProjectManager';
 import { TaskEditor } from './TaskEditor';
 import { NewProjectDialog } from './WelcomeView';
 import { TemplateDialog } from './TemplateDialog';
-import { TaskNode } from '../model/ProjectData';
+import { TaskNode, ChecklistItem } from '../model/ProjectData';
 import promptAction from '@ohos.promptAction';
+import router from '@ohos.router';
 
 @Component
 export struct ProjectSidebar {
@@ -77,10 +78,17 @@ export struct ProjectSidebar {
           } else {
             TaskEditor({
               task: this.selectedTaskForEditor,
-              onUpdateTask: (task) => this.projectManager.getActions().updateTask(task),
-              onUpdateChecklist: (taskId, checklist) => this.projectManager.getActions().updateChecklist(taskId, checklist),
-              onAddChecklistItem: (taskId, text) => this.projectManager.getActions().addChecklistItem(taskId, text),
-              onDeleteTask: (id) => this.projectManager.getActions().deleteTask(id),
+              onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => this.projectManager.getActions().updateTask(taskId, updates),
+              onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => this.projectManager.getActions().updateChecklist(taskId, checklist),
+              onAddChecklistItem: (taskId: string, text: string) => {
+                const newItem: ChecklistItem = {
+                  id: `item_${Date.now()}`,
+                  text: text,
+                  isCompleted: false
+                };
+                this.projectManager.getActions().addChecklistItem(taskId, newItem);
+              },
+              onDeleteTask: (id: string) => this.projectManager.getActions().deleteTask(id),
               onStartConnecting: () => {
                 // 这里需要通知父组件开始连接模式
                 // 可以通过事件总线或其他方式实现
@@ -170,14 +178,10 @@ export struct ProjectSidebar {
 
   @Builder
   ProjectView() {
-    const project = this.projectManager.getState().project;
-    const selectedTask = this.projectManager.getState().selectedTask;
-    
-    if (!project) return;
-
-    Column({ space: 16 }) {
-      // --- 顶部操作栏 ---
-      Row({space: 16}) {
+    if (this.projectManager.getState().project) {
+      Column({ space: 16 }) {
+        // --- 顶部操作栏 ---
+        Row({space: 16}) {
         // 返回主页按钮
         Button() {
           Image($r('app.media.ic_back'))
@@ -190,7 +194,7 @@ export struct ProjectSidebar {
         .type(ButtonType.Circle)
         .backgroundColor('#FFFFFF')
         .shadow({ radius: 4, color: '#00000010', offsetX: 0, offsetY: 2 })
-        .onClick(() => { router.back() })
+        .onClick(() => { router.back(); })
 
         // 新建任务按钮（仅编辑页显示）
         if (!this.isHomePage) {
@@ -241,7 +245,7 @@ export struct ProjectSidebar {
               .onChange((value: string) => { this.tempProjectName = value; })
               .onSubmit(() => { this.saveProjectName(); })
           } else {
-            Text(project.name)
+            Text(this.projectManager.getState().project!.name)
               .fontSize(22)
               .fontWeight(FontWeight.Bold)
               .layoutWeight(1)
@@ -264,7 +268,7 @@ export struct ProjectSidebar {
             if (this.isEditingProjectName) {
               this.saveProjectName();
             } else {
-              this.tempProjectName = project.name;
+              this.tempProjectName = this.projectManager.getState().project!.name;
               this.isEditingProjectName = true;
             }
           })
@@ -275,7 +279,7 @@ export struct ProjectSidebar {
         // 项目统计卡片
         Row({ space: 16 }) {
           Column() {
-            Text(project.tasks.length.toString())
+            Text(this.projectManager.getState().project!.tasks.length.toString())
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor('#007DFF')
@@ -290,7 +294,7 @@ export struct ProjectSidebar {
           .shadow({ radius: 4, color: '#00000008', offsetX: 0, offsetY: 1 })
 
           Column() {
-            Text(project.tasks.filter(t => t.isCritical).length.toString())
+            Text(this.projectManager.getState().project!.tasks.filter(t => t.isCritical).length.toString())
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor('#D0021B')
@@ -341,7 +345,7 @@ export struct ProjectSidebar {
           .width('100%')
           .textAlign(TextAlign.Start)
 
-        if (project.tasks.length === 0) {
+        if (this.projectManager.getState().project!.tasks.length === 0) {
           Column({ space: 12 }) {
             Image($r('app.media.ic_empty_box'))
               .width(60)
@@ -360,7 +364,7 @@ export struct ProjectSidebar {
           .layoutWeight(1)
         } else {
           List({ space: 8 }) {
-            ForEach(project.tasks.sort((a, b) => a.startDate.getTime() - b.startDate.getTime()), (task: TaskNode) => {
+            ForEach(this.projectManager.getState().project!.tasks.sort((a, b) => a.startDate.getTime() - b.startDate.getTime()), (task: TaskNode) => {
               ListItem() {
                 Row({ space: 12 }) {
                   // 任务状态指示器
@@ -394,10 +398,10 @@ export struct ProjectSidebar {
                 }
                 .width('100%')
                 .padding(16)
-                .backgroundColor(selectedTask?.id === task.id ? '#EFF6FF' : '#FFFFFF')
+                .backgroundColor(this.projectManager.getState().selectedTask?.id === task.id ? '#EFF6FF' : '#FFFFFF')
                 .borderRadius(10)
-                .shadow({ radius: 4, color: selectedTask?.id === task.id ? '#007DFF20' : '#00000008', offsetX: 0, offsetY: 1 })
-                .border({ width: selectedTask?.id === task.id ? 2 : 0, color: '#007DFF', radius: 10 })
+                .shadow({ radius: 4, color: this.projectManager.getState().selectedTask?.id === task.id ? '#007DFF20' : '#00000008', offsetX: 0, offsetY: 1 })
+                .border({ width: this.projectManager.getState().selectedTask?.id === task.id ? 2 : 0, color: '#007DFF', radius: 10 })
                 .onClick(() => {
                   this.projectManager.getActions().selectTask(task);
                 })
@@ -410,6 +414,7 @@ export struct ProjectSidebar {
       .layoutWeight(1)
     }
     .alignItems(HorizontalAlign.Start)
+    }
   }
 }
 

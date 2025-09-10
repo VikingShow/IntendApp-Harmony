@@ -21,15 +21,15 @@ interface RouterParams {
 }
 
 // 定义性能记录数据接口
-interface ProjectIdData {
+interface ProjectIdData extends Record<string, string | number | boolean> {
   projectId: string;
 }
 
-interface TaskIdData {
+interface TaskIdData extends Record<string, string | number | boolean> {
   taskId: string;
 }
 
-interface ProjectNameData {
+interface ProjectNameData extends Record<string, string | number | boolean> {
   newName: string;
 }
 

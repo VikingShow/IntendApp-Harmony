@@ -78,23 +78,98 @@ export class FileStorageService {
   }
 
   /**
+   * 测试文件系统操作
+   */
+  public async testFileSystem(): Promise<boolean> {
+    try {
+      console.log('[FileStorageService] 开始测试文件系统操作...');
+      console.log(`[FileStorageService] 基础目录: ${this.baseDir}`);
+      console.log(`[FileStorageService] 项目目录: ${this.projectsDir}`);
+      console.log(`[FileStorageService] 元数据文件: ${this.metaFile}`);
+      
+      // 测试目录访问
+      try {
+        const baseDirExists = fs.accessSync(this.baseDir);
+        console.log(`[FileStorageService] 基础目录访问结果: ${baseDirExists}`);
+      } catch (error) {
+        console.log(`[FileStorageService] 基础目录不存在，需要创建`);
+      }
+      
+      // 测试文件写入
+      const testFile = `${this.baseDir}/test.txt`;
+      const testContent = "Hello World";
+      const encoder = new util.TextEncoder();
+      const uint8Array = encoder.encode(testContent);
+      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+      
+      console.log(`[FileStorageService] 测试文件路径: ${testFile}`);
+      console.log(`[FileStorageService] 测试内容: ${testContent}`);
+      console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
+      
+      const file = fs.openSync(testFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+      console.log(`[FileStorageService] 测试文件已打开，文件描述符: ${file.fd}`);
+      
+      fs.writeSync(file.fd, buffer);
+      console.log(`[FileStorageService] 测试数据已写入`);
+      
+      fs.closeSync(file);
+      console.log(`[FileStorageService] 测试文件已关闭`);
+      
+      // 测试文件读取
+      const readFile = fs.openSync(testFile, fs.OpenMode.READ_ONLY);
+      const stat = fs.statSync(testFile);
+      const readBuffer = new ArrayBuffer(stat.size);
+      fs.readSync(readFile.fd, readBuffer);
+      fs.closeSync(readFile);
+      
+      const decoder = new util.TextDecoder();
+      const readContent = decoder.decode(new Uint8Array(readBuffer));
+      console.log(`[FileStorageService] 读取的测试内容: ${readContent}`);
+      
+      // 清理测试文件
+      fs.unlinkSync(testFile);
+      console.log(`[FileStorageService] 测试文件已删除`);
+      
+      console.log('[FileStorageService] 文件系统测试成功！');
+      return true;
+    } catch (error) {
+      console.error('[FileStorageService] 文件系统测试失败:', error);
+      console.error(`[FileStorageService] 错误详情: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  /**
    * 初始化目录结构
    */
   private async initializeDirectories(): Promise<void> {
     try {
+      console.log(`[FileStorageService] 开始初始化目录结构，基础目录: ${this.baseDir}`);
+      
       // 确保基础目录存在
-      if (!fs.accessSync(this.baseDir)) {
-        fs.mkdirSync(this.baseDir, true);
+      try {
+        if (!fs.accessSync(this.baseDir)) {
+          console.log(`[FileStorageService] 创建基础目录: ${this.baseDir}`);
+          fs.mkdirSync(this.baseDir, true);
+        }
+      } catch (error) {
+        console.log(`[FileStorageService] 基础目录可能已存在，继续创建项目目录`);
       }
       
       // 确保项目目录存在
-      if (!fs.accessSync(this.projectsDir)) {
-        fs.mkdirSync(this.projectsDir, true);
+      try {
+        if (!fs.accessSync(this.projectsDir)) {
+          console.log(`[FileStorageService] 创建项目目录: ${this.projectsDir}`);
+          fs.mkdirSync(this.projectsDir, true);
+        }
+      } catch (error) {
+        console.log(`[FileStorageService] 项目目录可能已存在，继续初始化`);
       }
       
       console.log('[FileStorageService] 目录初始化完成');
     } catch (error) {
       console.error('[FileStorageService] 目录初始化失败:', error);
+      throw new Error(`目录初始化失败: ${error.message || '未知错误'}`);
     }
   }
 
@@ -114,7 +189,7 @@ export class FileStorageService {
       fs.closeSync(file);
 
       const decoder = new util.TextDecoder();
-      const content = decoder.decodeWithStream(new Uint8Array(buffer));
+      const content = decoder.decode(new Uint8Array(buffer));
       const projectList = JSON.parse(content) as ProjectMeta[];
       
       console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
@@ -130,18 +205,31 @@ export class FileStorageService {
    */
   private async saveProjectList(list: ProjectMeta[]): Promise<void> {
     try {
+      console.log(`[FileStorageService] 开始保存项目列表，共 ${list.length} 个项目`);
+      console.log(`[FileStorageService] 保存路径: ${this.metaFile}`);
+      
       const content = JSON.stringify(list, null, 2);
+      console.log(`[FileStorageService] 项目列表JSON内容长度: ${content.length}`);
+      
       const encoder = new util.TextEncoder();
-      const buffer = encoder.encodeInto(content);
+      const uint8Array = encoder.encode(content);
+      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+      console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
       
       const file = fs.openSync(this.metaFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+      console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
+      
       fs.writeSync(file.fd, buffer);
+      console.log(`[FileStorageService] 数据已写入文件`);
+      
       fs.closeSync(file);
+      console.log(`[FileStorageService] 文件已关闭`);
       
       console.log(`[FileStorageService] 项目列表已保存，共 ${list.length} 个项目`);
     } catch (error) {
       console.error('[FileStorageService] 保存项目列表失败:', error);
-      throw new Error(`保存项目列表失败: ${error.message}`);
+      console.error(`[FileStorageService] 错误详情: ${JSON.stringify(error)}`);
+      throw new Error(`保存项目列表失败: ${error.message || '未知错误'}`);
     }
   }
 
@@ -196,7 +284,8 @@ export class FileStorageService {
       const projectFile = `${this.projectsDir}/${project.id}.json`;
       const content = JSON.stringify(storableProject, null, 2);
       const encoder = new util.TextEncoder();
-      const buffer = encoder.encodeInto(content);
+      const uint8Array = encoder.encode(content);
+      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
       
       const file = fs.openSync(projectFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
       fs.writeSync(file.fd, buffer);
@@ -228,7 +317,7 @@ export class FileStorageService {
       fs.closeSync(file);
 
       const decoder = new util.TextDecoder();
-      const content = decoder.decodeWithStream(new Uint8Array(buffer));
+      const content = decoder.decode(new Uint8Array(buffer));
       const storableProject = JSON.parse(content) as StorableProject;
 
       // 转换回完整的Project对象

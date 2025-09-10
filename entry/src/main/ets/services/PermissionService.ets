@@ -93,7 +93,16 @@ export class PermissionService {
    */
   public async requestFileSystemPermission(): Promise<boolean> {
     const permission = 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY';
-    return await this.requestPermission(permission);
+    console.log('[PermissionService] 开始申请文件系统权限...');
+    
+    try {
+      const result = await this.requestPermission(permission);
+      console.log(`[PermissionService] 文件系统权限申请结果: ${result}`);
+      return result;
+    } catch (error) {
+      console.error('[PermissionService] 申请文件系统权限失败:', error);
+      return false;
+    }
   }
 
   /**

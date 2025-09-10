@@ -73,6 +73,13 @@ export class StorageService {
   public async getStorageStats(): Promise<StorageStats> {
     return await this.fileStorage.getStorageStats();
   }
+
+  /**
+   * 测试文件系统操作
+   */
+  public async testFileSystem(): Promise<boolean> {
+    return await this.fileStorage.testFileSystem();
+  }
 }
 
 // 导出接口供其他模块使用

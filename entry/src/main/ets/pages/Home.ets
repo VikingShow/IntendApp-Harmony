@@ -14,6 +14,7 @@ import { LoadingView } from '../components/LoadingView';
 import { ExportDialog } from '../components/ExportDialog';
 import { TemplateDialog } from '../components/TemplateDialog';
 import { StorageStatsView } from '../components/StorageStatsView';
+import { StorageStatsDialog } from '../components/StorageStatsDialog';
 import promptAction from '@ohos.promptAction';
 
 @Entry
@@ -26,6 +27,7 @@ struct HomePage {
   @State isLoading: boolean = false;
   @State showExportDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
+  @State showStorageStatsDialog: boolean = false;
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
 
@@ -43,17 +45,32 @@ struct HomePage {
     this.permissionService = PermissionService.getInstance(context as common.UIAbilityContext);
     
     // 申请文件系统权限
+    console.log('[Home] 开始申请文件系统权限...');
     const hasPermission = await this.permissionService.requestFileSystemPermission();
+    console.log(`[Home] 文件系统权限申请结果: ${hasPermission}`);
+    
     if (!hasPermission) {
+      console.warn('[Home] 文件系统权限申请失败，但继续初始化存储服务');
       promptAction.showToast({ 
-        message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权' 
+        message: '文件系统权限申请失败，部分功能可能受限' 
       });
-      return;
+      // 不直接返回，继续初始化，让用户尝试使用
     }
     
     // 初始化存储服务
     this.storageService = StorageService.getInstance(context.filesDir);
     this.exportService.setStorageService(this.storageService);
+    
+    // 测试文件系统操作
+    console.log('[Home] 开始测试文件系统操作...');
+    const fileSystemTestResult = await this.storageService.testFileSystem();
+    console.log(`[Home] 文件系统测试结果: ${fileSystemTestResult}`);
+    
+    if (!fileSystemTestResult) {
+      promptAction.showToast({ 
+        message: '文件系统测试失败，请检查权限设置' 
+      });
+    }
     
     // 初始化数据迁移服务
     this.migrationService = DataMigrationService.getInstance(context.filesDir);
@@ -77,10 +94,16 @@ struct HomePage {
 
   // 检查并执行数据迁移
   async checkAndMigrateData() {
-    if (!this.migrationService) return;
+    if (!this.migrationService) {
+      console.error('[Home] 数据迁移服务未初始化');
+      return;
+    }
     
     try {
+      console.log('[Home] 开始检查数据迁移需求...');
       const needsMigration = await this.migrationService.needsMigration();
+      console.log(`[Home] 数据迁移需求检查结果: ${needsMigration}`);
+      
       if (needsMigration) {
         console.log('[Home] 检测到需要数据迁移');
         promptAction.showToast({ 
@@ -88,41 +111,65 @@ struct HomePage {
           duration: 2000
         });
         
+        console.log('[Home] 开始执行数据迁移...');
         const result = await this.migrationService.migrateData();
+        console.log(`[Home] 数据迁移完成，结果: ${JSON.stringify(result)}`);
         
         if (result.success) {
+          console.log(`[Home] 数据迁移成功，迁移了 ${result.migratedCount} 个项目`);
           promptAction.showToast({ 
             message: `数据迁移成功，已迁移 ${result.migratedCount} 个项目`,
             duration: 3000
           });
         } else {
           console.error('[Home] 数据迁移失败:', result.errors);
+          console.error(`[Home] 迁移错误详情: ${JSON.stringify(result.errors)}`);
           promptAction.showToast({ 
             message: `数据迁移部分失败，${result.errors.length} 个项目迁移失败`,
             duration: 3000
           });
         }
+      } else {
+        console.log('[Home] 无需数据迁移');
       }
     } catch (error) {
       console.error('[Home] 数据迁移检查失败:', error);
+      console.error(`[Home] 迁移错误详情: ${JSON.stringify(error)}`);
+      promptAction.showToast({ 
+        message: '数据迁移检查失败，请查看日志',
+        duration: 3000
+      });
     }
   }
 
   async loadProjects() {
-    if (this.storageService) {
-      try {
-        this.loadingService.setLoading('project_loading', true);
-        const list = await this.storageService.getProjectList();
-        this.projectList = list.sort((a, b) => b.lastModified - a.lastModified);
-        if (this.selectedProjectId) {
-          await this.onSelectProject(this.selectedProjectId);
-        }
-      } catch (error) {
-        promptAction.showToast({ message: '加载项目列表失败' });
-        console.error('[Home] Load projects error:', error);
-      } finally {
-        this.loadingService.setLoading('project_loading', false);
+    if (!this.storageService) {
+      console.error('[Home] 存储服务未初始化');
+      return;
+    }
+    
+    try {
+      console.log('[Home] 开始加载项目列表...');
+      this.loadingService.setLoading('project_loading', true);
+      
+      const list = await this.storageService.getProjectList();
+      console.log(`[Home] 加载到 ${list.length} 个项目`);
+      
+      this.projectList = list.sort((a, b) => b.lastModified - a.lastModified);
+      console.log(`[Home] 项目列表排序完成，共 ${this.projectList.length} 个项目`);
+      
+      if (this.selectedProjectId) {
+        console.log(`[Home] 恢复选中的项目: ${this.selectedProjectId}`);
+        await this.onSelectProject(this.selectedProjectId);
       }
+      
+      console.log('[Home] 项目列表加载完成');
+    } catch (error) {
+      console.error('[Home] 加载项目列表失败:', error);
+      console.error(`[Home] 错误详情: ${JSON.stringify(error)}`);
+      promptAction.showToast({ message: '加载项目列表失败，请查看日志' });
+    } finally {
+      this.loadingService.setLoading('project_loading', false);
     }
   }
 
@@ -247,6 +294,16 @@ struct HomePage {
     this.showTemplateDialog = false;
   }
 
+  // 显示存储统计对话框
+  openStorageStatsDialog() {
+    this.showStorageStatsDialog = true;
+  }
+
+  // 关闭存储统计对话框
+  closeStorageStatsDialog() {
+    this.showStorageStatsDialog = false;
+  }
+
 
   build() {
     Stack() {
@@ -292,6 +349,16 @@ struct HomePage {
           },
           onTemplateSelected: (templateId: string, projectName: string) => {
             this.createProjectFromTemplate(templateId, projectName);
+          }
+        })
+      }
+
+      // 存储统计对话框
+      if (this.showStorageStatsDialog) {
+        StorageStatsDialog({
+          visible: true,
+          onClose: () => {
+            this.closeStorageStatsDialog();
           }
         })
       }
@@ -365,8 +432,25 @@ struct HomePage {
         .border({ width: 1, color: '#E5E7EB', radius: 12 })
       }
 
-      // 存储统计
-      StorageStatsView()
+      // 存储统计按钮
+      Button() {
+        Row({ space: 8 }) {
+          Text('📊')
+            .fontSize(16)
+            .fontColor(Color.White)
+          Text('存储统计')
+            .fontSize(14)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Medium)
+        }
+      }
+      .width('100%')
+      .height(40)
+      .backgroundColor('#007DFF')
+      .borderRadius(8)
+      .onClick(() => {
+        this.openStorageStatsDialog();
+      })
 
       // 项目列表
       if (this.projectList.length === 0) {

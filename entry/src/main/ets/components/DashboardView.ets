@@ -69,128 +69,129 @@ export struct DashboardView {
 
   build() {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
-    Scroll() {
-      Column({ space: 20 }) {
-        // 1. 项目标题和进入编辑按钮 - 简约设计
-        Column({ space: 24 }) {
-          Row() {
-            Column({ space: 12 }) {
-              Text(this.project.name)
-                .fontSize(40)
-                .fontWeight(FontWeight.Bold)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .maxLines(1)
-                .fontColor('#1E293B')
-              Text(`项目ID: ${this.project.id}`)
-                .fontSize(15)
-                .fontColor('#64748B')
-                .fontWeight(FontWeight.Medium)
-            }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
-
-            Button() {
-              Row({ space: 10 }) {
-                Text('编辑')
-                  .fontSize(17)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Medium)
-              }
-            }
-            .height(56)
-            .padding({ left: 28, right: 28 })
-            .backgroundColor('#007DFF')
-            .borderRadius(20)
-            .shadow({ radius: 6, color: '#007DFF20', offsetX: 0, offsetY: 3 })
-            .onClick(() => {
-              router.pushUrl({
-                url: 'pages/Index',
-                params: { projectId: this.project.id }
-              } as router.RouterOptions);
-            })
-          }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
-        }
-        .width('100%')
-        .padding(28)
-        .backgroundColor('#FFFFFF')
-        .borderRadius(24)
-        .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-        .border({ width: 1, color: '#E2E8F0', radius: 24 })
-
-        // 2. 核心指标统计
-        GridRow({
-          columns: 4,
-          gutter: { x: 16, y: 16 }
-        }) {
-          GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
-          }
-          GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
-          }
-          GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
-          }
-          GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-            this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
-          }
-        }
-
-        // 3. 即将到期的任务列表 - 简约设计
-        Column({ space: 20 }) {
-          Row({ space: 16 }) {
-            Text('即将到期的任务')
-              .fontSize(22)
+    Column({ space: 20 }) {
+      // 1. 项目标题和进入编辑按钮 - 简约设计
+      Column({ space: 24 }) {
+        Row() {
+          Column({ space: 12 }) {
+            Text(this.project.name)
+              .fontSize(40)
               .fontWeight(FontWeight.Bold)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .maxLines(1)
               .fontColor('#1E293B')
-            Text('(未来7天)')
+            Text(`项目ID: ${this.project.id}`)
               .fontSize(15)
               .fontColor('#64748B')
               .fontWeight(FontWeight.Medium)
           }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
 
-          // 直接计算即将到期的任务
-          if (this.getUpcomingTasks().length > 0) {
-            List({ space: 8 }) {
-              ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
-                ListItem() {
-                  this.UpcomingTaskCard(task)
-                }
-              })
+          Button() {
+            Row({ space: 10 }) {
+              Text('编辑')
+                .fontSize(17)
+                .fontColor(Color.White)
+                .fontWeight(FontWeight.Medium)
             }
-          } else {
-            // 没有即将到期的任务 - 简约设计
-            Column({ space: 24 }) {
-              Column({ space: 12 }) {
-                Text('暂无即将到期的任务')
-                  .fontSize(20)
-                  .fontColor('#1E293B')
-                  .fontWeight(FontWeight.Bold)
-                Text('很好！所有任务都在计划时间内')
-                  .fontSize(15)
-                  .fontColor('#64748B')
-                  .textAlign(TextAlign.Center)
-              }
-            }
-            .width('100%')
-            .padding(48)
-            .justifyContent(FlexAlign.Center)
-            .alignItems(HorizontalAlign.Center)
-            .backgroundColor('#FFFFFF')
-            .borderRadius(20)
-            .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-            .border({ width: 1, color: '#E2E8F0', radius: 20 })
           }
+          .height(56)
+          .padding({ left: 28, right: 28 })
+          .backgroundColor('#007DFF')
+          .borderRadius(20)
+          .shadow({ radius: 6, color: '#007DFF20', offsetX: 0, offsetY: 3 })
+          .onClick(() => {
+            router.pushUrl({
+              url: 'pages/Index',
+              params: { projectId: this.project.id }
+            } as router.RouterOptions);
+          })
         }
-        .alignItems(HorizontalAlign.Start)
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
       }
-      .padding(30)
       .width('100%')
+      .padding(28)
+      .backgroundColor('#FFFFFF')
+      .borderRadius(24)
+      .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+      .border({ width: 1, color: '#E2E8F0', radius: 24 })
+
+      // 2. 核心指标统计
+      GridRow({
+        columns: 4,
+        gutter: { x: 16, y: 16 }
+      }) {
+        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
+          this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
+        }
+        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
+          this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
+        }
+        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
+          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
+        }
+        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
+          this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
+        }
+      }
+
+      // 3. 即将到期的任务列表 - 简约设计
+      Column({ space: 20 }) {
+        Row({ space: 16 }) {
+          Text('即将到期的任务')
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1E293B')
+          Text('(未来7天)')
+            .fontSize(15)
+            .fontColor('#64748B')
+            .fontWeight(FontWeight.Medium)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        // 直接计算即将到期的任务
+        if (this.getUpcomingTasks().length > 0) {
+          List({ space: 8 }) {
+            ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
+              ListItem() {
+                this.UpcomingTaskCard(task)
+              }
+            })
+          }
+        } else {
+          // 没有即将到期的任务 - 简约设计
+          Column({ space: 24 }) {
+            Column({ space: 12 }) {
+              Text('暂无即将到期的任务')
+                .fontSize(20)
+                .fontColor('#1E293B')
+                .fontWeight(FontWeight.Bold)
+              Text('很好！所有任务都在计划时间内')
+                .fontSize(15)
+                .fontColor('#64748B')
+                .textAlign(TextAlign.Center)
+            }
+          }
+          .width('100%')
+          .padding(48)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .backgroundColor('#FFFFFF')
+          .borderRadius(20)
+          .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
+          .border({ width: 1, color: '#E2E8F0', radius: 20 })
+        }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
     }
+    .width('100%')
+    .height('100%')
+    .padding(30)
+    .backgroundColor('#F9FAFB')
   }
 
   // 构建器：统计卡片 - 简约设计

@@ -2,7 +2,7 @@
 import router from '@ohos.router';
 import { StorageService, ProjectMeta } from '../services/StorageService';
 import { LoadingService } from '../services/LoadingService';
-import { TemplateService } from '../services/TemplateService';
+import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
 import common from '@ohos.app.ability.common';
@@ -10,8 +10,14 @@ import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import { LoadingView } from '../components/LoadingView';
-import { TemplateDialog } from '../components/TemplateDialog';
 import promptAction from '@ohos.promptAction';
+
+// 定义ActionMenu按钮接口
+interface ActionMenuButton {
+  text: string;
+  color: string;
+}
+
 
 @Entry
 @Component
@@ -21,7 +27,9 @@ struct HomePage {
   @State selectedProjectId: string | null = null;
   @State componentKey: number = 0;
   @State isLoading: boolean = false;
-  @State showTemplateDialog: boolean = false;
+  @State selectedTemplate: ProjectTemplate | null = null;
+  @State projectName: string = '';
+  @State selectedCategory: string = 'development';
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
 
@@ -207,36 +215,73 @@ struct HomePage {
       return;
     }
 
-    try {
-      console.log(`[Home] Creating project from template: ${templateId}`);
+    // 添加创建确认对话框
+    AlertDialog.show({
+      title: '确认创建项目',
+      message: `确定要创建项目 "${projectName}" 吗？`,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 取消创建
+        }
+      },
+      secondaryButton: {
+        value: '创建',
+        fontColor: '#007DFF',
+        action: async () => {
+          try {
+            console.log(`[Home] Creating project from template: ${templateId}`);
 
-      // 从模板创建项目
-      const newProject = this.templateService.createProjectFromTemplate(templateId, projectName);
-      
-      // 保存项目
-      console.log(`[Home] 准备保存项目: ${JSON.stringify(newProject, null, 2)}`);
-      await this.storageService.saveProject(newProject);
-      console.log(`[Home] Project created from template: ${newProject.id}`);
-      promptAction.showToast({ message: `项目 "${newProject.name}" 已创建` });
+            // 显示创建进度
+            promptAction.showToast({ 
+              message: '正在创建项目...',
+              duration: 1000
+            });
 
-      // 立即更新项目列表
-      console.log('[Home] 开始刷新项目列表...');
-      await this.loadProjects();
-      console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
-      
-      // 设置新创建的项目为选中状态
-      this.selectedProjectId = newProject.id;
-      this.selectedProjectDetail = newProject;
-      console.log(`[Home] 设置选中项目: ${newProject.id}`);
+            // 从模板创建项目
+            const newProject = this.templateService.createProjectFromTemplate(templateId, projectName);
+            
+            // 保存项目
+            console.log(`[Home] 准备保存项目: ${JSON.stringify(newProject, null, 2)}`);
+            if (this.storageService) {
+              await this.storageService.saveProject(newProject);
+            }
+            console.log(`[Home] Project created from template: ${newProject.id}`);
+            
+            // 成功提示
+            promptAction.showToast({ 
+              message: `项目 "${newProject.name}" 创建成功！`,
+              duration: 2000
+            });
 
-      // 导航到编辑器页面
-      router.pushUrl({
-        url: 'pages/Index',
-        params: { projectId: newProject.id }
-      });
-    } catch (error) {
-      this.handleError(error as Error, "createProjectFromTemplate");
-    }
+            // 立即更新项目列表
+            console.log('[Home] 开始刷新项目列表...');
+            await this.loadProjects();
+            console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
+            
+            // 设置新创建的项目为选中状态
+            this.selectedProjectId = newProject.id;
+            this.selectedProjectDetail = newProject;
+            console.log(`[Home] 设置选中项目: ${newProject.id}`);
+
+            // 延迟导航，让用户看到成功提示
+            setTimeout(() => {
+              router.pushUrl({
+                url: 'pages/Index',
+                params: { projectId: newProject.id }
+              });
+            }, 500);
+          } catch (error) {
+            promptAction.showToast({ 
+              message: '创建项目失败，请重试',
+              duration: 2000
+            });
+            console.error('[Home] Create project error:', error);
+            this.handleError(error as Error, "createProjectFromTemplate");
+          }
+        }
+      }
+    });
   }
 
   // 统一的错误处理
@@ -280,17 +325,363 @@ struct HomePage {
   }
 
 
-  // 显示模板对话框
-  openTemplateDialog() {
-    this.showTemplateDialog = true;
+  // 显示创建项目选项的原生弹窗
+  showCreateProjectOptions() {
+    promptAction.showActionMenu({
+      title: '创建新项目',
+      buttons: [
+        {
+          text: '空白项目',
+          color: '#007DFF'
+        },
+        {
+          text: '选择模板',
+          color: '#007DFF'
+        }
+      ]
+    }).then((result) => {
+      if (result.index === 0) {
+        // 空白项目
+        this.showBlankProjectDialog();
+      } else if (result.index === 1) {
+        // 选择模板
+        this.showTemplateSelectionDialog();
+      }
+    }).catch((error: Error) => {
+      console.error('ActionMenu error:', error);
+    });
   }
 
-  // 关闭模板对话框
-  closeTemplateDialog() {
-    this.showTemplateDialog = false;
-    // 关闭对话框时也刷新项目列表，以防有项目被创建
-    this.loadProjects();
+  // 显示空白项目创建对话框
+  showBlankProjectDialog() {
+    AlertDialog.show({
+      title: '创建空白项目',
+      message: '确定要创建一个新的空白项目吗？',
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 取消操作
+        }
+      },
+      secondaryButton: {
+        value: '创建',
+        action: () => {
+          // 直接创建空白项目，使用默认名称
+          this.projectName = '新项目';
+          this.createBlankProjectWithName();
+        }
+      }
+    });
   }
+
+  // 显示模板选择对话框
+  showTemplateSelectionDialog() {
+    promptAction.showActionMenu({
+      title: '选择模板分类',
+      buttons: [
+        {
+          text: '开发模板',
+          color: '#007DFF'
+        },
+        {
+          text: '设计模板',
+          color: '#8B5CF6'
+        },
+        {
+          text: '营销模板',
+          color: '#F59E0B'
+        }
+      ]
+    }).then((result) => {
+      if (result.index === 0) {
+        // 开发模板
+        this.selectedCategory = 'development';
+        this.showTemplateListDialog();
+      } else if (result.index === 1) {
+        // 设计模板
+        this.selectedCategory = 'design';
+        this.showTemplateListDialog();
+      } else if (result.index === 2) {
+        // 营销模板
+        this.selectedCategory = 'marketing';
+        this.showTemplateListDialog();
+      }
+    }).catch((error: Error) => {
+      console.error('Category selection error:', error);
+    });
+  }
+
+  // 显示模板列表对话框
+  showTemplateListDialog() {
+    const templates = this.getTemplatesByCategory();
+    if (templates.length === 0) {
+      promptAction.showToast({ message: '该分类下没有可用模板' });
+      return;
+    }
+
+    // 简化处理：只显示前3个模板，避免动态数组问题
+    const maxTemplates = Math.min(templates.length, 3);
+    const templateButtons: ActionMenuButton[] = [];
+    
+    for (let i = 0; i < maxTemplates; i++) {
+      const template = templates[i];
+      const button: ActionMenuButton = {
+        text: `${template.name} (${template.tasks.length}个任务)`,
+        color: '#007DFF'
+      };
+      templateButtons.push(button);
+    }
+
+    // // 添加取消按钮
+    // const cancelButton: ActionMenuButton = {
+    //   text: '取消',
+    //   color: '#FF0000'
+    // };
+    // templateButtons.push(cancelButton);
+
+    // 使用固定长度的元组类型
+    if (templateButtons.length === 1) {
+      promptAction.showActionMenu({
+        title: '选择模板',
+        buttons: [templateButtons[0]]
+      }).then((result) => {
+        if (result.index === 0) {
+          this.selectedTemplate = templates[0];
+          this.projectName = templates[0].name;
+          this.createProjectFromTemplate(templates[0].id, this.projectName);
+        }
+      }).catch((error: Error) => {
+        console.error('Template selection error:', error);
+      });
+    } else if (templateButtons.length === 2) {
+      promptAction.showActionMenu({
+        title: '选择模板',
+        buttons: [templateButtons[0], templateButtons[1]]
+      }).then((result) => {
+        if (result.index < maxTemplates) {
+          this.selectedTemplate = templates[result.index];
+          this.projectName = templates[result.index].name;
+          this.createProjectFromTemplate(templates[result.index].id, this.projectName);
+        }
+      }).catch((error: Error) => {
+        console.error('Template selection error:', error);
+      });
+    } else if (templateButtons.length === 3) {
+      promptAction.showActionMenu({
+        title: '选择模板',
+        buttons: [templateButtons[0], templateButtons[1], templateButtons[2]]
+      }).then((result) => {
+        if (result.index < maxTemplates) {
+          this.selectedTemplate = templates[result.index];
+          this.projectName = templates[result.index].name;
+          this.createProjectFromTemplate(templates[result.index].id, this.projectName);
+        }
+      }).catch((error: Error) => {
+        console.error('Template selection error:', error);
+      });
+    } else if (templateButtons.length === 4) {
+      promptAction.showActionMenu({
+        title: '选择模板',
+        buttons: [templateButtons[0], templateButtons[1], templateButtons[2], templateButtons[3]]
+      }).then((result) => {
+        if (result.index < maxTemplates) {
+          this.selectedTemplate = templates[result.index];
+          this.projectName = templates[result.index].name;
+          this.createProjectFromTemplate(templates[result.index].id, this.projectName);
+        }
+      }).catch((error: Error) => {
+        console.error('Template selection error:', error);
+      });
+    }
+  }
+
+
+
+
+
+  // 获取分类名称
+  private getCategoryName(category: string): string {
+    switch (category) {
+      case 'development': return '开发';
+      case 'design': return '设计';
+      case 'marketing': return '营销';
+      case 'research': return '研究';
+      case 'other': return '其他';
+      default: return '其他';
+    }
+  }
+
+  // 获取分类图标
+  private getCategoryIcon(category: string): string {
+    switch (category) {
+      case 'development': return '💻';
+      case 'design': return '🎨';
+      case 'marketing': return '📢';
+      case 'research': return '🔬';
+      case 'other': return '📋';
+      default: return '📋';
+    }
+  }
+
+  // 获取分类颜色
+  private getCategoryColor(category: string): string {
+    switch (category) {
+      case 'development': return '#3B82F6';
+      case 'design': return '#8B5CF6';
+      case 'marketing': return '#F59E0B';
+      case 'research': return '#10B981';
+      case 'other': return '#6B7280';
+      default: return '#6B7280';
+    }
+  }
+
+  // 获取当前分类的模板
+  private getTemplatesByCategory(): ProjectTemplate[] {
+    const templates = this.templateService.getTemplatesByCategory(this.selectedCategory);
+    // 获取空白模板
+    const blank = this.templateService.getTemplateById('blank');
+    if (blank) {
+      return [blank, ...templates];
+    }
+    return templates;
+  }
+
+
+  // 创建带名称的空白项目
+  private async createBlankProjectWithName() {
+    if (!this.storageService) {
+      this.handleError(new Error("存储服务未初始化"), "createBlankProjectWithName");
+      return;
+    }
+
+    try {
+      console.log(`[Home] Creating blank project with name: ${this.projectName}`);
+
+      // 显示创建进度
+      promptAction.showToast({ 
+        message: '正在创建项目...',
+        duration: 1000
+      });
+
+      // 创建空白项目
+      const newProject = this.templateService.createProjectFromTemplate('blank', this.projectName.trim());
+      
+      // 保存项目
+      console.log(`[Home] 准备保存空白项目: ${JSON.stringify(newProject, null, 2)}`);
+      if (this.storageService) {
+        await this.storageService.saveProject(newProject);
+      }
+      console.log(`[Home] Blank project created: ${newProject.id}`);
+      
+      // 成功提示
+      promptAction.showToast({ 
+        message: `项目 "${newProject.name}" 创建成功！`,
+        duration: 2000
+      });
+
+      // 立即更新项目列表
+      console.log('[Home] 开始刷新项目列表...');
+      await this.loadProjects();
+      console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
+      
+      // 设置新创建的项目为选中状态
+      this.selectedProjectId = newProject.id;
+      this.selectedProjectDetail = newProject;
+      console.log(`[Home] 设置选中项目: ${newProject.id}`);
+
+      // 延迟导航，让用户看到成功提示
+      setTimeout(() => {
+        router.pushUrl({
+          url: 'pages/Index',
+          params: { projectId: newProject.id }
+        });
+      }, 500);
+    } catch (error) {
+      promptAction.showToast({ 
+        message: '创建项目失败，请重试',
+        duration: 2000
+      });
+      console.error('[Home] Create blank project error:', error);
+      this.handleError(error as Error, "createBlankProjectWithName");
+    }
+  }
+
+  // 快速创建空白项目
+  async createBlankProject() {
+    if (!this.storageService) {
+      this.handleError(new Error("存储服务未初始化"), "createBlankProject");
+      return;
+    }
+
+    // 添加创建确认对话框
+    AlertDialog.show({
+      title: '创建空白项目',
+      message: '确定要创建一个新的空白项目吗？',
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 取消创建
+        }
+      },
+      secondaryButton: {
+        value: '创建',
+        fontColor: '#007DFF',
+        action: async () => {
+          try {
+            console.log(`[Home] Creating blank project`);
+
+            // 显示创建进度
+            promptAction.showToast({ 
+              message: '正在创建项目...',
+              duration: 1000
+            });
+
+            // 创建空白项目
+            const newProject = this.templateService.createProjectFromTemplate('blank', '新项目');
+            
+            // 保存项目
+            console.log(`[Home] 准备保存空白项目: ${JSON.stringify(newProject, null, 2)}`);
+            if (this.storageService) {
+              await this.storageService.saveProject(newProject);
+            }
+            console.log(`[Home] Blank project created: ${newProject.id}`);
+            
+            // 成功提示
+            promptAction.showToast({ 
+              message: `项目 "${newProject.name}" 创建成功！`,
+              duration: 2000
+            });
+
+            // 立即更新项目列表
+            console.log('[Home] 开始刷新项目列表...');
+            await this.loadProjects();
+            console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
+            
+            // 设置新创建的项目为选中状态
+            this.selectedProjectId = newProject.id;
+            this.selectedProjectDetail = newProject;
+            console.log(`[Home] 设置选中项目: ${newProject.id}`);
+
+            // 延迟导航，让用户看到成功提示
+            setTimeout(() => {
+              router.pushUrl({
+                url: 'pages/Index',
+                params: { projectId: newProject.id }
+              });
+            }, 500);
+          } catch (error) {
+            promptAction.showToast({ 
+              message: '创建项目失败，请重试',
+              duration: 2000
+            });
+            console.error('[Home] Create blank project error:', error);
+            this.handleError(error as Error, "createBlankProject");
+          }
+        }
+      }
+    });
+  }
+
 
 
 
@@ -318,18 +709,6 @@ struct HomePage {
       .height('100%')
 
 
-      // 模板对话框
-      if (this.showTemplateDialog) {
-        TemplateDialog({
-          visible: true,
-          onClose: () => {
-            this.closeTemplateDialog();
-          },
-          onTemplateSelected: (templateId: string, projectName: string) => {
-            this.createProjectFromTemplate(templateId, projectName);
-          }
-        })
-      }
 
     }
     .width('100%')
@@ -368,8 +747,15 @@ struct HomePage {
         .backgroundColor('#007DFF')
         .shadow({ radius: 6, color: '#007DFF25', offsetX: 0, offsetY: 3 })
         .onClick(() => {
-          this.openTemplateDialog();
+          this.showCreateProjectOptions();
         })
+        .gesture(
+          LongPressGesture({ repeat: false })
+            .onAction(() => {
+              // 长按快速创建空白项目
+              this.createBlankProject();
+            })
+        )
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
@@ -488,6 +874,7 @@ struct HomePage {
     .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)
   }
+
 
   @Builder
   EmptyState() {

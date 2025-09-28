@@ -110,6 +110,12 @@ export struct TemplateDialog {
                 .onChange((value: string) => {
                   this.projectName = value;
                 })
+                .onSubmit(() => {
+                  // 按回车键时创建项目
+                  if (this.projectName.trim()) {
+                    this.createProject();
+                  }
+                })
             } else {
               Text('请先选择模板')
                 .backgroundColor(ThemeConfig.gray50)
@@ -142,6 +148,18 @@ export struct TemplateDialog {
               .layoutWeight(1)
               .height(52)
               .padding({ top: 8, bottom: 8 })
+            } else {
+              CommonButton({
+                text: '创建项目',
+                type: 'secondary',
+                onButtonClick: () => {
+                  this.createProject();
+                }
+              })
+              .layoutWeight(1)
+              .height(52)
+              .padding({ top: 8, bottom: 8 })
+              .enabled(false)
             }
           }
           .padding(ThemeConfig.spacingL)
@@ -300,8 +318,30 @@ export struct TemplateDialog {
 
   private createProject() {
     if (this.selectedTemplate && this.projectName.trim()) {
+      // 显示创建进度提示
+      promptAction.showToast({ 
+        message: '正在创建项目...',
+        duration: 1000
+      });
+      
+      // 调用创建回调
       this.onTemplateSelected(this.selectedTemplate.id, this.projectName.trim());
+      
+      // 关闭对话框
       this.onClose();
+    } else {
+      // 输入验证提示
+      if (!this.selectedTemplate) {
+        promptAction.showToast({ 
+          message: '请先选择一个模板',
+          duration: 1500
+        });
+      } else if (!this.projectName.trim()) {
+        promptAction.showToast({ 
+          message: '请输入项目名称',
+          duration: 1500
+        });
+      }
     }
   }
 } 

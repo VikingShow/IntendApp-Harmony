@@ -199,27 +199,37 @@ describe('CriticalPathService', () => {
 });
 
 /**
+ * 测试断言接口
+ */
+interface TestAssertions {
+  toBe: (expected: string | number | boolean) => void;
+  toEqual: (expected: string[] | number[] | boolean[] | object) => void;
+  toContain: (expected: string) => void;
+  toHaveLength: (expected: number) => void;
+}
+
+/**
  * 测试工具函数
  */
-function expect(actual: any) {
+function expect(actual: string | number | boolean | object | Array<string | number | boolean | object> | undefined): TestAssertions {
   return {
-    toBe: (expected: any) => {
+    toBe: (expected: string | number | boolean) => {
       if (actual !== expected) {
         throw new Error(`Expected ${expected}, but got ${actual}`);
       }
     },
-    toEqual: (expected: any) => {
+    toEqual: (expected: string[] | number[] | boolean[] | object) => {
       if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         throw new Error(`Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}`);
       }
     },
     toContain: (expected: string) => {
-      if (!actual.includes(expected)) {
+      if (typeof actual === 'string' && !actual.includes(expected)) {
         throw new Error(`Expected "${actual}" to contain "${expected}"`);
       }
     },
     toHaveLength: (expected: number) => {
-      if (actual.length !== expected) {
+      if (Array.isArray(actual) && actual.length !== expected) {
         throw new Error(`Expected length ${expected}, but got ${actual.length}`);
       }
     }

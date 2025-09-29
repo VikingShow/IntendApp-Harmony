@@ -1,12 +1,62 @@
 // File: entry/src/main/ets/components/TaskEditor.ets
+/**
+ * 任务编辑器组件模块
+ * 
+ * 本组件是任务详情编辑的核心界面，提供任务属性编辑、检查清单管理、
+ * 依赖关系创建等完整功能。采用苹果风格设计，提供优雅的用户体验。
+ * 
+ * 主要功能：
+ * 1. 任务属性编辑：编辑任务名称、开始时间、结束时间等基本信息
+ * 2. 检查清单管理：添加、编辑、删除任务的检查清单项目
+ * 3. 进度跟踪：通过检查清单完成情况跟踪任务进度
+ * 4. 依赖关系：创建和管理任务间的依赖关系
+ * 5. 任务操作：删除任务、返回列表等基本操作
+ * 6. 数据验证：提供输入数据的有效性验证和错误提示
+ * 
+ * 设计特点：
+ * - 苹果风格：采用苹果设计语言，提供优雅的视觉体验
+ * - 响应式布局：根据内容动态调整界面布局
+ * - 实时验证：提供实时的输入验证和错误提示
+ * - 交互友好：提供丰富的交互反馈和状态指示
+ * - 模块化设计：将不同功能模块化为独立的UI组件
+ * 
+ * 界面结构：
+ * - 头部信息：任务基本信息和编辑状态
+ * - 属性编辑：任务名称、时间等属性编辑区域
+ * - 检查清单：任务检查清单的管理和编辑
+ * - 操作按钮：任务相关的各种操作按钮
+ * - 底部导航：返回、删除等导航操作
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 
 import { TaskNode, ChecklistItem } from '../model/ProjectData';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
 import promptAction from '@ohos.promptAction';
 
+/**
+ * 任务编辑器组件
+ * 
+ * 实现任务详情编辑的核心UI组件，提供完整的任务管理功能。
+ * 采用苹果风格设计，确保用户界面的一致性和易用性。
+ * 
+ * 组件特性：
+ * - 响应式数据绑定：使用@Prop实现数据的自动同步
+ * - 实时验证：提供输入数据的实时验证和错误提示
+ * - 苹果风格：采用苹果设计语言，提供优雅的用户体验
+ * - 模块化设计：将功能分解为独立的UI模块
+ * - 交互反馈：提供丰富的用户操作反馈
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 @Component
 export struct TaskEditor {
+  /** 当前编辑的任务对象 */
   @Prop task: TaskNode | null;
   @State newChecklistItemText: string = '';
   @State private localTask: TaskNode | null = null;

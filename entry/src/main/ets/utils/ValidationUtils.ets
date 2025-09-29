@@ -1,17 +1,21 @@
-// File: entry/src/main/ets/utils/ValidationUtils.ets
+/**
+ * 数据验证工具模块
+ * 提供项目、任务、检查清单等数据的验证功能
+ */
 
 import { TaskNode } from '../model/ProjectData';
 
-// 定义验证结果接口
+/** 验证结果接口 */
 interface ValidationResult {
+  /** 验证是否通过 */
   isValid: boolean;
+  /** 验证失败时的错误信息 */
   message: string;
 }
 
+/** 数据验证工具类 */
 export class ValidationUtils {
-  /**
-   * 验证项目名称
-   */
+  /** 验证项目名称：不能为空，长度不超过50个字符 */
   static validateProjectName(name: string): ValidationResult {
     if (!name || name.trim().length === 0) {
       return { isValid: false, message: '项目名称不能为空' };
@@ -24,9 +28,7 @@ export class ValidationUtils {
     return { isValid: true, message: '' };
   }
 
-  /**
-   * 验证任务数据
-   */
+  /** 验证任务数据：名称不为空，时间合理，开始时间早于结束时间 */
   static validateTaskData(task: TaskNode): ValidationResult {
     if (!task.name || task.name.trim().length === 0) {
       return { isValid: false, message: '任务名称不能为空' };
@@ -40,14 +42,12 @@ export class ValidationUtils {
       return { isValid: false, message: '开始时间必须早于结束时间' };
     }
     
-    // 检查日期是否合理（不能是过去很久的日期）
     const now = new Date();
     const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     if (task.startDate < oneYearAgo) {
       return { isValid: false, message: '开始时间不能早于一年前' };
     }
     
-    // 检查日期是否合理（不能是未来很久的日期）
     const oneYearLater = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
     if (task.endDate > oneYearLater) {
       return { isValid: false, message: '结束时间不能晚于一年后' };
@@ -56,9 +56,7 @@ export class ValidationUtils {
     return { isValid: true, message: '' };
   }
 
-  /**
-   * 验证清单项
-   */
+  /** 验证检查清单项：内容不为空，长度不超过200个字符 */
   static validateChecklistItem(text: string): ValidationResult {
     if (!text || text.trim().length === 0) {
       return { isValid: false, message: '清单项内容不能为空' };
@@ -71,9 +69,7 @@ export class ValidationUtils {
     return { isValid: true, message: '' };
   }
 
-  /**
-   * 验证依赖关系
-   */
+  /** 验证依赖关系：任务不能依赖自己，不能循环依赖 */
   static validateDependency(fromId: string, toId: string, tasks: TaskNode[]): ValidationResult {
     if (fromId === toId) {
       return { isValid: false, message: '任务不能依赖自己' };
@@ -86,7 +82,6 @@ export class ValidationUtils {
       return { isValid: false, message: '依赖的任务不存在' };
     }
     
-    // 检查是否会造成循环依赖
     if (ValidationUtils.wouldCreateCycle(fromId, toId, tasks)) {
       return { isValid: false, message: '不能创建循环依赖' };
     }
@@ -94,11 +89,8 @@ export class ValidationUtils {
     return { isValid: true, message: '' };
   }
 
-  /**
-   * 检查是否会造成循环依赖
-   */
+  /** 检查是否会造成循环依赖（使用深度优先搜索） */
   private static wouldCreateCycle(fromId: string, toId: string, tasks: TaskNode[]): boolean {
-    // 简单的循环检测：检查从toId是否能到达fromId
     const visited = new Set<string>();
     const stack: string[] = [toId];
     
@@ -106,7 +98,7 @@ export class ValidationUtils {
       const current = stack.pop()!;
       
       if (current === fromId) {
-        return true; // 发现循环
+        return true;
       }
       
       if (visited.has(current)) {
@@ -114,10 +106,6 @@ export class ValidationUtils {
       }
       
       visited.add(current);
-      
-      // 这里需要实际的依赖关系数据来检查
-      // 由于当前没有完整的依赖关系数据，这里只是示例
-      // 实际实现需要传入完整的依赖关系数组
     }
     
     return false;

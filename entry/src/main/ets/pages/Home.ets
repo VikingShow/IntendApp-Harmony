@@ -1,4 +1,36 @@
 // File: entry/src/main/ets/pages/Home.ets
+/**
+ * 应用首页模块
+ * 
+ * 本页面是EasyFlow应用的入口页面，提供项目列表展示、项目创建、数据管理等功能。
+ * 采用左右分栏布局，左侧为项目列表，右侧为项目详情或欢迎界面，实现直观的项目管理体验。
+ * 
+ * 主要功能：
+ * 1. 项目列表：显示所有项目的概览信息和基本操作
+ * 2. 项目创建：支持空白项目和模板项目的创建
+ * 3. 项目详情：展示选中项目的详细信息和统计数据
+ * 4. 数据管理：提供项目数据的导入导出和迁移功能
+ * 5. 权限管理：处理文件系统权限和数据访问权限
+ * 6. 状态管理：维护应用状态和用户操作历史
+ * 
+ * 技术特点：
+ * - 响应式设计：基于ArkTS响应式框架实现数据的自动同步
+ * - 服务集成：集成多个服务模块提供完整的功能支持
+ * - 权限管理：集成HarmonyOS权限系统确保数据安全
+ * - 数据迁移：支持版本升级时的数据格式迁移
+ * - 错误处理：提供完善的错误处理和用户提示机制
+ * 
+ * 界面布局：
+ * - 左侧面板：项目列表和创建操作
+ * - 右侧内容：项目详情展示或欢迎界面
+ * - 顶部操作：项目创建和设置操作
+ * - 响应式布局：支持不同屏幕尺寸的自适应显示
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 import router from '@ohos.router';
 import { StorageService, ProjectMeta } from '../services/StorageService';
 import { LoadingService } from '../services/LoadingService';
@@ -12,9 +44,14 @@ import { WelcomeView } from '../components/WelcomeView';
 import { LoadingView } from '../components/LoadingView';
 import promptAction from '@ohos.promptAction';
 
-// 定义ActionMenu按钮接口
+/**
+ * ActionMenu按钮接口
+ * 定义操作菜单按钮的数据结构
+ */
 interface ActionMenuButton {
+  /** 按钮文本 */
   text: string;
+  /** 按钮颜色 */
   color: string;
 }
 

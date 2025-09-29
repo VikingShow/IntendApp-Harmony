@@ -6,12 +6,12 @@
         "type": "HarmonyOS",
         "material": {
           "storeFile": "C:/Users/SowrJam/huaweikey/EasyFlow.p12",
-          "storePassword": "00000018C9D5BFB6184698880DC454EBE79C2EC5F57D71EAAEDEEF61BB70DCEEFEBD4E7B7E0930DD",
+          "storePassword": "000000188D16411409D6931564D1E194EDA26E64385687446D3CD8DEE0476B7F634AC6EF5F12B334",
           "keyAlias": "1asyflow",
-          "keyPassword": "00000018588AD3F1C71C93DC1C6AB67A72661E3205EF960F5CA0CAAD5AC9115AE778477AC4AA3558",
+          "keyPassword": "0000001878DBCF938170F52A85EF597F7044213C36061228E8297CA483A0835158DF2BF966F890CF",
           "signAlg": "SHA256withECDSA",
-          "profile": "C:/Users/SowrJam/Downloads/easyRelease.p7b",
-          "certpath": "C:/Users/SowrJam/Downloads/easy.cer"
+          "profile": "C:/Users/SowrJam/Downloads/easyDebugDebug.p7b",
+          "certpath": "C:/Users/SowrJam/Downloads/easyDebug.cer"
         }
       }
     ],

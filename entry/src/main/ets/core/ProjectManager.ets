@@ -1,4 +1,37 @@
 // File: entry/src/main/ets/core/ProjectManager.ets
+/**
+ * 项目管理核心模块
+ * 
+ * 本模块是EasyFlow应用的核心业务逻辑层，负责统一管理项目的生命周期和操作。
+ * 采用命令模式设计，将项目操作封装为可复用的命令对象，提供清晰的API接口。
+ * 
+ * 主要功能：
+ * 1. 项目生命周期管理：创建、加载、保存、删除项目
+ * 2. 任务管理：添加、更新、删除、移动任务
+ * 3. 依赖关系管理：建立、删除任务间的依赖关系
+ * 4. 关键路径计算：自动计算和更新项目关键路径
+ * 5. 模板支持：基于模板快速创建项目
+ * 6. 自动保存：提供防抖的自动保存机制
+ * 7. 事件通知：通过事件总线通知状态变化
+ * 
+ * 架构设计：
+ * - 命令模式：将操作封装为命令，支持撤销和重做
+ * - 服务容器：通过依赖注入管理服务依赖
+ * - 事件驱动：使用事件总线实现松耦合通信
+ * - 状态管理：与AppState集成，实现响应式状态更新
+ * - 错误处理：统一的错误处理和用户提示机制
+ * 
+ * 核心服务依赖：
+ * - StorageService：项目数据持久化
+ * - CriticalPathService：关键路径计算
+ * - TemplateService：项目模板管理
+ * - EventBus：事件通信
+ * - ErrorHandler：错误处理
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 
 import { Project, TaskNode, ChecklistItem, Dependency } from '../model/ProjectData';
 import { StorageService } from '../services/StorageService';
@@ -10,28 +43,55 @@ import { ErrorHandler, ErrorType } from './ErrorHandler';
 import { ServiceContainer } from './ServiceContainer';
 import promptAction from '@ohos.promptAction';
 
+/**
+ * 项目状态接口
+ * 定义项目管理的当前状态信息
+ */
 export interface ProjectState {
+  /** 当前项目对象 */
   project: Project | null;
+  /** 当前选中的任务 */
   selectedTask: TaskNode | null;
+  /** 是否正在加载 */
   isLoading: boolean;
+  /** 错误信息 */
   error: string | null;
 }
 
+/**
+ * 项目操作接口
+ * 定义所有可用的项目操作命令
+ */
 export interface ProjectActions {
+  /** 加载项目 */
   loadProject: (projectId: string) => Promise<void>;
+  /** 创建新项目 */
   createNewProject: (name?: string) => Promise<void>;
+  /** 从模板创建项目 */
   createFromTemplate: (templateId: string, projectName: string) => Promise<void>;
+  /** 保存项目 */
   saveProject: () => Promise<void>;
+  /** 更新项目名称 */
   updateProjectName: (name: string) => void;
+  /** 添加任务 */
   addTask: () => void;
+  /** 更新任务 */
   updateTask: (taskId: string, updates: Partial<TaskNode>) => void;
+  /** 删除任务 */
   deleteTask: (taskId: string) => void;
+  /** 选择任务 */
   selectTask: (task: TaskNode | null) => void;
+  /** 更新检查清单 */
   updateChecklist: (taskId: string, checklist: ChecklistItem[]) => void;
+  /** 添加检查清单项 */
   addChecklistItem: (taskId: string, item: ChecklistItem) => void;
+  /** 添加依赖关系 */
   addDependency: (fromId: string, toId: string) => void;
+  /** 删除依赖关系 */
   removeDependency: (fromId: string, toId: string) => void;
+  /** 计算关键路径 */
   calculateCriticalPath: () => void;
+  /** 移动任务位置 */
   moveTask: (taskId: string, x: number, y: number) => void;
 }
 

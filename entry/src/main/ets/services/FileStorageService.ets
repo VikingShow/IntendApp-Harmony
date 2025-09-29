@@ -1,65 +1,164 @@
 // File: entry/src/main/ets/services/FileStorageService.ets
+/**
+ * 文件系统存储服务模块
+ * 
+ * 本模块负责项目数据的持久化存储，使用HarmonyOS文件系统API实现数据的保存、加载和管理。
+ * 采用JSON格式存储项目数据，支持项目列表管理、单个项目操作、数据导入导出等功能。
+ * 
+ * 主要功能：
+ * 1. 项目数据持久化：将项目对象序列化为JSON并保存到文件系统
+ * 2. 项目列表管理：维护项目元数据列表，支持快速检索和排序
+ * 3. 数据导入导出：支持项目数据的备份和迁移
+ * 4. 存储统计：提供存储空间使用情况的统计信息
+ * 5. 数据迁移：支持版本升级时的数据格式迁移
+ * 
+ * 存储结构：
+ * - 基础目录：应用文件目录
+ * - 项目目录：/projects/ 存储所有项目文件
+ * - 元数据文件：project_meta.json 存储项目列表信息
+ * - 项目文件：{projectId}.json 存储具体项目数据
+ * 
+ * 数据格式：
+ * - 项目元数据：包含ID、名称、修改时间、分类等基本信息
+ * - 项目数据：完整的项目对象，包含任务、依赖关系等详细信息
+ * - 日期处理：将Date对象转换为ISO字符串进行存储
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 import fs from '@ohos.file.fs';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import util from '@ohos.util';
 
-// 项目元数据接口
+/**
+ * 项目元数据接口
+ * 用于项目列表显示和快速检索，包含项目的基本信息
+ */
 export interface ProjectMeta {
+  /** 项目唯一标识符 */
   id: string;
+  /** 项目名称 */
   name: string;
+  /** 最后修改时间（时间戳） */
   lastModified: number;
+  /** 项目分类 */
   category: string;
 }
 
-// 可存储的任务节点接口（将Date转换为字符串）
+/**
+ * 可存储的任务节点接口
+ * 将Date对象转换为字符串格式，便于JSON序列化存储
+ */
 interface StorableTaskNode extends Omit<TaskNode, 'startDate' | 'endDate'> {
+  /** 开始日期（ISO字符串格式） */
   startDate: string;
+  /** 结束日期（ISO字符串格式） */
   endDate: string;
 }
 
-// 可存储的项目接口
+/**
+ * 可存储的项目接口
+ * 将Project对象转换为适合文件存储的格式
+ */
 interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
+  /** 任务列表（使用可存储格式） */
   tasks: StorableTaskNode[];
+  /** 项目分类 */
   category: string;
 }
 
-// 存储统计接口
+/**
+ * 存储统计信息接口
+ * 提供存储空间使用情况的统计信息
+ */
 interface StorageStats {
+  /** 项目总数 */
   totalProjects: number;
+  /** 总存储大小（字节） */
   totalSize: number;
 }
 
-// 迁移结果接口
+/**
+ * 数据迁移结果接口
+ * 用于返回数据迁移操作的结果信息
+ */
 interface MigrationResult {
+  /** 迁移是否成功 */
   success: boolean;
+  /** 成功迁移的项目数量 */
   migratedCount: number;
+  /** 迁移过程中的错误信息列表 */
   errors: string[];
 }
 
-// 导出数据接口
+/**
+ * 导出数据接口
+ * 用于项目数据导出时的数据格式
+ */
 interface ExportData {
+  /** 数据版本号 */
   version: string;
+  /** 导出时间（ISO字符串格式） */
   exportTime: string;
-  project: Project;
-}
-
-// 导入数据接口
-interface ImportData {
-  version?: string;
-  exportTime?: string;
+  /** 项目数据 */
   project: Project;
 }
 
 /**
- * 文件系统存储服务
- * 使用文件系统进行数据持久化，支持项目数据的保存、加载和删除
+ * 导入数据接口
+ * 用于项目数据导入时的数据格式
+ */
+interface ImportData {
+  /** 数据版本号（可选） */
+  version?: string;
+  /** 导出时间（可选） */
+  exportTime?: string;
+  /** 项目数据 */
+  project: Project;
+}
+
+/**
+ * 文件系统存储服务类
+ * 
+ * 实现项目数据的文件系统存储功能，采用单例模式设计。
+ * 负责项目数据的持久化、检索、更新和删除操作，以及存储空间管理。
+ * 
+ * 核心功能：
+ * 1. 项目数据管理：保存、加载、更新、删除项目数据
+ * 2. 元数据管理：维护项目列表和基本信息
+ * 3. 数据转换：处理Date对象与字符串之间的转换
+ * 4. 错误处理：提供完善的错误处理和恢复机制
+ * 5. 性能优化：使用缓存和批量操作提高性能
+ * 
+ * 存储策略：
+ * - 采用JSON格式存储，便于阅读和调试
+ * - 分离元数据和详细数据，提高检索效率
+ * - 支持数据迁移和版本兼容性
+ * - 提供数据备份和恢复功能
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
  */
 export class FileStorageService {
+  /** 单例实例 */
   private static instance: FileStorageService;
+  /** 基础存储目录路径 */
   private baseDir: string;
+  /** 项目文件存储目录路径 */
   private projectsDir: string;
+  /** 项目元数据文件路径 */
   private metaFile: string;
 
+  /**
+   * 私有构造函数
+   * 初始化存储目录结构和文件路径
+   * 
+   * @param baseDir 基础存储目录路径
+   * @private
+   */
   private constructor(baseDir: string) {
     this.baseDir = baseDir;
     this.projectsDir = `${baseDir}/projects`;

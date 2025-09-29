@@ -1,4 +1,35 @@
 // File: entry/src/main/ets/pages/Index.ets
+/**
+ * 项目编辑页面模块
+ * 
+ * 本页面是EasyFlow应用的核心编辑界面，提供项目可视化编辑和任务管理的完整功能。
+ * 采用左右分栏布局，左侧为操作面板，右侧为可视化画布，实现直观的项目管理体验。
+ * 
+ * 主要功能：
+ * 1. 项目可视化：使用Canvas 2D技术绘制项目网络图和任务节点
+ * 2. 任务管理：支持任务的创建、编辑、删除、移动等操作
+ * 3. 依赖关系：可视化创建和管理任务间的依赖关系
+ * 4. 关键路径：实时计算和显示项目的关键路径
+ * 5. 交互操作：支持拖拽、点击、连接等丰富的交互操作
+ * 6. 状态管理：维护项目状态和用户操作历史
+ * 
+ * 技术特点：
+ * - Canvas 2D渲染：使用HarmonyOS Canvas 2D API实现高性能图形渲染
+ * - 响应式设计：基于ArkTS响应式框架实现数据的自动同步
+ * - 事件驱动：使用事件总线实现组件间的松耦合通信
+ * - 状态管理：通过ProjectManager统一管理项目状态
+ * - 权限管理：集成HarmonyOS权限系统确保数据安全
+ * 
+ * 界面布局：
+ * - 左侧面板：Sidebar组件，提供项目操作和任务编辑功能
+ * - 右侧画布：Canvas组件，显示项目可视化网络图
+ * - 顶部控制：画布控制按钮，提供锁定、重置等功能
+ * - 响应式布局：支持侧边栏的展开和收起
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 
 import router from '@ohos.router';
 import { ProjectManager } from '../core/ProjectManager';
@@ -11,8 +42,12 @@ import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import promptAction from '@ohos.promptAction';
 
-// 定义路由参数接口
+/**
+ * 路由参数接口
+ * 定义页面路由传递的参数结构
+ */
 interface RouterParams {
+  /** 项目ID，用于加载指定项目 */
   projectId?: string;
 }
 

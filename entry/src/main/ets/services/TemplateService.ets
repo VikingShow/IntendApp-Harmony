@@ -1,52 +1,159 @@
 // File: entry/src/main/ets/services/TemplateService.ets
+/**
+ * 项目模板服务模块
+ * 
+ * 本模块提供项目模板管理功能，支持预定义的项目模板和自定义模板创建。
+ * 模板系统允许用户快速创建具有标准结构和任务流程的项目，提高项目管理效率。
+ * 
+ * 主要功能：
+ * 1. 模板管理：维护预定义的项目模板库
+ * 2. 模板分类：按项目类型对模板进行分类管理
+ * 3. 项目创建：基于模板快速创建新项目
+ * 4. 模板扩展：支持添加新的项目模板
+ * 5. 模板搜索：提供模板检索和筛选功能
+ * 
+ * 模板类型：
+ * - 开发模板：移动应用开发、网站开发等
+ * - 设计模板：UI/UX设计、平面设计等
+ * - 营销模板：营销活动、推广计划等
+ * - 研究模板：市场调研、产品研究等
+ * - 其他模板：通用项目管理模板
+ * 
+ * 模板结构：
+ * - 基本信息：ID、名称、描述、分类
+ * - 任务定义：预定义的任务列表和检查清单
+ * - 依赖关系：任务之间的逻辑依赖关系
+ * - 布局信息：任务在画布上的初始位置
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 
 import { Project, TaskNode } from '../model/ProjectData';
 
-// 类型声明
+/**
+ * 检查清单项接口
+ * 定义任务检查清单中的单个项目
+ */
 export interface ChecklistItem {
+  /** 检查项唯一标识符 */
   id: string;
+  /** 检查项文本描述 */
   text: string;
+  /** 是否已完成 */
   isCompleted: boolean;
 }
 
+/**
+ * 依赖关系接口
+ * 定义任务之间的逻辑依赖关系
+ */
 export interface Dependency {
+  /** 源任务ID */
   fromId: string;
+  /** 目标任务ID */
   toId: string;
 }
 
+/**
+ * 项目模板接口
+ * 定义完整的项目模板结构
+ */
 export interface ProjectTemplate {
+  /** 模板唯一标识符 */
   id: string;
+  /** 模板名称 */
   name: string;
+  /** 模板描述 */
   description: string;
+  /** 模板分类 */
   category: string;
+  /** 模板任务列表 */
   tasks: TaskTemplate[];
+  /** 模板依赖关系列表 */
   dependencies: DependencyTemplate[];
 }
 
+/**
+ * 任务模板接口
+ * 定义模板中的单个任务结构
+ */
 export interface TaskTemplate {
+  /** 任务名称 */
   name: string;
+  /** 开始日期 */
   startDate: Date;
+  /** 结束日期 */
   endDate: Date;
+  /** 检查清单列表 */
   checklist: ChecklistItemTemplate[];
+  /** 画布X坐标 */
   x: number;
+  /** 画布Y坐标 */
   y: number;
 }
 
+/**
+ * 检查清单项模板接口
+ * 定义模板中检查清单项的结构
+ */
 export interface ChecklistItemTemplate {
+  /** 检查项ID */
   id: string;
+  /** 检查项文本 */
   text: string;
+  /** 是否已完成 */
   isCompleted: boolean;
 }
 
+/**
+ * 依赖关系模板接口
+ * 定义模板中依赖关系的结构
+ */
 export interface DependencyTemplate {
+  /** 源任务ID */
   fromId: string;
+  /** 目标任务ID */
   toId: string;
 }
 
+/**
+ * 项目模板服务类
+ * 
+ * 实现项目模板的管理和创建功能，采用单例模式设计。
+ * 负责维护预定义模板库、提供模板检索服务、基于模板创建项目等功能。
+ * 
+ * 核心功能：
+ * 1. 模板库管理：维护内置和自定义的项目模板
+ * 2. 模板检索：按分类、关键词等条件检索模板
+ * 3. 项目创建：基于模板快速创建新项目
+ * 4. 模板扩展：支持动态添加新的项目模板
+ * 5. 数据转换：处理模板数据与项目数据之间的转换
+ * 
+ * 设计特点：
+ * - 使用Map结构存储模板，提高检索效率
+ * - 支持模板分类和标签管理
+ * - 提供模板预览和详细信息查看
+ * - 支持模板的导入导出功能
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 export class TemplateService {
+  /** 单例实例 */
   private static instance: TemplateService;
+  /** 模板存储Map，key为模板ID，value为模板对象 */
   private templates: Map<string, ProjectTemplate> = new Map();
 
+  /**
+   * 获取单例实例
+   * 如果实例不存在则创建并初始化模板库
+   * 
+   * @returns TemplateService 模板服务实例
+   * @public
+   */
   static getInstance(): TemplateService {
     if (!TemplateService.instance) {
       TemplateService.instance = new TemplateService();

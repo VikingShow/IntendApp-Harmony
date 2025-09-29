@@ -1,32 +1,114 @@
 
+/**
+ * 画布控制器模块
+ * 
+ * 本模块负责管理项目可视化画布的交互逻辑，处理用户的手势操作和画布状态管理。
+ * 提供拖拽、缩放、选择、连接等交互功能，是用户与项目可视化界面交互的核心组件。
+ * 
+ * 主要功能：
+ * 1. 手势识别：处理触摸、拖拽、点击等用户手势
+ * 2. 任务操作：支持任务的拖拽移动、选择、连接等操作
+ * 3. 画布控制：管理画布的平移、缩放、锁定等状态
+ * 4. 依赖创建：处理任务间依赖关系的可视化创建
+ * 5. 状态管理：维护画布的交互状态和用户操作历史
+ * 6. 事件分发：将用户操作转换为相应的业务事件
+ * 
+ * 交互模式：
+ * - 选择模式：点击选择任务节点
+ * - 拖拽模式：拖拽移动任务节点位置
+ * - 连接模式：创建任务间的依赖关系
+ * - 平移模式：拖拽画布进行视图平移
+ * - 锁定模式：禁用所有交互操作
+ * 
+ * 技术特点：
+ * - 手势识别：精确识别用户意图和操作类型
+ * - 碰撞检测：高效的点击区域检测算法
+ * - 状态机：清晰的状态转换和模式切换
+ * - 事件驱动：通过回调函数与业务逻辑解耦
+ * - 性能优化：避免不必要的重绘和计算
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 import { Project, TaskNode } from '../model/ProjectData';
 import { CanvasRenderer, RenderConfig } from './CanvasRenderer';
 import promptAction from '@ohos.promptAction';
 
+/**
+ * 画布状态接口
+ * 定义画布控制器的所有状态信息
+ */
 export interface CanvasState {
+  /** 画布X轴偏移量 */
   canvasOffsetX: number;
+  /** 画布Y轴偏移量 */
   canvasOffsetY: number;
+  /** 是否正在拖拽画布 */
   isDraggingCanvas: boolean;
+  /** 是否正在拖拽节点 */
   isDraggingNode: boolean;
+  /** 是否正在连接任务 */
   isConnecting: boolean;
+  /** 连接源任务ID */
   connectingFromTaskId: string | null;
+  /** 画布是否锁定 */
   isCanvasLocked: boolean;
+  /** 上次触摸X坐标 */
   lastTouchX: number;
+  /** 上次触摸Y坐标 */
   lastTouchY: number;
+  /** 拖拽X轴偏移量 */
   dragOffsetX: number;
+  /** 拖拽Y轴偏移量 */
   dragOffsetY: number;
+  /** 当前选中的任务 */
   selectedTask: TaskNode | null;
 }
 
+/**
+ * 画布操作接口
+ * 定义画布控制器的所有操作方法
+ */
 export interface CanvasActions {
+  /** 处理触摸事件 */
   handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => void;
+  /** 重置画布 */
   resetCanvas: () => void;
+  /** 切换画布锁定状态 */
   toggleCanvasLock: () => void;
+  /** 开始连接任务 */
   startConnecting: (taskId: string) => void;
+  /** 停止连接任务 */
   stopConnecting: () => void;
+  /** 获取渲染配置 */
   getRenderConfig: (selectedTaskId: string | null) => RenderConfig;
 }
 
+/**
+ * 画布控制器类
+ * 
+ * 实现画布交互逻辑的核心控制器，负责处理用户手势和画布状态管理。
+ * 采用状态机模式管理不同的交互模式，提供流畅的用户体验。
+ * 
+ * 核心功能：
+ * 1. 手势处理：识别和处理各种用户手势操作
+ * 2. 状态管理：维护画布的交互状态和模式
+ * 3. 事件分发：将用户操作转换为业务事件
+ * 4. 渲染协调：与CanvasRenderer协调进行画面更新
+ * 5. 性能优化：优化交互响应和渲染性能
+ * 
+ * 设计模式：
+ * - 状态机模式：管理不同的交互状态
+ * - 观察者模式：通过回调函数通知状态变化
+ * - 命令模式：将用户操作封装为命令
+ * - 策略模式：根据状态选择不同的处理策略
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 export class CanvasController {
   private renderer: CanvasRenderer;
   private state: CanvasState = {

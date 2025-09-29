@@ -1,4 +1,35 @@
 // File: entry/src/main/ets/components/Sidebar.ets
+/**
+ * 侧边栏组件模块
+ * 
+ * 本组件是EasyFlow应用的主要导航和操作界面，提供项目管理和任务编辑的核心功能。
+ * 采用响应式设计，根据当前状态动态显示不同的内容和操作选项。
+ * 
+ * 主要功能：
+ * 1. 项目管理：显示项目信息、统计数据和基本操作
+ * 2. 任务编辑：提供任务详情编辑和检查清单管理
+ * 3. 项目创建：支持空白项目和模板项目的创建
+ * 4. 任务操作：添加、删除、选择、连接任务等操作
+ * 5. 状态切换：在项目概览和任务编辑之间切换
+ * 6. 模板选择：提供项目模板的选择和预览功能
+ * 
+ * 设计特点：
+ * - 响应式布局：根据屏幕尺寸和内容动态调整布局
+ * - 状态驱动：根据当前状态显示不同的界面内容
+ * - 模块化设计：将不同功能模块化为独立的子组件
+ * - 交互友好：提供直观的操作反馈和状态指示
+ * - 可扩展性：支持新功能的添加和现有功能的扩展
+ * 
+ * 界面模式：
+ * - 首页模式：显示项目列表和创建选项
+ * - 项目模式：显示项目概览和基本操作
+ * - 编辑模式：显示任务编辑器和详细操作
+ * - 模板模式：显示模板选择和预览界面
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
@@ -7,11 +38,28 @@ import { TemplateDialog } from './TemplateDialog';
 import promptAction from '@ohos.promptAction';
 import { TemplateService } from '../services/TemplateService';
 
+/**
+ * 侧边栏组件
+ * 
+ * 实现应用主要导航和操作界面的核心组件，提供项目管理和任务编辑的完整功能。
+ * 采用状态驱动设计，根据当前状态动态显示不同的界面内容。
+ * 
+ * 组件特性：
+ * - 响应式数据绑定：使用@ObjectLink和@Prop实现数据的自动同步
+ * - 状态管理：根据当前状态显示不同的界面模式
+ * - 模块化设计：将功能分解为独立的子组件
+ * - 交互反馈：提供丰富的用户操作反馈
+ * - 可配置性：支持不同场景下的界面配置
+ * 
+ * @author EasyFlow开发团队
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 @Component
 export struct Sidebar {
-  // 使用@ObjectLink来响应Project状态变化（Project是@Observed类）
+  /** 项目数据对象，使用@ObjectLink实现响应式绑定 */
   @ObjectLink project: Project | null;
-  // 使用@Prop来响应TaskNode状态变化（TaskNode是接口）
+  /** 当前选中的任务，使用@Prop实现属性传递 */
   @Prop selectedTask: TaskNode | null;
   @State private selectedTaskForEditor: TaskNode | null = null;
   // 新增参数：区分首页和编辑页

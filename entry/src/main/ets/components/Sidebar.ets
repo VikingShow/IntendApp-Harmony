@@ -35,6 +35,7 @@ import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
 import { NewProjectDialog } from './WelcomeView';
 import { TemplateDialog } from './TemplateDialog';
+import { ThemeConfig } from '../utils/ThemeConfig';
 import promptAction from '@ohos.promptAction';
 import { TemplateService } from '../services/TemplateService';
 
@@ -66,6 +67,7 @@ export struct Sidebar {
   isHomePage: boolean = false;
   onCreateBlankProject: () => void = () => {};
   onCreateProjectFromTemplate: (templateId: string, projectName: string) => void = () => {};
+  onDeleteTask: (taskId: string) => void = () => {};
 
   @State isEditingProjectName: boolean = false;
   @State tempProjectName: string = '';
@@ -75,6 +77,28 @@ export struct Sidebar {
 
   aboutToAppear() {
     this.selectedTaskForEditor = this.selectedTask;
+  }
+
+  // 删除任务方法
+  private deleteTask(task: TaskNode) {
+    AlertDialog.show({
+      title: '确认删除任务',
+      message: `确定要删除任务"${task.name}"吗？删除后无法恢复。`,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 取消删除
+        }
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: ThemeConfig.errorColor,
+        action: () => {
+          this.onDeleteTask(task.id);
+          promptAction.showToast({ message: '任务已删除' });
+        }
+      }
+    });
   }
   
   aboutToUpdate() {
@@ -110,9 +134,7 @@ export struct Sidebar {
   onDeleteChecklistItem: (taskId: string, itemId: string) => void = () => {};
   onUpdateProjectName: (newName: string) => void = () => {};
   onAddTask: () => void = () => {};
-  onDeleteTask: (id: string) => void = () => {};
   onStartConnecting: () => void = () => {};
-  onCalculate: () => void = () => {};
   // 新增回调
   onSave: () => void = () => {};
   onBack: () => void = () => {};
@@ -134,22 +156,22 @@ export struct Sidebar {
         if (this.isHomePage) {
           Row({ space: 12 }) {
             Button() {
-              Row({ space: 10 }) {
+              Row({ space: ThemeConfig.spacingS }) {
                 Text('＋')
-                  .fontSize(20)
+                  .fontSize(ThemeConfig.fontSizeXXL)
                   .fontColor(Color.White)
-                  .fontWeight(FontWeight.Medium)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
                 Text('新建项目')
-                  .fontSize(16)
+                  .fontSize(ThemeConfig.fontSizeL)
                   .fontColor(Color.White)
-                  .fontWeight(FontWeight.Medium)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
               }
             }
             .width('100%')
-            .height(52)
-            .backgroundColor('#007AFF')
-            .borderRadius(12)
-            .shadow({ radius: 12, color: '#007AFF30', offsetX: 0, offsetY: 4 })
+            .height(ThemeConfig.buttonHeightLarge)
+            .backgroundColor(ThemeConfig.primaryColor)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .shadow(ThemeConfig.buttonShadow)
             .onClick(() => {
               console.log('点击+号');
               this.showNewProjectDialog = true;
@@ -197,8 +219,11 @@ export struct Sidebar {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F5F5F7')
-      .padding(24)
+      .backgroundColor(ThemeConfig.white)
+      .padding(ThemeConfig.spacingXXL)
+      .shadow(ThemeConfig.shadowMedium)
+      .border({ width: { right: 1 }, color: ThemeConfig.gray200 })
+      .backdropBlur(10)
 
       // 弹窗遮罩层
       // 只有首页才显示新建相关弹窗
@@ -394,30 +419,14 @@ export struct Sidebar {
           }
           .width('100%')
         }
-        .padding(20)
-        .backgroundColor('#FFFFFF')
-        .borderRadius(16)
-        .shadow({ radius: 20, color: '#00000008', offsetX: 0, offsetY: 4 })
+        .padding(ThemeConfig.spacingXL)
+        .backgroundColor(ThemeConfig.white)
+        .borderRadius(ThemeConfig.radiusXLarge)
+        .shadow(ThemeConfig.cardShadow)
+        .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
 
         // 操作按钮区域
         Column({ space: 16 }) {
-          Button() {
-            Row({ space: 10 }) {
-              Text('💡')
-                .fontSize(18)
-                .fontColor(Color.White)
-              Text('计算关键路径')
-                .fontSize(16)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .width('100%')
-          .height(52)
-          .backgroundColor('#34C759')
-          .borderRadius(12)
-          .shadow({ radius: 12, color: '#34C75930', offsetX: 0, offsetY: 4 })
-          .onClick(() => { this.onCalculate() })
         }
 
         // 任务列表区域
@@ -473,9 +482,6 @@ export struct Sidebar {
                       // 子任务信息
                       if (task.checklist && task.checklist.length > 0) {
                         Row({ space: 8 }) {
-                          Text('📋')
-                            .fontSize(12)
-                            .fontColor('#86868B')
                           Text(`${task.checklist.filter(item => item.isCompleted).length}/${task.checklist.length} 已完成`)
                             .fontSize(12)
                             .fontColor('#86868B')
@@ -487,22 +493,52 @@ export struct Sidebar {
                     .alignItems(HorizontalAlign.Start)
                     .layoutWeight(1)
 
-                    // // 关键任务标识
-                    // if (task.isCritical) {
-                    //   Text('🔥')
-                    //     .fontSize(16)
-                    //     .fontColor('#FF3B30')
-                    // }
+                    // 删除按钮
+                    Button() {
+                      Text('×')
+                        .fontSize(ThemeConfig.fontSizeL)
+                        .fontColor(ThemeConfig.errorColor)
+                        .fontWeight(ThemeConfig.fontWeightBold)
+                    }
+                    .width(32)
+                    .height(32)
+                    .backgroundColor(ThemeConfig.errorLight)
+                    .borderRadius(ThemeConfig.radiusSmall)
+                    .border({ 
+                      width: 1, 
+                      color: ThemeConfig.errorColor, 
+                      radius: ThemeConfig.radiusSmall 
+                    })
+                    .onClick(() => {
+                      this.deleteTask(task);
+                    })
+
                   }
                   .width('100%')
-                  .padding(18)
-                  .backgroundColor(this.selectedTask?.id === task.id ? '#F0F8FF' : '#FFFFFF')
-                  .borderRadius(12)
-                  .shadow({ radius: 8, color: this.selectedTask?.id === task.id ? '#007AFF20' : '#0000000A', offsetX: 0, offsetY: 2 })
-                  .border({ width: this.selectedTask?.id === task.id ? 2 : 0, color: '#007AFF', radius: 12 })
+                  .padding(ThemeConfig.spacingXL)
+                  .backgroundColor(this.selectedTask?.id === task.id ? ThemeConfig.primaryLight : ThemeConfig.white)
+                  .borderRadius(ThemeConfig.radiusMedium)
+                  .shadow(this.selectedTask?.id === task.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
+                  .border({ 
+                    width: this.selectedTask?.id === task.id ? 2 : 0, 
+                    color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : 'transparent', 
+                    radius: ThemeConfig.radiusMedium 
+                  })
+                  .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     this.selectedTask = task;
                   })
+                  .onTouch((event: TouchEvent) => {
+                    if (event.type === TouchType.Down) {
+                      // 添加按下效果
+                    }
+                  })
+                  .gesture(
+                    TapGesture({ count: 1 })
+                      .onAction(() => {
+                        this.selectedTask = task;
+                      })
+                  )
                 }
               })
             }

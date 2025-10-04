@@ -70,9 +70,6 @@ export struct ActionButtons {
         // 计算关键路径按钮
         Button() {
           Row({ space: 10 }) {
-            Text('💡')
-              .fontSize(18)
-              .fontColor(Color.White)
             Text('计算关键路径')
               .fontSize(16)
               .fontColor(Color.White)
@@ -89,9 +86,6 @@ export struct ActionButtons {
         // 创建依赖按钮
         Button() {
           Row({ space: 10 }) {
-            Text('🔗')
-              .fontSize(18)
-              .fontColor(Color.White)
             Text('创建依赖关系')
               .fontSize(16)
               .fontColor(Color.White)

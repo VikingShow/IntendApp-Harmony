@@ -35,6 +35,7 @@
 import { TaskNode, ChecklistItem } from '../model/ProjectData';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
+import { ThemeConfig } from '../utils/ThemeConfig';
 import promptAction from '@ohos.promptAction';
 
 /**
@@ -60,6 +61,9 @@ export struct TaskEditor {
   @State newChecklistItemText: string = '';
   @State private localTask: TaskNode | null = null;
   @State private forceUpdateKey: number = 0;
+  @State private autoSaveTimer: number | null = null;
+  @State private hasUnsavedChanges: boolean = false;
+  @State private debounceTimer: number | null = null;
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
@@ -77,6 +81,20 @@ export struct TaskEditor {
 
   aboutToAppear() {
     this.localTask = this.task;
+  }
+
+  aboutToDisappear() {
+    // 组件销毁时保存未保存的更改
+    if (this.hasUnsavedChanges && this.localTask) {
+      this.saveTaskChanges();
+    }
+    // 清理定时器
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
   }
 
   aboutToUpdate() {
@@ -166,6 +184,54 @@ export struct TaskEditor {
     }
   }
 
+  // 防抖的自动保存任务更改
+  private scheduleAutoSave() {
+    this.hasUnsavedChanges = true;
+    
+    // 清除之前的防抖定时器
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    
+    // 设置防抖定时器（500ms后触发自动保存）
+    this.debounceTimer = setTimeout(() => {
+      this.performAutoSave();
+    }, 500);
+  }
+
+  // 执行自动保存
+  private performAutoSave() {
+    // 清除之前的自动保存定时器
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    
+    // 设置新的自动保存定时器（1秒后保存）
+    this.autoSaveTimer = setTimeout(() => {
+      this.saveTaskChanges();
+    }, 1000);
+  }
+
+  // 保存任务更改
+  private saveTaskChanges() {
+    if (this.localTask && this.hasUnsavedChanges) {
+      console.log(`[TaskEditor] Auto-saving task: ${this.localTask.id}`);
+      this.onUpdateTask(this.localTask.id, {
+        name: this.localTask.name,
+        startDate: this.localTask.startDate,
+        endDate: this.localTask.endDate,
+        checklist: this.localTask.checklist
+      });
+      this.hasUnsavedChanges = false;
+      
+      // 显示保存提示
+      promptAction.showToast({ 
+        message: '已自动保存', 
+        duration: 1000 
+      });
+    }
+  }
+
   build() {
     // 使用localTask来确保响应式更新
     if (this.localTask) {
@@ -174,9 +240,9 @@ export struct TaskEditor {
           Column({ space: 16 }) {
             Row({ space: 12 }) {
                              Text('编辑任务')
-                 .fontSize(20)
-                 .fontWeight(FontWeight.Medium)
-                 .fontColor('#1D1D1F')
+                 .fontSize(ThemeConfig.fontSizeXXL)
+                 .fontWeight(ThemeConfig.fontWeightMedium)
+                 .fontColor(ThemeConfig.gray800)
                  .layoutWeight(1)
             }
             .width('100%')
@@ -184,17 +250,39 @@ export struct TaskEditor {
 
             Column({ space: 8 }) {
               Text('任务名称')
-                .fontSize(13)
-                .fontWeight(FontWeight.Medium)
-                .fontColor('#86868B')
-              TextInput({ text: this.localTask.name || '' })
-                .backgroundColor('#F5F5F7')
-                .borderRadius(12)
-                .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                .fontSize(16)
+                .fontSize(ThemeConfig.fontSizeS)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+                .fontColor(ThemeConfig.gray500)
+              TextInput({ text: this.localTask.name || '', placeholder: '请输入任务名称' })
+                .backgroundColor(ThemeConfig.gray100)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+                .fontSize(ThemeConfig.fontSizeL)
                 .width('100%')
-                .fontColor('#1D1D1F')
-                .placeholderColor('#86868B')
+                .fontColor(ThemeConfig.gray800)
+                .placeholderColor(ThemeConfig.gray500)
+                .border({ 
+                  width: 1, 
+                  color: ThemeConfig.gray200, 
+                  radius: ThemeConfig.radiusMedium 
+                })
+                .onFocus(() => {
+                  // 聚焦时的视觉反馈
+                  console.log('[TaskEditor] Task name input focused');
+                })
+                .onBlur(() => {
+                  // 失焦时保存数据
+                  if (this.localTask) {
+                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
+                  }
+                })
+                .enterKeyType(EnterKeyType.Done)
+                .onSubmit(() => {
+                  // 提交时保存并聚焦到下一个输入框
+                  if (this.localTask) {
+                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
+                  }
+                })
                 .onChange((value: string) => {
                   if (this.localTask) {
                     // 验证任务名称
@@ -204,8 +292,11 @@ export struct TaskEditor {
                       return;
                     }
 
-                    // 只传递需要更新的字段，而不是整个TaskNode对象
-                    this.onUpdateTask(this.localTask.id, { name: value });
+                    // 更新本地任务名称
+                    this.localTask.name = value;
+                    
+                    // 触发自动保存
+                    this.scheduleAutoSave();
                   }
                 })
             }
@@ -283,15 +374,11 @@ export struct TaskEditor {
             .width('100%')
             .justifyContent(FlexAlign.End)
           }
-          .padding(20)
-          .backgroundColor('#FFFFFF')
-          .borderRadius(16)
-          .shadow({
-            radius: 20,
-            color: '#00000008',
-            offsetX: 0,
-            offsetY: 4
-          })
+          .padding(ThemeConfig.spacingXL)
+          .backgroundColor(ThemeConfig.white)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .shadow(ThemeConfig.cardShadow)
+          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
 
           // --- 任务清单卡片  ---
           Column({ space: 16 }) {
@@ -312,12 +399,24 @@ export struct TaskEditor {
                 text: this.newChecklistItemText 
               })
                 .layoutWeight(1)
-                .backgroundColor('#F5F5F7')
-                .borderRadius(12)
-                .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                .fontSize(15)
-                .fontColor('#1D1D1F')
-                .placeholderColor('#86868B')
+                .backgroundColor(ThemeConfig.gray100)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(ThemeConfig.gray800)
+                .placeholderColor(ThemeConfig.gray500)
+                .border({ 
+                  width: 1, 
+                  color: ThemeConfig.gray200, 
+                  radius: ThemeConfig.radiusMedium 
+                })
+                .enterKeyType(EnterKeyType.Go)
+                .onSubmit(() => {
+                  this.submitNewChecklistItem();
+                })
+                .onFocus(() => {
+                  console.log('[TaskEditor] Checklist input focused');
+                })
                 .onChange((value: string) => {
                   this.newChecklistItemText = value;
                 })
@@ -325,21 +424,17 @@ export struct TaskEditor {
                   this.submitNewChecklistItem();
                 })
               Button() {
-                                 Text('+')
-                   .fontSize(18)
-                   .fontColor(Color.White)
-                   .fontWeight(FontWeight.Medium)
+                Text('+')
+                  .fontSize(ThemeConfig.fontSizeXL)
+                  .fontColor(Color.White)
+                  .fontWeight(ThemeConfig.fontWeightBold)
               }
-              .width(44)
-              .height(44)
-              .backgroundColor('#007AFF')
-              .borderRadius(12)
-              .shadow({
-                radius: 8,
-                color: '#007AFF30',
-                offsetX: 0,
-                offsetY: 2
-              })
+              .width(48)
+              .height(48)
+              .backgroundColor(ThemeConfig.primaryColor)
+              .borderRadius(ThemeConfig.radiusMedium)
+              .shadow(ThemeConfig.buttonShadow)
+              .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusMedium })
               .onClick(() => {
                 this.submitNewChecklistItem();
               })
@@ -412,69 +507,37 @@ export struct TaskEditor {
                     })
                   }
                   .width('100%')
-                  .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                  .backgroundColor(item.isCompleted ? '#F5F5F7' : '#FFFFFF')
-                  .borderRadius(12)
+                  .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+                  .backgroundColor(item.isCompleted ? ThemeConfig.gray100 : ThemeConfig.white)
+                  .borderRadius(ThemeConfig.radiusMedium)
+                  .shadow(item.isCompleted ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
                   .border({ 
-                    width: 1, 
-                    color: item.isCompleted ? '#E5E5E7' : '#E5E5E7', 
-                    radius: 12 
+                    width: 0, 
+                    color: 'transparent', 
+                    radius: ThemeConfig.radiusMedium 
                   })
+                  .margin({ bottom: ThemeConfig.spacingXS })
                 }, (item: ChecklistItem) => item.id)
               }
               .key(`checklist-${this.localTask?.id}-${this.forceUpdateKey}`)
             }
           }
-          .padding(20)
-          .backgroundColor('#FFFFFF')
-          .borderRadius(16)
-          .shadow({
-            radius: 20,
-            color: '#00000008',
-            offsetX: 0,
-            offsetY: 4
-          })
+          .padding(ThemeConfig.spacingXL)
+          .backgroundColor(ThemeConfig.white)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .shadow(ThemeConfig.cardShadow)
+          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
 
           // --- 底部操作按钮 - 苹果风格：更优雅的按钮设计 ---
           Column({ space: 12 }) {
             CommonButton({
               text: '创建依赖从此任务开始',
-              icon: '🔗',
               type: 'primary',
               onButtonClick: () => {
                 this.onStartConnecting()
               }
             })
 
-            CommonButton({
-              text: '删除此任务',
-              icon: '🗑️',
-              type: 'danger',
-              onButtonClick: () => {
-                if (this.localTask) {
-                  // 添加删除确认对话框
-                  AlertDialog.show({
-                    title: '确认删除任务',
-                    message: `确定要删除任务"${this.localTask.name}"吗？删除后无法恢复。`,
-                    primaryButton: {
-                      value: '取消',
-                      action: () => {
-                        // 取消删除
-                      }
-                    },
-                    secondaryButton: {
-                      value: '删除',
-                      fontColor: '#FF3B30', // 苹果红色
-                      action: () => {
-                        if (this.localTask) {
-                          this.onDeleteTask(this.localTask.id);
-                        }
-                      }
-                    }
-                  });
-                }
-              }
-            })
 
             CommonButton({
               text: '返回列表',

@@ -33,6 +33,7 @@
  */
 
 import { Project, TaskNode } from '../model/ProjectData';
+import { ThemeConfig } from '../utils/ThemeConfig';
 import router from '@ohos.router';
 
 /**
@@ -195,42 +196,37 @@ export struct DashboardView {
         Row() {
           Column({ space: 12 }) {
             Text(this.project.name)
-              .fontSize(40)
-              .fontWeight(FontWeight.Bold)
+              .fontSize(ThemeConfig.fontSizeXXXXXXL)
+              .fontWeight(ThemeConfig.fontWeightBold)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
-              .fontColor('#1E293B')
+              .fontColor(ThemeConfig.gray800)
             Text(`项目ID: ${this.project.id}`)
-              .fontSize(15)
-              .fontColor('#64748B')
-              .fontWeight(FontWeight.Medium)
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontColor(ThemeConfig.gray500)
+              .fontWeight(ThemeConfig.fontWeightMedium)
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Button() {
-            Row({ space: 10 }) {
+            Row({ space: ThemeConfig.spacingS }) {
               Text('编辑')
-                .fontSize(17)
+                .fontSize(ThemeConfig.fontSizeXL)
                 .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
+                .fontWeight(ThemeConfig.fontWeightMedium)
             }
           }
-          .height(56)
-          .padding({ left: 28, right: 28 })
-          .backgroundColor(this.isEditButtonPressed ? '#0056CC' : '#007DFF')
-          .borderRadius(20)
-          .shadow({ 
-            radius: this.isEditButtonPressed ? 8 : 6, 
-            color: this.isEditButtonPressed ? '#007DFF30' : '#007DFF20', 
-            offsetX: 0, 
-            offsetY: this.isEditButtonPressed ? 4 : 3 
-          })
+          .height(ThemeConfig.buttonHeightLarge)
+          .padding({ left: ThemeConfig.spacingXXL, right: ThemeConfig.spacingXXL })
+          .backgroundColor(this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .shadow(this.isEditButtonPressed ? ThemeConfig.shadowLarge : ThemeConfig.buttonShadow)
           .scale({ x: this.editButtonScale, y: this.editButtonScale })
           .opacity(this.editButtonOpacity)
           .animation({
-            duration: 150,
-            curve: Curve.EaseInOut,
+            duration: ThemeConfig.animationFast,
+            curve: ThemeConfig.animationEaseInOut,
             iterations: 1,
             playMode: PlayMode.Normal
           })
@@ -252,18 +248,18 @@ export struct DashboardView {
         .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .padding(28)
-      .backgroundColor('#FFFFFF')
-      .borderRadius(24)
-      .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-      .border({ width: 1, color: '#E2E8F0', radius: 24 })
+      .padding(ThemeConfig.spacingXXL)
+      .backgroundColor(ThemeConfig.white)
+      .borderRadius(ThemeConfig.radiusXXLarge)
+      .shadow(ThemeConfig.cardShadow)
+      .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXXLarge })
 
       // 2. 核心指标统计 - 等高布局
       Row({ space: 16 }) {
-        this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
-        this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
-        this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
-        this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
+        this.StatCard('总任务数', `${this.project.tasks.length}个`, ThemeConfig.primaryLight, ThemeConfig.primaryColor)
+        this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ThemeConfig.successLight, ThemeConfig.successColor)
+        this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ThemeConfig.warningLight, ThemeConfig.warningColor)
+        this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, ThemeConfig.errorLight, ThemeConfig.errorColor)
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
@@ -271,22 +267,22 @@ export struct DashboardView {
 
       // 3. 即将到期的任务列表 - 简约设计
       Column({ space: 20 }) {
-        Row({ space: 16 }) {
+        Row({ space: ThemeConfig.spacingL }) {
           Text('即将到期的任务')
-            .fontSize(22)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#1E293B')
+            .fontSize(ThemeConfig.fontSizeXXL)
+            .fontWeight(ThemeConfig.fontWeightBold)
+            .fontColor(ThemeConfig.gray800)
           Text('(未来7天)')
-            .fontSize(15)
-            .fontColor('#64748B')
-            .fontWeight(FontWeight.Medium)
+            .fontSize(ThemeConfig.fontSizeL)
+            .fontColor(ThemeConfig.gray500)
+            .fontWeight(ThemeConfig.fontWeightMedium)
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
 
         // 直接计算即将到期的任务
         if (this.getUpcomingTasks().length > 0) {
-          List({ space: 8 }) {
+          List({ space: ThemeConfig.spacingS }) {
             ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
               ListItem() {
                 this.UpcomingTaskCard(task)
@@ -294,27 +290,31 @@ export struct DashboardView {
             })
           }
         } else {
-          // 没有即将到期的任务 - 简约设计
-          Column({ space: 24 }) {
-            Column({ space: 12 }) {
+          // 没有即将到期的任务 - 更友好的空状态设计
+          Column({ space: ThemeConfig.spacingXXL }) {
+            Column({ space: ThemeConfig.spacingM }) {
+              Text('🎉')
+                .fontSize(ThemeConfig.fontSizeXXXXL)
+                .fontColor(ThemeConfig.successColor)
               Text('暂无即将到期的任务')
-                .fontSize(20)
-                .fontColor('#1E293B')
-                .fontWeight(FontWeight.Bold)
+                .fontSize(ThemeConfig.fontSizeXXL)
+                .fontColor(ThemeConfig.gray800)
+                .fontWeight(ThemeConfig.fontWeightBold)
               Text('很好！所有任务都在计划时间内')
-                .fontSize(15)
-                .fontColor('#64748B')
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(ThemeConfig.gray500)
                 .textAlign(TextAlign.Center)
+                .lineHeight(24)
             }
           }
           .width('100%')
-          .padding(48)
+          .padding(ThemeConfig.spacingXXXXL)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
-          .backgroundColor('#FFFFFF')
-          .borderRadius(20)
-          .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-          .border({ width: 1, color: '#E2E8F0', radius: 20 })
+          .backgroundColor(ThemeConfig.white)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .shadow(ThemeConfig.cardShadow)
+          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
         }
       }
       .alignItems(HorizontalAlign.Start)
@@ -322,8 +322,8 @@ export struct DashboardView {
     }
     .width('100%')
     .height('100%')
-    .padding(30)
-    .backgroundColor('#F9FAFB')
+    .padding(ThemeConfig.spacingXXXL)
+    .backgroundColor(ThemeConfig.backgroundSecondary)
     .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })
@@ -337,38 +337,46 @@ export struct DashboardView {
 
   // 构建器：统计卡片 - 简约设计，等高布局
   @Builder
-  StatCard(title: string, value: string, bgColor: string, textColor: string) {
-    Column({ space: 12 }) {
+  StatCard(title: string, value: string, bgColor: string, textColor: string, icon?: string) {
+    Column({ space: ThemeConfig.spacingM }) {
+      // 图标
+      if (icon) {
+        Text(icon)
+          .fontSize(ThemeConfig.fontSizeXXXXL)
+          .fontColor(textColor)
+          .margin({ bottom: ThemeConfig.spacingS })
+      }
+      
       Text(title)
-        .fontSize(14)
-        .fontColor('#64748B')
-        .fontWeight(FontWeight.Medium)
+        .fontSize(ThemeConfig.fontSizeM)
+        .fontColor(ThemeConfig.gray500)
+        .fontWeight(ThemeConfig.fontWeightMedium)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(value)
-        .fontSize(28)
-        .fontWeight(FontWeight.Bold)
+        .fontSize(ThemeConfig.fontSizeXXXXL)
+        .fontWeight(ThemeConfig.fontWeightBold)
         .fontColor(textColor)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .height(120)
-    .padding(20)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(16)
-    .shadow({ radius: 4, color: '#00000006', offsetX: 0, offsetY: 2 })
-    .border({ width: 1, color: '#E2E8F0', radius: 16 })
+    .height(140)
+    .padding(ThemeConfig.spacingXXL)
+    .backgroundColor(ThemeConfig.white)
+    .borderRadius(ThemeConfig.radiusXLarge)
+    .shadow(ThemeConfig.cardShadow)
+    .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
     .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })
     .animation({
-      duration: 400,
-      curve: Curve.EaseOut,
+      duration: ThemeConfig.animationSlow,
+      curve: ThemeConfig.animationEaseOut,
       iterations: 1,
       playMode: PlayMode.Normal
     })
@@ -377,28 +385,28 @@ export struct DashboardView {
   // 构建器：即将到期的任务卡片 - 简约设计
   @Builder
   UpcomingTaskCard(task: TaskNode) {
-    Row({ space: 20 }) {
+    Row({ space: ThemeConfig.spacingXL }) {
       // 任务信息 - 简约设计
-      Column({ space: 8 }) {
+      Column({ space: ThemeConfig.spacingS }) {
         Text(task.name)
-          .fontSize(17)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1E293B')
+          .fontSize(ThemeConfig.fontSizeXL)
+          .fontWeight(ThemeConfig.fontWeightBold)
+          .fontColor(ThemeConfig.gray800)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Row({ space: 12 }) {
+        Row({ space: ThemeConfig.spacingM }) {
           Text(`截止于: ${task.endDate.toLocaleDateString()}`)
-            .fontSize(13)
-            .fontColor('#64748B')
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontColor(ThemeConfig.gray500)
           if (task.isCritical) {
             Text('关键任务')
-              .fontSize(11)
-              .fontColor('#DC2626')
-              .fontWeight(FontWeight.Medium)
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-              .backgroundColor('#FEF2F2')
-              .borderRadius(6)
-              .border({ width: 1, color: '#FECACA', radius: 6 })
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ThemeConfig.errorColor)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+              .padding({ left: ThemeConfig.spacingS, right: ThemeConfig.spacingS, top: ThemeConfig.spacingXS, bottom: ThemeConfig.spacingXS })
+              .backgroundColor(ThemeConfig.errorLight)
+              .borderRadius(ThemeConfig.radiusSmall)
+              .border({ width: 1, color: ThemeConfig.errorColor, radius: ThemeConfig.radiusSmall })
           }
         }
         .width('100%')
@@ -407,10 +415,10 @@ export struct DashboardView {
       .layoutWeight(1)
     }
     .width('100%')
-    .padding(24)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(20)
-    .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-    .border({ width: 1, color: '#E2E8F0', radius: 20 })
+    .padding(ThemeConfig.spacingXXL)
+    .backgroundColor(ThemeConfig.white)
+    .borderRadius(ThemeConfig.radiusXLarge)
+    .shadow(ThemeConfig.cardShadow)
+    .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXLarge })
   }
 }

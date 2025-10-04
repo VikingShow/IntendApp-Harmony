@@ -1,5 +1,7 @@
 // File: entry/src/main/ets/components/WelcomeView.ets
 
+import { ThemeConfig } from '../utils/ThemeConfig';
+
 @Component
 export struct WelcomeView {
   build() {
@@ -12,32 +14,34 @@ export struct WelcomeView {
         // 中心标题
         Column({ space: 16 }) {
           Text('一思不漏')
-            .fontSize(48)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#1E293B')
+            .fontSize(ThemeConfig.fontSizeXXXXXXL)
+            .fontWeight(ThemeConfig.fontWeightBold)
+            .fontColor(ThemeConfig.primaryColor)
             .textAlign(TextAlign.Center)
+            .shadow({ radius: 2, color: ThemeConfig.primaryColor + '20', offsetX: 0, offsetY: 2 })
           Text('EazyFlow')
-            .fontSize(20)
-            .fontColor('#64748B')
-            .fontWeight(FontWeight.Medium)
+            .fontSize(ThemeConfig.fontSizeXXXL)
+            .fontColor(ThemeConfig.gray600)
+            .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
+            .margin({ top: ThemeConfig.spacingS })
           Text('让每个想法都不被遗漏，让每个项目都井然有序')
-            .fontSize(16)
-            .fontColor('#64748B')
+            .fontSize(ThemeConfig.fontSizeL)
+            .fontColor(ThemeConfig.gray500)
             .textAlign(TextAlign.Center)
-            .lineHeight(24)
-            .margin({ top: 8 })
+            .lineHeight(28)
+            .margin({ top: ThemeConfig.spacingL })
         }
         .alignItems(HorizontalAlign.Center)
       }
       .width('100%')
       .height('100%')
       .justifyContent(FlexAlign.Center)
-      .padding({ left: 20, right: 20, top: 40, bottom: 40 })
+      .padding({ left: ThemeConfig.spacingXL, right: ThemeConfig.spacingXL, top: ThemeConfig.spacingXXXXL, bottom: ThemeConfig.spacingXXXXL })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F9FAFB')
+    .backgroundColor(ThemeConfig.backgroundSecondary)
   }
 
   @Builder

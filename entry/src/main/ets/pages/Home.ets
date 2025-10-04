@@ -37,11 +37,13 @@ import { LoadingService } from '../services/LoadingService';
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
+import { ThemeConfig } from '../utils/ThemeConfig';
 import common from '@ohos.app.ability.common';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import promptAction from '@ohos.promptAction';
+import vibrator from '@ohos.vibrator';
 
 /**
  * ActionMenu按钮接口
@@ -77,6 +79,7 @@ struct HomePage {
   @State contentTranslateY: number = 0;
   @State isTransitioning: boolean = false;
   @State selectedProjectCardScale: number = 1;
+  @State hoveredProjectId: string | null = null;
   
   // 新增项目按钮长按效果状态
   @State isLongPressing: boolean = false;
@@ -279,7 +282,16 @@ struct HomePage {
     } catch (error) {
       console.error('[Home] 加载项目列表失败:', error);
       console.error(`[Home] 错误详情: ${JSON.stringify(error)}`);
-      promptAction.showToast({ message: '加载项目列表失败，请查看日志' });
+      
+      // 更友好的错误提示
+      const errorMessage = this.getUserFriendlyErrorMessage(error as Error);
+      promptAction.showToast({ 
+        message: errorMessage,
+        duration: 4000
+      });
+      
+      // 显示重试选项
+      this.showRetryOption();
     } finally {
       this.loadingService.setLoading('project_loading', false);
     }
@@ -511,6 +523,32 @@ struct HomePage {
   private handleError(error: Error, context: string) {
     console.error(`[${context}] Error:`, error);
     promptAction.showToast({ message: `操作失败: ${error.message}` });
+  }
+
+  // 获取用户友好的错误信息
+  private getUserFriendlyErrorMessage(error: Error): string {
+    const errorMessage = error.message.toLowerCase();
+    
+    if (errorMessage.includes('permission') || errorMessage.includes('权限')) {
+      return '权限不足，请检查文件访问权限';
+    } else if (errorMessage.includes('network') || errorMessage.includes('网络')) {
+      return '网络连接异常，请检查网络设置';
+    } else if (errorMessage.includes('storage') || errorMessage.includes('存储')) {
+      return '存储空间不足，请清理空间后重试';
+    } else if (errorMessage.includes('file') || errorMessage.includes('文件')) {
+      return '文件操作失败，请检查文件是否被占用';
+    } else {
+      return '操作失败，请稍后重试';
+    }
+  }
+
+  // 显示重试选项
+  private showRetryOption() {
+    // 这里可以添加重试按钮或自动重试逻辑
+    setTimeout(() => {
+      console.log('[Home] 自动重试加载项目列表...');
+      this.loadProjects();
+    }, 2000);
   }
 
   async deleteProject(projectId: string) {
@@ -917,22 +955,28 @@ struct HomePage {
         // --- 右侧内容区 ---
         Column() {
           if (this.isLoading) {
-            // 使用系统原生Loading组件
-            Column({ space: 16 }) {
-              LoadingProgress()
-                .width(40)
-                .height(40)
-                .color('#007DFF')
-              Text('加载项目中...')
-                .fontSize(16)
-                .fontColor('#64748B')
-                .fontWeight(FontWeight.Medium)
+            // 改进的加载状态设计
+            Column({ space: ThemeConfig.spacingXXL }) {
+              Column({ space: ThemeConfig.spacingL }) {
+                LoadingProgress()
+                  .width(48)
+                  .height(48)
+                  .color(ThemeConfig.primaryColor)
+                Text('加载项目中...')
+                  .fontSize(ThemeConfig.fontSizeL)
+                  .fontColor(ThemeConfig.gray600)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
+                Text('请稍候，正在为您准备数据')
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .fontColor(ThemeConfig.gray500)
+                  .textAlign(TextAlign.Center)
+              }
             }
             .width('100%')
             .height('100%')
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
-            .backgroundColor('#F9FAFB')
+            .backgroundColor(ThemeConfig.backgroundSecondary)
           } else if (this.selectedProjectDetail) {
             // 使用条件渲染强制重新创建组件
             if (this.dashboardKey > 0) {
@@ -944,16 +988,18 @@ struct HomePage {
           }
         }
         .layoutWeight(2)
-        .backgroundColor('#F9FAFB')
+        .backgroundColor(ThemeConfig.backgroundSecondary)
         .opacity(this.contentOpacity)
         .scale({ x: this.contentScale, y: this.contentScale })
         .translate({ x: 0, y: this.contentTranslateY })
         .animation({
-          duration: 300,
-          curve: Curve.EaseInOut,
+          duration: ThemeConfig.animationNormal,
+          curve: ThemeConfig.animationEaseInOut,
           iterations: 1,
           playMode: PlayMode.Normal
         })
+        .borderRadius({ topLeft: ThemeConfig.radiusLarge, bottomLeft: ThemeConfig.radiusLarge })
+        .margin({ left: ThemeConfig.spacingS })
       }
       .width('100%')
       .height('100%')
@@ -963,6 +1009,7 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(ThemeConfig.backgroundSecondary)
   }
 
   @Builder
@@ -973,13 +1020,13 @@ struct HomePage {
         // 项目列表标题
         Column() {
           Text('项目列表')
-            .fontSize(20)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#1E293B')
+            .fontSize(ThemeConfig.fontSizeXXL)
+            .fontWeight(ThemeConfig.fontWeightBold)
+            .fontColor(ThemeConfig.gray800)
           Text(`(${this.projectList.length})`)
-            .fontSize(14)
-            .fontColor('#64748B')
-            .fontWeight(FontWeight.Medium)
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontColor(ThemeConfig.gray500)
+            .fontWeight(ThemeConfig.fontWeightMedium)
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
@@ -1012,25 +1059,26 @@ struct HomePage {
           // 按钮主体
           Button() {
             Text('+')
-              .fontSize(20)
+              .fontSize(ThemeConfig.fontSizeXXXXL)
               .fontColor(Color.White)
-              .fontWeight(FontWeight.Bold)
+              .fontWeight(ThemeConfig.fontWeightBold)
           }
-          .width(48)
-          .height(48)
+          .accessibilityLevel('important')
+          .width(ThemeConfig.spacingXXXXXL)
+          .height(ThemeConfig.spacingXXXXXL)
           .type(ButtonType.Circle)
-          .backgroundColor(this.isLongPressing ? '#0056CC' : '#007DFF')
-          .shadow({ 
-            radius: this.isLongPressing ? 8 : 6, 
-            color: this.isLongPressing ? '#007DFF40' : '#007DFF25', 
-            offsetX: 0, 
-            offsetY: this.isLongPressing ? 4 : 3 
+          .backgroundColor(this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
+          .shadow(this.isLongPressing ? ThemeConfig.shadowXLarge : ThemeConfig.shadowLarge)
+          .border({ 
+            width: 0, 
+            color: 'transparent', 
+            radius: ThemeConfig.radiusRound 
           })
           .scale({ x: this.buttonScale, y: this.buttonScale })
           .opacity(this.buttonOpacity)
           .animation({
-            duration: 200,
-            curve: Curve.EaseInOut,
+            duration: ThemeConfig.animationFast,
+            curve: ThemeConfig.animationEaseInOut,
             iterations: 1,
             playMode: PlayMode.Normal
           })
@@ -1052,6 +1100,13 @@ struct HomePage {
               this.endLongPressEffect();
             }
           })
+          .gesture(
+            TapGesture({ count: 1 })
+              .onAction(() => {
+                // 添加触觉反馈
+                this.showCreateProjectOptions();
+              })
+          )
         }
         .width(56)
         .height(56)
@@ -1108,21 +1163,22 @@ struct HomePage {
         .layoutWeight(1)
       } else {
         // 项目列表
-        List({ space: 8 }) {
-          ForEach(this.projectList, (meta: ProjectMeta) => {
-            ListItem() {
+        if (this.projectList.length > 0) {
+          List({ space: ThemeConfig.spacingS }) {
+            ForEach(this.projectList, (meta: ProjectMeta) => {
+              ListItem() {
               Row({ space: 16 }) {
                 // 项目信息 - 简约设计
-                Column({ space: 6 }) {
+                Column({ space: ThemeConfig.spacingS }) {
                   Text(meta.name)
-                    .fontSize(15)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor('#1E293B')
+                    .fontSize(ThemeConfig.fontSizeL)
+                    .fontWeight(ThemeConfig.fontWeightBold)
+                    .fontColor(ThemeConfig.gray800)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
-                    .fontSize(12)
-                    .fontColor('#64748B')
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ThemeConfig.gray500)
                 }
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
@@ -1130,23 +1186,23 @@ struct HomePage {
                 // 删除按钮 - 简约设计，带交互效果
                 Button() {
                   Text('×')
-                    .fontSize(16)
-                    .fontColor('#EF4444')
+                    .fontSize(ThemeConfig.fontSizeL)
+                    .fontColor(ThemeConfig.errorColor)
                 }
                 .width(36)
                 .height(36)
                 .type(ButtonType.Circle)
-                .backgroundColor(this.hoveredDeleteId === meta.id ? '#FEE2E2' : '#FEF2F2')
+                .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorLight : ThemeConfig.errorLight)
                 .border({ 
                   width: 1, 
-                  color: this.hoveredDeleteId === meta.id ? '#FECACA' : '#FECACA', 
+                  color: this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorColor, 
                   radius: 18 
                 })
                 .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
                 .opacity(this.deleteButtonOpacity)
                 .animation({
-                  duration: 150,
-                  curve: Curve.EaseInOut,
+                  duration: ThemeConfig.animationFast,
+                  curve: ThemeConfig.animationEaseInOut,
                   iterations: 1,
                   playMode: PlayMode.Normal
                 })
@@ -1163,23 +1219,36 @@ struct HomePage {
                 .hitTestBehavior(HitTestMode.Block)
               }
               .width('100%')
-              .padding(16)
-              .backgroundColor(this.selectedProjectId === meta.id ? '#F0F9FF' : '#FFFFFF')
-              .borderRadius(16)
-              .shadow({ 
-                radius: this.selectedProjectId === meta.id ? 4 : 2, 
-                color: this.selectedProjectId === meta.id ? '#007DFF10' : '#00000003', 
-                offsetX: 0, 
-                offsetY: this.selectedProjectId === meta.id ? 2 : 1 
-              })
+              .padding(ThemeConfig.spacingL)
+              .backgroundColor(this.selectedProjectId === meta.id ? ThemeConfig.primaryLight : 
+                               this.hoveredProjectId === meta.id ? ThemeConfig.gray50 : ThemeConfig.white)
+              .borderRadius(ThemeConfig.radiusLarge)
+              .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowLarge : 
+                     this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
-                width: this.selectedProjectId === meta.id ? 2 : 1, 
-                color: this.selectedProjectId === meta.id ? '#007DFF' : '#E2E8F0', 
-                radius: 16 
+                width: this.selectedProjectId === meta.id ? 2 : 0, 
+                color: this.selectedProjectId === meta.id ? ThemeConfig.primaryColor : 'transparent', 
+                radius: ThemeConfig.radiusLarge 
               })
+              .margin({ bottom: ThemeConfig.spacingS })
             }
+            .accessibilityLevel('important')
             .onClick(() => {
               console.log(`[Home] Project card clicked: ${meta.id}`);
+              
+              // 添加触觉反馈
+              try {
+                vibrator.startVibration({
+                  type: 'time',
+                  duration: 50
+                }, {
+                  id: 0,
+                  usage: 'alarm'
+                });
+              } catch (error) {
+                console.log('[Home] Haptic feedback not available:', error);
+              }
+              
               // 添加点击反馈动画
               this.selectedProjectCardScale = 0.95;
               setTimeout(() => {
@@ -1187,20 +1256,58 @@ struct HomePage {
               }, 150);
               this.onSelectProject(meta.id);
             })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.hoveredProjectId = meta.id;
+                this.selectedProjectCardScale = 0.95;
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.hoveredProjectId = null;
+                this.selectedProjectCardScale = 1;
+              }
+            })
             .scale({ 
               x: this.selectedProjectId === meta.id ? this.selectedProjectCardScale : 1, 
               y: this.selectedProjectId === meta.id ? this.selectedProjectCardScale : 1 
             })
             .animation({
-              duration: 150,
-              curve: Curve.EaseInOut,
+              duration: ThemeConfig.animationFast,
+              curve: ThemeConfig.animationEaseInOut,
               iterations: 1,
               playMode: PlayMode.Normal
             })
           })
         }
         .layoutWeight(1)
-        .padding({ left: 16, right: 16, top: 8 })
+        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingS })
+        } else {
+          // 空状态 - 引导用户创建第一个项目
+          Column({ space: ThemeConfig.spacingXXL }) {
+            Column({ space: ThemeConfig.spacingL }) {
+              Text('📁')
+                .fontSize(ThemeConfig.fontSizeXXXXL)
+                .fontColor(ThemeConfig.gray400)
+              Text('还没有项目')
+                .fontSize(ThemeConfig.fontSizeXXL)
+                .fontColor(ThemeConfig.gray600)
+                .fontWeight(ThemeConfig.fontWeightBold)
+              Text('点击右上角的"+"按钮创建您的第一个项目')
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(ThemeConfig.gray500)
+                .textAlign(TextAlign.Center)
+                .lineHeight(24)
+            }
+          }
+          .width('100%')
+          .padding(ThemeConfig.spacingXXXXL)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .backgroundColor(ThemeConfig.white)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .shadow(ThemeConfig.cardShadow)
+          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
+          .layoutWeight(1)
+          .margin({ left: ThemeConfig.spacingXL, right: ThemeConfig.spacingXL, top: 0, bottom: ThemeConfig.spacingXL })
+        }
       }
     }
     .width('100%')

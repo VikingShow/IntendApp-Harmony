@@ -317,9 +317,6 @@ struct Index {
             this.projectManager.getActions().deleteTask(id);
           },
           onStartConnecting: () => this.handleStartConnecting(),
-          onCalculate: () => {
-            this.projectManager.getActions().calculateCriticalPath();
-          },
           onSave: () => this.projectManager.getActions().saveProject(),
           onBack: () => this.handleBackToHome(),
           onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),

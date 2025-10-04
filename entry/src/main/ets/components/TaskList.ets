@@ -195,13 +195,6 @@ export struct TaskList {
                       .textOverflow({ overflow: TextOverflow.Ellipsis })
                       .layoutWeight(1)
 
-                    // 关键任务标识
-                    if (task.isCritical) {
-                      Text('🔥')
-                        .fontSize(16)
-                        .fontColor('#FF3B30')
-                    }
-
                     // 任务状态
                     Text(this.getTaskStatusText(task))
                       .fontSize(12)

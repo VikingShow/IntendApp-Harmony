@@ -25,19 +25,21 @@ export struct CommonButton {
           Text(this.text)
             .fontSize(this.getFontSize())
             .fontColor(this.getTextColor())
-            .fontWeight(FontWeight.Medium)
+            .fontWeight(ThemeConfig.fontWeightMedium)
         }
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
       .height(this.getHeight())
       .backgroundColor(this.getBackgroundColor())
-      .borderRadius(ThemeConfig.radiusMedium)
-      .shadow(this.pressed ? ThemeConfig.shadowSmall : ThemeConfig.shadowMedium)
-      .opacity(this.disabled ? 0.5 : this.pressed ? 0.8 : 1)
-      .scale({ x: this.pressed ? 0.98 : 1, y: this.pressed ? 0.98 : 1 })
+      .borderRadius(this.getBorderRadius())
+      .shadow(this.pressed ? ThemeConfig.shadowSmall : ThemeConfig.buttonShadow)
+      .opacity(this.disabled ? 0.5 : this.pressed ? 0.9 : 1)
+      .scale({ x: this.pressed ? 0.96 : 1, y: this.pressed ? 0.96 : 1 })
       .animation({
         duration: ThemeConfig.animationFast,
-        curve: Curve.EaseOut
+        curve: ThemeConfig.animationEaseOut
       })
       .onClick(() => {
         if (!this.disabled && this.onButtonClick) {
@@ -80,9 +82,17 @@ export struct CommonButton {
 
   private getHeight(): number {
     switch (this.buttonSize) {
-      case 'small': return 36;
-      case 'large': return 56;
-      default: return 48;
+      case 'small': return ThemeConfig.buttonHeightSmall;
+      case 'large': return ThemeConfig.buttonHeightLarge;
+      default: return ThemeConfig.buttonHeightMedium;
+    }
+  }
+
+  private getBorderRadius(): number {
+    switch (this.buttonSize) {
+      case 'small': return ThemeConfig.radiusSmall;
+      case 'large': return ThemeConfig.radiusLarge;
+      default: return ThemeConfig.radiusMedium;
     }
   }
 

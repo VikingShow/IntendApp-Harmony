@@ -72,6 +72,8 @@ export struct TaskEditor {
   };
   onAddChecklistItem: (taskId: string, text: string) => void = () => {
   };
+  onDeleteChecklistItem: (taskId: string, itemId: string) => void = () => {
+  };
 
   aboutToAppear() {
     this.localTask = this.task;
@@ -144,6 +146,23 @@ export struct TaskEditor {
       
       // 然后通知父组件更新数据
       this.onAddChecklistItem(this.localTask.id, newItem.text);
+    }
+  }
+
+  // 删除子任务
+  private deleteChecklistItem(itemId: string) {
+    if (this.localTask && this.localTask.checklist) {
+      console.log(`[TaskEditor] Deleting checklist item: ${itemId}`);
+      
+      // 先更新localTask以立即反映UI变化
+      const newChecklist = this.localTask.checklist.filter(item => item.id !== itemId);
+      this.localTask.checklist = newChecklist;
+      this.forceUpdateKey++;
+      
+      // 然后通知父组件更新数据
+      this.onDeleteChecklistItem(this.localTask.id, itemId);
+      
+      promptAction.showToast({ message: '子任务已删除' });
     }
   }
 
@@ -376,6 +395,21 @@ export struct TaskEditor {
                       .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)
+                    
+                    // 删除按钮 - 与首页删除项目按钮样式保持一致
+                    Button() {
+                      Text('×')
+                        .fontSize(16)
+                        .fontColor('#EF4444')
+                    }
+                    .width(36)
+                    .height(36)
+                    .type(ButtonType.Circle)
+                    .backgroundColor('#FEF2F2')
+                    .border({ width: 1, color: '#FECACA', radius: 18 })
+                    .onClick(() => {
+                      this.deleteChecklistItem(item.id);
+                    })
                   }
                   .width('100%')
                   .padding({ left: 16, right: 16, top: 12, bottom: 12 })

@@ -85,6 +85,8 @@ export interface ProjectActions {
   updateChecklist: (taskId: string, checklist: ChecklistItem[]) => void;
   /** 添加检查清单项 */
   addChecklistItem: (taskId: string, item: ChecklistItem) => void;
+  /** 删除检查清单项 */
+  deleteChecklistItem: (taskId: string, itemId: string) => void;
   /** 添加依赖关系 */
   addDependency: (fromId: string, toId: string) => void;
   /** 删除依赖关系 */
@@ -152,6 +154,7 @@ export class ProjectManager {
       selectTask: (task: TaskNode | null) => this.selectTask(task),
       updateChecklist: (taskId: string, checklist: ChecklistItem[]) => this.updateChecklist(taskId, checklist),
       addChecklistItem: (taskId: string, item: ChecklistItem) => this.addChecklistItem(taskId, item),
+      deleteChecklistItem: (taskId: string, itemId: string) => this.deleteChecklistItem(taskId, itemId),
       addDependency: (fromId: string, toId: string) => this.addDependency(fromId, toId),
       removeDependency: (fromId: string, toId: string) => this.removeDependency(fromId, toId),
       calculateCriticalPath: () => this.calculateCriticalPath(),
@@ -394,6 +397,37 @@ export class ProjectManager {
       this.autoSaveProject();
       
       console.log(`[ProjectManager] Checklist item added successfully`);
+    }
+  }
+
+  private deleteChecklistItem(taskId: string, itemId: string): void {
+    if (!this.appState.project) return;
+
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
+    if (task) {
+      console.log(`[ProjectManager] Deleting checklist item ${itemId} from task ${taskId}`);
+      console.log(`[ProjectManager] Before: ${task.checklist.length} items`);
+      
+      // 创建新的checklist数组以触发响应式更新
+      const newChecklist = task.checklist.filter(item => item.id !== itemId);
+      task.checklist = newChecklist;
+      
+      console.log(`[ProjectManager] After: ${task.checklist.length} items`);
+      
+      // 触发响应式更新 - 通过重新设置project来触发更新
+      this.appState.setProject(this.appState.project);
+      
+      if (this.appState.selectedTask?.id === taskId) {
+        this.appState.setSelectedTask(this.copyTaskNode(task));
+        console.log(`[ProjectManager] Updated selectedTask with new checklist`);
+      }
+      
+      // 触发事件和自动保存
+      this.eventBus.emit(Events.TASK_UPDATED, task);
+      this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
+      this.autoSaveProject();
+      
+      console.log(`[ProjectManager] Checklist item deleted successfully`);
     }
   }
 

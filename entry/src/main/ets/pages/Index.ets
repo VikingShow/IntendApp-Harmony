@@ -310,6 +310,9 @@ struct Index {
             };
             this.projectManager.getActions().addChecklistItem(taskId, newItem);
           },
+          onDeleteChecklistItem: (taskId, itemId) => {
+            this.projectManager.getActions().deleteChecklistItem(taskId, itemId);
+          },
           onDeleteTask: (id) => {
             this.projectManager.getActions().deleteTask(id);
           },

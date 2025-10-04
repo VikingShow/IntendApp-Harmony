@@ -107,6 +107,7 @@ export struct Sidebar {
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {};
   onUpdateChecklist: (taskId: string, checklist: ChecklistItem[]) => void = () => {};
   onAddChecklistItem: (taskId: string, text: string) => void = () => {};
+  onDeleteChecklistItem: (taskId: string, itemId: string) => void = () => {};
   onUpdateProjectName: (newName: string) => void = () => {};
   onAddTask: () => void = () => {};
   onDeleteTask: (id: string) => void = () => {};
@@ -169,6 +170,7 @@ export struct Sidebar {
               },
               onUpdateChecklist: this.onUpdateChecklist,
               onAddChecklistItem: this.onAddChecklistItem,
+              onDeleteChecklistItem: this.onDeleteChecklistItem,
               onDeleteTask: this.onDeleteTask,
               onStartConnecting: this.onStartConnecting,
               onBack: () => {

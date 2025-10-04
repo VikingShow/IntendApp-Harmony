@@ -4,9 +4,6 @@ import { StorageService } from '../services/StorageService';
 import { CriticalPathService } from '../services/CriticalPathService';
 import { TemplateService } from '../services/TemplateService';
 import { LoadingService } from '../services/LoadingService';
-import { ExportService } from '../services/ExportService';
-import { SearchService } from '../services/SearchService';
-import { StatisticsService } from '../services/StatisticsService';
 
 /**
  * 服务容器 - 依赖注入容器
@@ -44,9 +41,6 @@ export class ServiceContainer {
       this.register('criticalPathService', new CriticalPathService());
       this.register('templateService', TemplateService.getInstance());
       this.register('loadingService', LoadingService.getInstance());
-      this.register('exportService', ExportService.getInstance());
-      this.register('searchService', SearchService.getInstance());
-      this.register('statisticsService', StatisticsService.getInstance());
 
       // 设置服务依赖关系
       await this.setupDependencies();
@@ -97,14 +91,7 @@ export class ServiceContainer {
    */
   private async setupDependencies(): Promise<void> {
     const storageService = this.get<StorageService>('storageService');
-    const exportService = this.get<ExportService>('exportService');
-    const searchService = this.get<SearchService>('searchService');
-    const statisticsService = this.get<StatisticsService>('statisticsService');
 
-    // 设置存储服务依赖
-    exportService.setStorageService(storageService);
-    searchService.setStorageService(storageService);
-    statisticsService.setStorageService(storageService);
   }
 
   /**

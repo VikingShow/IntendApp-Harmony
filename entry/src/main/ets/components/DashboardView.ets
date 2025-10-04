@@ -293,14 +293,11 @@ export struct DashboardView {
           // 没有即将到期的任务 - 更友好的空状态设计
           Column({ space: ThemeConfig.spacingXXL }) {
             Column({ space: ThemeConfig.spacingM }) {
-              Text('🎉')
-                .fontSize(ThemeConfig.fontSizeXXXXL)
-                .fontColor(ThemeConfig.successColor)
               Text('暂无即将到期的任务')
                 .fontSize(ThemeConfig.fontSizeXXL)
                 .fontColor(ThemeConfig.gray800)
                 .fontWeight(ThemeConfig.fontWeightBold)
-              Text('很好！所有任务都在计划时间内')
+              Text('一切尽在掌握之中！')
                 .fontSize(ThemeConfig.fontSizeL)
                 .fontColor(ThemeConfig.gray500)
                 .textAlign(TextAlign.Center)

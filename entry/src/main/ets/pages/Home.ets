@@ -41,7 +41,6 @@ import common from '@ohos.app.ability.common';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
-import { LoadingView } from '../components/LoadingView';
 import promptAction from '@ohos.promptAction';
 
 /**
@@ -63,12 +62,33 @@ struct HomePage {
   @State selectedProjectDetail: Project | null = null;
   @State selectedProjectId: string | null = null;
   @State componentKey: number = 0;
+  @State dashboardKey: number = 0;
+  @State dashboardTimestamp: number = 0;
   @State isLoading: boolean = false;
   @State selectedTemplate: ProjectTemplate | null = null;
   @State projectName: string = '';
   @State selectedCategory: string = 'development';
   @State emptyProject: Project | null = null;
   @State emptyTask: TaskNode | null = null;
+  
+  // 动画相关状态
+  @State contentOpacity: number = 1;
+  @State contentScale: number = 1;
+  @State contentTranslateY: number = 0;
+  @State isTransitioning: boolean = false;
+  @State selectedProjectCardScale: number = 1;
+  
+  // 新增项目按钮长按效果状态
+  @State isLongPressing: boolean = false;
+  @State buttonScale: number = 1;
+  @State buttonOpacity: number = 1;
+  @State progressAngle: number = 0;
+  @State longPressTimer: number | null = null;
+  
+  // 删除按钮交互效果状态
+  @State deleteButtonScale: number = 1;
+  @State deleteButtonOpacity: number = 1;
+  @State hoveredDeleteId: string | null = null;
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
@@ -268,14 +288,18 @@ struct HomePage {
   async onSelectProject(projectId: string) {
     if (this.storageService) {
       console.log(`[Home] Selecting project: ${projectId}`);
+      
+      // 如果正在切换中，忽略新的选择请求
+      if (this.isTransitioning) {
+        console.log(`[Home] Already transitioning, ignoring project selection: ${projectId}`);
+        return;
+      }
+      
+      this.isTransitioning = true;
       this.selectedProjectId = projectId;
       
-      // 显示加载状态
-      this.loadingService.setLoading('project_loading', true);
-      
-      // 先清空当前数据，触发UI更新
-      this.selectedProjectDetail = null;
-      this.componentKey++;
+      // 开始内容淡出动画
+      this.startContentFadeOut();
       
       try {
         // 加载新项目数据
@@ -283,30 +307,128 @@ struct HomePage {
         console.log(`[Home] Project loaded: ${loadedProject?.name} with ${loadedProject?.tasks.length} tasks`);
         
         if (loadedProject) {
-          // 设置新数据
-          this.selectedProjectDetail = loadedProject;
-          this.componentKey++;
-          console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
-          
-          // 只在首次选择时显示提示，避免重复提示
-          if (this.selectedProjectDetail !== loadedProject) {
-            promptAction.showToast({ message: `已切换到项目: ${loadedProject.name}` });
-          }
+          // 等待淡出动画完成后再更新内容
+          setTimeout(() => {
+            this.updateProjectContent(loadedProject);
+          }, 200); // 与淡出动画时长匹配
         } else {
           console.error(`[Home] Project not found: ${projectId}`);
           promptAction.showToast({ message: '项目不存在或已删除' });
           this.selectedProjectId = null;
+          this.isTransitioning = false;
+          this.startContentFadeIn();
         }
       } catch (error) {
         console.error(`[Home] Error loading project ${projectId}:`, error);
         promptAction.showToast({ message: '加载项目失败' });
         this.handleError(error as Error, "onSelectProject");
         this.selectedProjectId = null;
-      } finally {
-        // 隐藏加载状态
-        this.loadingService.setLoading('project_loading', false);
+        this.isTransitioning = false;
+        this.startContentFadeIn();
       }
     }
+  }
+
+  // 开始内容淡出动画
+  private startContentFadeOut() {
+    this.contentOpacity = 0;
+    this.contentScale = 0.95;
+    this.isLoading = true;
+    
+    // 添加轻微的向上移动效果
+    this.contentTranslateY = -10;
+  }
+
+  // 更新项目内容
+  private updateProjectContent(loadedProject: Project) {
+    // 清空旧数据
+    this.selectedProjectDetail = null;
+    this.dashboardKey = 0;
+    this.dashboardTimestamp = 0;
+    
+    // 设置新数据
+    this.selectedProjectDetail = loadedProject;
+    this.componentKey++;
+    this.dashboardKey = 1;
+    this.dashboardTimestamp = Date.now();
+    
+    console.log(`[Home] Project data updated, component key: ${this.componentKey}, dashboard key: ${this.dashboardKey}, timestamp: ${this.dashboardTimestamp}`);
+    console.log(`[Home] Selected project detail: ${this.selectedProjectDetail.name} with ${this.selectedProjectDetail.tasks.length} tasks`);
+    
+    // 开始内容淡入动画
+    this.startContentFadeIn();
+    
+    // 显示切换提示
+    promptAction.showToast({ message: `已切换到项目: ${loadedProject.name}` });
+  }
+
+  // 开始内容淡入动画
+  private startContentFadeIn() {
+    this.isLoading = false;
+    this.contentOpacity = 1;
+    this.contentScale = 1;
+    this.contentTranslateY = 0;
+    
+    // 动画完成后重置过渡状态
+    setTimeout(() => {
+      this.isTransitioning = false;
+    }, 300);
+  }
+
+  // 开始长按效果
+  private startLongPressEffect() {
+    this.isLongPressing = true;
+    this.buttonScale = 0.9;
+    this.buttonOpacity = 0.8;
+    this.progressAngle = 0;
+    
+    // 开始进度环动画
+    this.startProgressAnimation();
+  }
+
+  // 结束长按效果
+  private endLongPressEffect() {
+    this.isLongPressing = false;
+    this.buttonScale = 1;
+    this.buttonOpacity = 1;
+    this.progressAngle = 0;
+    
+    // 清除定时器
+    if (this.longPressTimer !== null) {
+      clearInterval(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
+  // 开始进度环动画
+  private startProgressAnimation() {
+    const duration = 1000; // 1秒完成长按
+    const interval = 16; // 60fps
+    const totalSteps = duration / interval;
+    let currentStep = 0;
+    
+    this.longPressTimer = setInterval(() => {
+      currentStep++;
+      this.progressAngle = (currentStep / totalSteps) * 360;
+      
+      if (currentStep >= totalSteps) {
+        // 进度完成，触发长按动作
+        this.createBlankProject();
+        this.endLongPressEffect();
+      }
+    }, interval);
+  }
+
+  // 删除按钮按下效果
+  private startDeleteButtonPress() {
+    this.deleteButtonScale = 0.9;
+    this.deleteButtonOpacity = 0.8;
+  }
+
+  // 删除按钮释放效果
+  private endDeleteButtonPress() {
+    this.deleteButtonScale = 1;
+    this.deleteButtonOpacity = 1;
   }
 
   // 从模板创建项目
@@ -795,16 +917,43 @@ struct HomePage {
         // --- 右侧内容区 ---
         Column() {
           if (this.isLoading) {
-            LoadingView({ message: '加载项目中...' })
+            // 使用系统原生Loading组件
+            Column({ space: 16 }) {
+              LoadingProgress()
+                .width(40)
+                .height(40)
+                .color('#007DFF')
+              Text('加载项目中...')
+                .fontSize(16)
+                .fontColor('#64748B')
+                .fontWeight(FontWeight.Medium)
+            }
+            .width('100%')
+            .height('100%')
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+            .backgroundColor('#F9FAFB')
           } else if (this.selectedProjectDetail) {
-            // 使用 key 属性强制重新创建组件
-            DashboardView({ project: this.selectedProjectDetail })
+            // 使用条件渲染强制重新创建组件
+            if (this.dashboardKey > 0) {
+              DashboardView({ project: this.selectedProjectDetail })
+                .key(`dashboard-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+            }
           } else {
             WelcomeView()
           }
         }
         .layoutWeight(2)
         .backgroundColor('#F9FAFB')
+        .opacity(this.contentOpacity)
+        .scale({ x: this.contentScale, y: this.contentScale })
+        .translate({ x: 0, y: this.contentTranslateY })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseInOut,
+          iterations: 1,
+          playMode: PlayMode.Normal
+        })
       }
       .width('100%')
       .height('100%')
@@ -836,27 +985,76 @@ struct HomePage {
         .layoutWeight(1)
 
         // 新建项目按钮 - 圆形设计，放在右侧
-        Button() {
-          Text('+')
-            .fontSize(20)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Bold)
+        Stack() {
+          // 进度环背景
+          if (this.isLongPressing) {
+            Circle()
+              .width(56)
+              .height(56)
+              .stroke('#007DFF20')
+              .strokeWidth(3)
+              .fill(Color.Transparent)
+          }
+          
+          // 进度环
+          if (this.isLongPressing && this.progressAngle > 0) {
+            Circle()
+              .width(56)
+              .height(56)
+              .stroke('#007DFF')
+              .strokeWidth(3)
+              .fill(Color.Transparent)
+              .strokeDashArray([this.progressAngle * 3.14 * 56 / 360, 3.14 * 56])
+              .strokeDashOffset(0)
+              .rotate({ angle: -90 })
+          }
+          
+          // 按钮主体
+          Button() {
+            Text('+')
+              .fontSize(20)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(48)
+          .height(48)
+          .type(ButtonType.Circle)
+          .backgroundColor(this.isLongPressing ? '#0056CC' : '#007DFF')
+          .shadow({ 
+            radius: this.isLongPressing ? 8 : 6, 
+            color: this.isLongPressing ? '#007DFF40' : '#007DFF25', 
+            offsetX: 0, 
+            offsetY: this.isLongPressing ? 4 : 3 
+          })
+          .scale({ x: this.buttonScale, y: this.buttonScale })
+          .opacity(this.buttonOpacity)
+          .animation({
+            duration: 200,
+            curve: Curve.EaseInOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
+          .onClick(() => {
+            this.showCreateProjectOptions();
+          })
+          .gesture(
+            LongPressGesture({ repeat: false })
+              .onAction(() => {
+                // 长按快速创建空白项目（由进度动画触发）
+              })
+          )
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              // 按下时开始长按效果
+              this.startLongPressEffect();
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              // 抬起或取消时结束长按效果
+              this.endLongPressEffect();
+            }
+          })
         }
-        .width(48)
-        .height(48)
-        .type(ButtonType.Circle)
-        .backgroundColor('#007DFF')
-        .shadow({ radius: 6, color: '#007DFF25', offsetX: 0, offsetY: 3 })
-        .onClick(() => {
-          this.showCreateProjectOptions();
-        })
-        .gesture(
-          LongPressGesture({ repeat: false })
-            .onAction(() => {
-              // 长按快速创建空白项目
-              this.createBlankProject();
-            })
-        )
+        .width(56)
+        .height(56)
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
@@ -929,7 +1127,7 @@ struct HomePage {
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
 
-                // 删除按钮 - 简约设计
+                // 删除按钮 - 简约设计，带交互效果
                 Button() {
                   Text('×')
                     .fontSize(16)
@@ -938,9 +1136,30 @@ struct HomePage {
                 .width(36)
                 .height(36)
                 .type(ButtonType.Circle)
-                .backgroundColor('#FEF2F2')
-                .border({ width: 1, color: '#FECACA', radius: 18 })
+                .backgroundColor(this.hoveredDeleteId === meta.id ? '#FEE2E2' : '#FEF2F2')
+                .border({ 
+                  width: 1, 
+                  color: this.hoveredDeleteId === meta.id ? '#FECACA' : '#FECACA', 
+                  radius: 18 
+                })
+                .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
+                .opacity(this.deleteButtonOpacity)
+                .animation({
+                  duration: 150,
+                  curve: Curve.EaseInOut,
+                  iterations: 1,
+                  playMode: PlayMode.Normal
+                })
                 .onClick(() => this.deleteProject(meta.id))
+                .onTouch((event: TouchEvent) => {
+                  if (event.type === TouchType.Down) {
+                    this.hoveredDeleteId = meta.id;
+                    this.startDeleteButtonPress();
+                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.hoveredDeleteId = null;
+                    this.endDeleteButtonPress();
+                  }
+                })
                 .hitTestBehavior(HitTestMode.Block)
               }
               .width('100%')
@@ -961,7 +1180,22 @@ struct HomePage {
             }
             .onClick(() => {
               console.log(`[Home] Project card clicked: ${meta.id}`);
+              // 添加点击反馈动画
+              this.selectedProjectCardScale = 0.95;
+              setTimeout(() => {
+                this.selectedProjectCardScale = 1;
+              }, 150);
               this.onSelectProject(meta.id);
+            })
+            .scale({ 
+              x: this.selectedProjectId === meta.id ? this.selectedProjectCardScale : 1, 
+              y: this.selectedProjectId === meta.id ? this.selectedProjectCardScale : 1 
+            })
+            .animation({
+              duration: 150,
+              curve: Curve.EaseInOut,
+              iterations: 1,
+              playMode: PlayMode.Normal
             })
           })
         }

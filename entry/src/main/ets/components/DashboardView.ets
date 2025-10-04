@@ -54,17 +54,87 @@ import router from '@ohos.router';
  */
 @Component
 export struct DashboardView {
-  /** 项目数据对象，使用@ObjectLink实现响应式绑定 */
-  @ObjectLink project: Project;
+  /** 项目数据对象，使用@Prop实现属性传递 */
+  @Prop project: Project;
+  /** 强制更新键，用于触发组件重新渲染 */
+  @State private updateKey: number = 0;
+  /** 透明度状态，用于过渡动画 */
+  @State private fadeOpacity: number = 0;
+  /** 缩放状态，用于进入动画 */
+  @State private scaleValue: number = 0.9;
+  /** 位移状态，用于进入动画 */
+  @State private translateY: number = 20;
+  /** 编辑按钮交互效果状态 */
+  @State private editButtonScale: number = 1;
+  @State private editButtonOpacity: number = 1;
+  @State private isEditButtonPressed: boolean = false;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
     console.log(`[DashboardView] Component appeared for project: ${this.project.name} with ${this.project.tasks.length} tasks`);
+    console.log(`[DashboardView] Total duration: ${this.getTotalDuration()} days`);
+    console.log(`[DashboardView] Overall completion: ${this.getOverallCompletion()}%`);
+    console.log(`[DashboardView] Critical tasks: ${this.getCriticalTasksCount()}`);
+    
+    // 强制触发更新
+    this.updateKey++;
+    
+    // 触发进入动画
+    this.startEnterAnimation();
   }
 
-  // aboutToUpdate 会在 @ObjectLink project 的数据发生变化时调用
+  // aboutToUpdate 会在 @Prop project 的数据发生变化时调用
   aboutToUpdate() {
     console.log(`[DashboardView] Project data updated: ${this.project.name} with ${this.project.tasks.length} tasks`);
+    console.log(`[DashboardView] Total duration: ${this.getTotalDuration()} days`);
+    console.log(`[DashboardView] Overall completion: ${this.getOverallCompletion()}%`);
+    console.log(`[DashboardView] Critical tasks: ${this.getCriticalTasksCount()}`);
+    
+    // 强制触发更新
+    this.updateKey++;
+    
+    // 触发进入动画
+    this.startEnterAnimation();
+  }
+
+  // 监听project变化，确保数据更新时重新计算
+  onPageShow() {
+    console.log(`[DashboardView] onPageShow - Project: ${this.project.name} with ${this.project.tasks.length} tasks`);
+    console.log(`[DashboardView] Total duration: ${this.getTotalDuration()} days`);
+    console.log(`[DashboardView] Overall completion: ${this.getOverallCompletion()}%`);
+    console.log(`[DashboardView] Critical tasks: ${this.getCriticalTasksCount()}`);
+    
+    // 强制触发更新
+    this.updateKey++;
+  }
+
+  // 开始进入动画
+  private startEnterAnimation() {
+    // 重置动画状态
+    this.fadeOpacity = 0;
+    this.scaleValue = 0.9;
+    this.translateY = 20;
+    
+    // 延迟执行动画，确保组件已渲染
+    setTimeout(() => {
+      this.fadeOpacity = 1;
+      this.scaleValue = 1;
+      this.translateY = 0;
+    }, 50);
+  }
+
+  // 编辑按钮按下效果
+  private startEditButtonPress() {
+    this.isEditButtonPressed = true;
+    this.editButtonScale = 0.95;
+    this.editButtonOpacity = 0.9;
+  }
+
+  // 编辑按钮释放效果
+  private endEditButtonPress() {
+    this.isEditButtonPressed = false;
+    this.editButtonScale = 1;
+    this.editButtonOpacity = 1;
   }
 
 
@@ -148,14 +218,34 @@ export struct DashboardView {
           }
           .height(56)
           .padding({ left: 28, right: 28 })
-          .backgroundColor('#007DFF')
+          .backgroundColor(this.isEditButtonPressed ? '#0056CC' : '#007DFF')
           .borderRadius(20)
-          .shadow({ radius: 6, color: '#007DFF20', offsetX: 0, offsetY: 3 })
+          .shadow({ 
+            radius: this.isEditButtonPressed ? 8 : 6, 
+            color: this.isEditButtonPressed ? '#007DFF30' : '#007DFF20', 
+            offsetX: 0, 
+            offsetY: this.isEditButtonPressed ? 4 : 3 
+          })
+          .scale({ x: this.editButtonScale, y: this.editButtonScale })
+          .opacity(this.editButtonOpacity)
+          .animation({
+            duration: 150,
+            curve: Curve.EaseInOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
           .onClick(() => {
             router.pushUrl({
               url: 'pages/Index',
               params: { projectId: this.project.id }
             } as router.RouterOptions);
+          })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.startEditButtonPress();
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.endEditButtonPress();
+            }
           })
         }
         .width('100%')
@@ -168,24 +258,16 @@ export struct DashboardView {
       .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
       .border({ width: 1, color: '#E2E8F0', radius: 24 })
 
-      // 2. 核心指标统计
-      GridRow({
-        columns: 4,
-        gutter: { x: 16, y: 16 }
-      }) {
-        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-          this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
-        }
-        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-          this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
-        }
-        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
-        }
-        GridCol({ span: { xs: 4, sm: 2, md: 1 } }) {
-          this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
-        }
+      // 2. 核心指标统计 - 等高布局
+      Row({ space: 16 }) {
+        this.StatCard('总任务数', `${this.project.tasks.length}个`, '#EFF6FF', '#007DFF')
+        this.StatCard('项目总工期', `${this.getTotalDuration()}天`, '#F0FDF4', '#16A34A')
+        this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, '#FEF3C7', '#D97706')
+        this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, '#FEF2F2', '#DC2626')
       }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+      .key(`stats-${this.updateKey}`)
 
       // 3. 即将到期的任务列表 - 简约设计
       Column({ space: 20 }) {
@@ -242,30 +324,54 @@ export struct DashboardView {
     .height('100%')
     .padding(30)
     .backgroundColor('#F9FAFB')
+    .opacity(this.fadeOpacity)
+    .scale({ x: this.scaleValue, y: this.scaleValue })
+    .translate({ x: 0, y: this.translateY })
+    .animation({
+      duration: 400,
+      curve: Curve.EaseOut,
+      iterations: 1,
+      playMode: PlayMode.Normal
+    })
   }
 
-  // 构建器：统计卡片 - 简约设计
+  // 构建器：统计卡片 - 简约设计，等高布局
   @Builder
   StatCard(title: string, value: string, bgColor: string, textColor: string) {
-    Column({ space: 16 }) {
+    Column({ space: 12 }) {
       Text(title)
-        .fontSize(15)
+        .fontSize(14)
         .fontColor('#64748B')
         .fontWeight(FontWeight.Medium)
         .textAlign(TextAlign.Center)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(value)
-        .fontSize(32)
+        .fontSize(28)
         .fontWeight(FontWeight.Bold)
         .fontColor(textColor)
         .textAlign(TextAlign.Center)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
-    .width('100%')
-    .padding(28)
+    .layoutWeight(1)
+    .height(120)
+    .padding(20)
     .backgroundColor('#FFFFFF')
-    .borderRadius(20)
-    .shadow({ radius: 6, color: '#00000006', offsetX: 0, offsetY: 3 })
-    .border({ width: 1, color: '#E2E8F0', radius: 20 })
+    .borderRadius(16)
+    .shadow({ radius: 4, color: '#00000006', offsetX: 0, offsetY: 2 })
+    .border({ width: 1, color: '#E2E8F0', radius: 16 })
     .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .opacity(this.fadeOpacity)
+    .scale({ x: this.scaleValue, y: this.scaleValue })
+    .translate({ x: 0, y: this.translateY })
+    .animation({
+      duration: 400,
+      curve: Curve.EaseOut,
+      iterations: 1,
+      playMode: PlayMode.Normal
+    })
   }
 
   // 构建器：即将到期的任务卡片 - 简约设计

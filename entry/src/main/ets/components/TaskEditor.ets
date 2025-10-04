@@ -46,7 +46,6 @@ import promptAction from '@ohos.promptAction';
  * 组件特性：
  * - 响应式数据绑定：使用@Prop实现数据的自动同步
  * - 实时验证：提供输入数据的实时验证和错误提示
- * - 苹果风格：采用苹果设计语言，提供优雅的用户体验
  * - 模块化设计：将功能分解为独立的UI模块
  * - 交互反馈：提供丰富的用户操作反馈
  * 
@@ -60,6 +59,7 @@ export struct TaskEditor {
   @Prop task: TaskNode | null;
   @State newChecklistItemText: string = '';
   @State private localTask: TaskNode | null = null;
+  @State private forceUpdateKey: number = 0;
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
@@ -80,9 +80,34 @@ export struct TaskEditor {
   aboutToUpdate() {
     // 当task变化时，更新localTask
     if (this.localTask?.id !== this.task?.id) {
+      console.log(`[TaskEditor] Task changed, updating localTask`);
       this.localTask = this.task;
     } else if (this.task && this.localTask) {
       // 如果ID相同但内容可能不同，同步更新内容
+      const oldChecklistLength = this.localTask.checklist?.length || 0;
+      const newChecklistLength = this.task.checklist?.length || 0;
+      
+      // 检查checklist长度变化
+      if (oldChecklistLength !== newChecklistLength) {
+        console.log(`[TaskEditor] Checklist length updated: ${oldChecklistLength} -> ${newChecklistLength}`);
+        this.forceUpdateKey++;
+      }
+      
+      // 检查checklist内容变化（勾选状态等）
+      if (this.localTask.checklist && this.task.checklist && 
+          this.localTask.checklist.length === this.task.checklist.length) {
+        const hasContentChange = this.localTask.checklist.some((oldItem, index) => {
+          const newItem = this.task!.checklist[index];
+          return !newItem || oldItem.isCompleted !== newItem.isCompleted || oldItem.text !== newItem.text;
+        });
+        
+        if (hasContentChange) {
+          console.log(`[TaskEditor] Checklist content updated`);
+          this.forceUpdateKey++;
+        }
+      }
+      
+      // 强制更新localTask以触发响应式更新
       this.localTask = this.task;
     }
   }
@@ -104,39 +129,48 @@ export struct TaskEditor {
         return;
       }
 
-      this.onAddChecklistItem(this.localTask.id, this.newChecklistItemText);
+      console.log(`[TaskEditor] Adding new checklist item: ${this.newChecklistItemText}`);
+      
+      // 先更新localTask以立即反映UI变化
+      const newItem: ChecklistItem = {
+        id: `item_${Date.now()}`,
+        text: this.newChecklistItemText,
+        isCompleted: false
+      };
+      
+      this.localTask.checklist = this.localTask.checklist.concat([newItem]);
+      this.forceUpdateKey++;
       this.newChecklistItemText = '';
+      
+      // 然后通知父组件更新数据
+      this.onAddChecklistItem(this.localTask.id, newItem.text);
     }
   }
 
   build() {
     // 使用localTask来确保响应式更新
     if (this.localTask) {
-      // 苹果风格：使用更大的间距和更优雅的布局
       Scroll() {
         Column({ space: 20 }) {
-          // --- 头部信息卡片 - 苹果风格：更大的圆角、更精致的阴影 ---
           Column({ space: 16 }) {
-            // 标题区域 - 苹果风格：更优雅的字体权重和颜色
             Row({ space: 12 }) {
                              Text('编辑任务')
                  .fontSize(20)
                  .fontWeight(FontWeight.Medium)
-                 .fontColor('#1D1D1F') // 苹果深色文字
+                 .fontColor('#1D1D1F')
                  .layoutWeight(1)
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 任务名称输入 - 苹果风格：更精致的输入框设计
             Column({ space: 8 }) {
               Text('任务名称')
                 .fontSize(13)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#86868B') // 苹果次要文字颜色
+                .fontColor('#86868B')
               TextInput({ text: this.localTask.name || '' })
-                .backgroundColor('#F5F5F7') // 苹果浅灰背景
-                .borderRadius(12) // 苹果风格圆角
+                .backgroundColor('#F5F5F7')
+                .borderRadius(12)
                 .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                 .fontSize(16)
                 .width('100%')
@@ -157,7 +191,7 @@ export struct TaskEditor {
                 })
             }
 
-                         // 日期选择区域 - 苹果风格：更优雅的日期选择器，优化宽度显示
+             // 日期选择区域
              Column({ space: 12 }) {
                // 开始日期 - 独占一行，确保有足够宽度
                Column({ space: 8 }) {
@@ -220,7 +254,7 @@ export struct TaskEditor {
                }
              }
 
-            // 工期显示 - 苹果风格：更优雅的信息展示
+            // 工期显示
             Row({ space: 8 }) {
               Text(`工期: ${this.getDuration()} 天`)
                 .fontSize(13)
@@ -230,21 +264,21 @@ export struct TaskEditor {
             .width('100%')
             .justifyContent(FlexAlign.End)
           }
-          .padding(20) // 苹果风格：更大的内边距
+          .padding(20)
           .backgroundColor('#FFFFFF')
-          .borderRadius(16) // 苹果风格：更大的圆角
+          .borderRadius(16)
           .shadow({
             radius: 20,
-            color: '#00000008', // 苹果风格：更柔和的阴影
+            color: '#00000008',
             offsetX: 0,
             offsetY: 4
           })
 
-          // --- 任务清单卡片 - 苹果风格：更精致的清单设计 ---
+          // --- 任务清单卡片  ---
           Column({ space: 16 }) {
             // 清单标题
             Row({ space: 8 }) {
-                             Text('任务清单')
+              Text('任务清单')
                  .fontSize(18)
                  .fontWeight(FontWeight.Medium)
                  .fontColor('#1D1D1F')
@@ -252,7 +286,7 @@ export struct TaskEditor {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 添加新子任务 - 苹果风格：更优雅的输入设计
+            // 添加新子任务
             Row({ space: 12 }) {
               TextInput({ 
                 placeholder: '添加一个子任务...', 
@@ -277,9 +311,9 @@ export struct TaskEditor {
                    .fontColor(Color.White)
                    .fontWeight(FontWeight.Medium)
               }
-              .width(44) // 苹果风格：更大的按钮尺寸
+              .width(44)
               .height(44)
-              .backgroundColor('#007AFF') // 苹果蓝色
+              .backgroundColor('#007AFF')
               .borderRadius(12)
               .shadow({
                 radius: 8,
@@ -292,7 +326,7 @@ export struct TaskEditor {
               })
             }
 
-            // 子任务列表 - 苹果风格：更精致的列表项设计
+            // 子任务列表 
             if (!this.localTask || !this.localTask.checklist || this.localTask.checklist.length === 0) {
               Column({ space: 12 }) {
                 Image($r('app.media.ic_empty_box'))
@@ -306,6 +340,7 @@ export struct TaskEditor {
               .width('100%')
               .padding(24)
               .justifyContent(FlexAlign.Center)
+              .key(`empty-checklist-${this.forceUpdateKey}`)
             } else if (this.localTask && this.localTask.checklist) {
               Column({ space: 8 }) {
                 ForEach(this.localTask.checklist, (item: ChecklistItem) => {
@@ -314,6 +349,8 @@ export struct TaskEditor {
                       .select(item.isCompleted)
                       .onChange((value: boolean) => {
                         if (this.localTask && this.localTask.checklist) {
+                          console.log(`[TaskEditor] Checkbox changed for item ${item.id}: ${value}`);
+                          
                           const newChecklist = this.localTask.checklist.map(i => {
                             if (i.id === item.id) {
                               return {
@@ -324,6 +361,12 @@ export struct TaskEditor {
                             }
                             return i;
                           });
+                          
+                          // 先更新localTask以立即反映UI变化
+                          this.localTask.checklist = newChecklist;
+                          this.forceUpdateKey++;
+                          
+                          // 然后通知父组件更新数据
                           this.onUpdateChecklist(this.localTask.id, newChecklist);
                         }
                       })
@@ -345,6 +388,7 @@ export struct TaskEditor {
                   })
                 }, (item: ChecklistItem) => item.id)
               }
+              .key(`checklist-${this.localTask?.id}-${this.forceUpdateKey}`)
             }
           }
           .padding(20)

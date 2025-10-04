@@ -342,16 +342,27 @@ export class ProjectManager {
 
     const updatedTask = this.appState.project.tasks.find(t => t.id === taskId);
     if (updatedTask) {
+      console.log(`[ProjectManager] Updating checklist for task ${taskId}`);
+      console.log(`[ProjectManager] Before: ${updatedTask.checklist.length} items`);
+      
       updatedTask.checklist = checklist.slice();
+      
+      console.log(`[ProjectManager] After: ${updatedTask.checklist.length} items`);
+      
+      // 触发响应式更新 - 通过重新设置project来触发更新
+      this.appState.setProject(this.appState.project);
       
       if (this.appState.selectedTask?.id === taskId) {
         this.appState.setSelectedTask(this.copyTaskNode(updatedTask));
+        console.log(`[ProjectManager] Updated selectedTask with new checklist`);
       }
       
       // 触发事件和自动保存
       this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
       this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
       this.autoSaveProject();
+      
+      console.log(`[ProjectManager] Checklist updated successfully`);
     }
   }
 
@@ -360,16 +371,29 @@ export class ProjectManager {
 
     const task = this.appState.project.tasks.find(t => t.id === taskId);
     if (task) {
-      task.checklist = task.checklist.concat([item]);
+      console.log(`[ProjectManager] Adding checklist item to task ${taskId}: ${item.text}`);
+      console.log(`[ProjectManager] Before: ${task.checklist.length} items`);
+      
+      // 创建新的checklist数组以触发响应式更新
+      const newChecklist = task.checklist.concat([item]);
+      task.checklist = newChecklist;
+      
+      console.log(`[ProjectManager] After: ${task.checklist.length} items`);
+      
+      // 触发响应式更新 - 通过重新设置project来触发更新
+      this.appState.setProject(this.appState.project);
       
       if (this.appState.selectedTask?.id === taskId) {
         this.appState.setSelectedTask(this.copyTaskNode(task));
+        console.log(`[ProjectManager] Updated selectedTask with new checklist`);
       }
       
       // 触发事件和自动保存
       this.eventBus.emit(Events.TASK_UPDATED, task);
       this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
       this.autoSaveProject();
+      
+      console.log(`[ProjectManager] Checklist item added successfully`);
     }
   }
 

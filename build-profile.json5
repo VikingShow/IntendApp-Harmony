@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storeFile": "C:/Users/SowrJam/huaweikey/EasyFlow.p12",
-          "storePassword": "000000188F932997E1677A7C0E24EABBB96439E52F6CBC15D23E9B5EAE12E2E4D2376B4BEE0154E4",
-          "keyAlias": "1asyflow",
-          "keyPassword": "00000018964C62E6D6403E96DA24597690DD3667750B7E62C33945133D6F51FD1A5498D3F6A7CA17",
+          "certpath": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A90CB5E8E80CD8109FB6AE059BAF66A9B45A9CCF969A9F49A29C19CB0F589DE32CC836B3C8632",
+          "profile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p7b",
           "signAlg": "SHA256withECDSA",
-          "profile": "C:/Users/SowrJam/Downloads/easyRelease.p7b",
-          "certpath": "C:/Users/SowrJam/Downloads/easy.cer"
+          "storeFile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p12",
+          "storePassword": "0000001A78EA74B499D9CB0E535D5A05C4405017A7346866A096C226C1A970082DC23602AA573C427DCF"
         }
       }
     ],

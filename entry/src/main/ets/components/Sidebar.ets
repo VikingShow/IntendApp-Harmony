@@ -80,10 +80,27 @@ export struct Sidebar {
   aboutToUpdate() {
     // 当selectedTask变化时，更新selectedTaskForEditor
     if (this.selectedTaskForEditor?.id !== this.selectedTask?.id) {
+      console.log(`[Sidebar] selectedTask changed, updating selectedTaskForEditor`);
       this.selectedTaskForEditor = this.selectedTask;
     } else if (this.selectedTask && this.selectedTaskForEditor) {
       // 如果ID相同但内容可能不同，同步更新内容
       this.selectedTaskForEditor = this.selectedTask;
+    }
+    
+    // 当project中的任务数据更新时，同步更新selectedTaskForEditor
+    if (this.project && this.selectedTaskForEditor) {
+      const updatedTask = this.project.tasks.find(t => t.id === this.selectedTaskForEditor?.id);
+      if (updatedTask) {
+        const oldChecklistLength = this.selectedTaskForEditor.checklist?.length || 0;
+        const newChecklistLength = updatedTask.checklist?.length || 0;
+        
+        if (oldChecklistLength !== newChecklistLength) {
+          console.log(`[Sidebar] Task ${updatedTask.id} checklist updated: ${oldChecklistLength} -> ${newChecklistLength}`);
+        }
+        
+        // 直接更新selectedTaskForEditor，确保数据同步
+        this.selectedTaskForEditor = updatedTask;
+      }
     }
   }
 
@@ -450,16 +467,30 @@ export struct Sidebar {
                       Text(`${task.startDate.toLocaleDateString()} - ${task.endDate.toLocaleDateString()}`)
                         .fontSize(13)
                         .fontColor('#86868B')
+                      
+                      // 子任务信息
+                      if (task.checklist && task.checklist.length > 0) {
+                        Row({ space: 8 }) {
+                          Text('📋')
+                            .fontSize(12)
+                            .fontColor('#86868B')
+                          Text(`${task.checklist.filter(item => item.isCompleted).length}/${task.checklist.length} 已完成`)
+                            .fontSize(12)
+                            .fontColor('#86868B')
+                        }
+                        .width('100%')
+                        .alignItems(VerticalAlign.Center)
+                      }
                     }
                     .alignItems(HorizontalAlign.Start)
                     .layoutWeight(1)
 
-                    // 关键任务标识
-                    if (task.isCritical) {
-                      Text('🔥')
-                        .fontSize(16)
-                        .fontColor('#FF3B30')
-                    }
+                    // // 关键任务标识
+                    // if (task.isCritical) {
+                    //   Text('🔥')
+                    //     .fontSize(16)
+                    //     .fontColor('#FF3B30')
+                    // }
                   }
                   .width('100%')
                   .padding(18)

@@ -172,6 +172,7 @@ struct Index {
   // 更新状态的方法
   private updateStateFromManager() {
     const state = this.projectManager.getState();
+    // 直接赋值，依赖@State的响应式机制
     this.project = state.project;
     this.selectedTask = state.selectedTask;
   }

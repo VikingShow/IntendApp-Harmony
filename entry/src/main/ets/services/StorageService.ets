@@ -3,6 +3,14 @@ import { FileStorageService, ProjectMeta } from './FileStorageService';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 
 /**
+ * 清理结果接口
+ */
+interface CleanupResult {
+  cleaned: number;
+  errors: string[];
+}
+
+/**
  * 存储服务适配器
  * 提供统一的存储接口，内部使用FileStorageService进行文件系统存储
  */
@@ -79,6 +87,13 @@ export class StorageService {
    */
   public async testFileSystem(): Promise<boolean> {
     return await this.fileStorage.testFileSystem();
+  }
+
+  /**
+   * 清理损坏的项目文件
+   */
+  public async cleanupCorruptedFiles(): Promise<CleanupResult> {
+    return await this.fileStorage.cleanupCorruptedFiles();
   }
 }
 

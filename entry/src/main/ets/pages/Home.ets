@@ -122,11 +122,18 @@ struct HomePage {
       }
     });
     
+    // 清理损坏的项目文件（在加载项目之前）
+    await this.cleanupCorruptedFiles();
+    
     await this.loadProjects();
   }
 
   onPageShow() {
     this.loadProjects();
+    // 如果有选中的项目，重新加载其详细数据以确保显示最新内容
+    if (this.selectedProjectId) {
+      this.onSelectProject(this.selectedProjectId);
+    }
   }
 
   // 检查并执行数据迁移
@@ -179,6 +186,44 @@ struct HomePage {
     }
   }
 
+  // 清理损坏的项目文件
+  async cleanupCorruptedFiles() {
+    if (!this.storageService) {
+      console.error('[Home] 存储服务未初始化');
+      return;
+    }
+    
+    try {
+      console.log('[Home] 开始清理损坏的项目文件...');
+      const result = await this.storageService.cleanupCorruptedFiles();
+      console.log(`[Home] 清理完成，删除了 ${result.cleaned} 个损坏的文件`);
+      
+      if (result.cleaned > 0) {
+        console.log(`[Home] 清理了 ${result.cleaned} 个损坏的项目文件`);
+        promptAction.showToast({ 
+          message: `已清理 ${result.cleaned} 个损坏的项目文件`,
+          duration: 2000
+        });
+      } else {
+        console.log('[Home] 没有发现损坏的项目文件');
+      }
+      
+      if (result.errors.length > 0) {
+        console.error('[Home] 清理过程中的错误:', result.errors);
+        promptAction.showToast({ 
+          message: `清理过程中遇到 ${result.errors.length} 个错误，请查看日志`,
+          duration: 3000
+        });
+      }
+    } catch (error) {
+      console.error('[Home] 清理损坏文件失败:', error);
+      promptAction.showToast({ 
+        message: '清理损坏文件失败，请查看日志',
+        duration: 3000
+      });
+    }
+  }
+
   async loadProjects() {
     if (!this.storageService) {
       console.error('[Home] 存储服务未初始化');
@@ -199,7 +244,15 @@ struct HomePage {
       
       if (this.selectedProjectId) {
         console.log(`[Home] 恢复选中的项目: ${this.selectedProjectId}`);
-        await this.onSelectProject(this.selectedProjectId);
+        // 检查项目是否仍然存在于列表中
+        const projectExists = this.projectList.some(p => p.id === this.selectedProjectId);
+        if (projectExists) {
+          await this.onSelectProject(this.selectedProjectId);
+        } else {
+          console.log(`[Home] 选中的项目 ${this.selectedProjectId} 不再存在，清空选择`);
+          this.selectedProjectId = null;
+          this.selectedProjectDetail = null;
+        }
       }
       
       console.log('[Home] 项目列表加载完成');
@@ -229,15 +282,26 @@ struct HomePage {
         const loadedProject = await this.storageService.getProject(projectId);
         console.log(`[Home] Project loaded: ${loadedProject?.name} with ${loadedProject?.tasks.length} tasks`);
         
-        // 设置新数据
-        this.selectedProjectDetail = loadedProject;
-        this.componentKey++;
-        console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
-        
-        promptAction.showToast({ message: `已切换到项目: ${loadedProject?.name}` });
+        if (loadedProject) {
+          // 设置新数据
+          this.selectedProjectDetail = loadedProject;
+          this.componentKey++;
+          console.log(`[Home] Project data updated, component key: ${this.componentKey}`);
+          
+          // 只在首次选择时显示提示，避免重复提示
+          if (this.selectedProjectDetail !== loadedProject) {
+            promptAction.showToast({ message: `已切换到项目: ${loadedProject.name}` });
+          }
+        } else {
+          console.error(`[Home] Project not found: ${projectId}`);
+          promptAction.showToast({ message: '项目不存在或已删除' });
+          this.selectedProjectId = null;
+        }
       } catch (error) {
+        console.error(`[Home] Error loading project ${projectId}:`, error);
         promptAction.showToast({ message: '加载项目失败' });
         this.handleError(error as Error, "onSelectProject");
+        this.selectedProjectId = null;
       } finally {
         // 隐藏加载状态
         this.loadingService.setLoading('project_loading', false);

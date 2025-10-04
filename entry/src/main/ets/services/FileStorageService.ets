@@ -81,6 +81,14 @@ interface StorageStats {
 }
 
 /**
+ * 清理结果接口
+ */
+interface CleanupResult {
+  cleaned: number;
+  errors: string[];
+}
+
+/**
  * 数据迁移结果接口
  * 用于返回数据迁移操作的结果信息
  */
@@ -290,7 +298,8 @@ export class FileStorageService {
 
       const decoder = new util.TextDecoder();
       const content = decoder.decode(new Uint8Array(buffer));
-      console.log(`[FileStorageService] 读取到的元数据文件内容: ${content}`);
+      console.log(`[FileStorageService] 读取到的元数据文件内容长度: ${content.length}`);
+      console.log(`[FileStorageService] 元数据文件内容预览: ${content.substring(0, 200)}...`);
       
       // 检查内容是否为空或无效
       if (!content || content.trim() === '') {
@@ -298,9 +307,16 @@ export class FileStorageService {
         return [];
       }
       
-      const projectList = JSON.parse(content) as ProjectMeta[];
-      console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
-      return projectList;
+      // 验证JSON格式
+      try {
+        const projectList = JSON.parse(content) as ProjectMeta[];
+        console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
+        return projectList;
+      } catch (parseError) {
+        console.error('[FileStorageService] 元数据文件JSON解析失败:', parseError);
+        console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
+        return await this.rebuildProjectList();
+      }
     } catch (error) {
       console.error('[FileStorageService] 获取项目列表失败:', error);
       console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
@@ -344,7 +360,25 @@ export class FileStorageService {
             
             const decoder = new util.TextDecoder();
             const content = decoder.decode(new Uint8Array(buffer));
-            const projectData = JSON.parse(content) as Record<string, string | number | boolean | object>;
+            console.log(`[FileStorageService] 读取项目文件 ${fileName}，内容长度: ${content.length}`);
+            console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
+            
+            // 验证JSON格式
+            let projectData: Record<string, string | number | boolean | object>;
+            try {
+              projectData = JSON.parse(content);
+            } catch (parseError) {
+              console.error(`[FileStorageService] 项目文件 ${fileName} JSON解析失败:`, parseError);
+              console.log(`[FileStorageService] 删除损坏的项目文件: ${fileName}`);
+              // 删除损坏的文件
+              try {
+                fs.unlinkSync(projectFile);
+                console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+              } catch (deleteError) {
+                console.error(`[FileStorageService] 删除文件失败:`, deleteError);
+              }
+              continue;
+            }
             
             // 创建项目元数据
             const projectMeta: ProjectMeta = {
@@ -358,6 +392,13 @@ export class FileStorageService {
             console.log(`[FileStorageService] 重建项目元数据: ${projectMeta.name} (${projectMeta.id})`);
           } catch (error) {
             console.error(`[FileStorageService] 读取项目文件 ${fileName} 失败:`, error);
+            // 如果文件损坏，尝试删除它
+            try {
+              fs.unlinkSync(projectFile);
+              console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+            } catch (deleteError) {
+              console.error(`[FileStorageService] 删除文件失败:`, deleteError);
+            }
           }
         }
       }
@@ -390,6 +431,15 @@ export class FileStorageService {
       const uint8Array = encoder.encode(content);
       const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
       console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
+      
+      // 先删除旧文件，确保完全重写
+      try {
+        if (fs.accessSync(this.metaFile)) {
+          fs.unlinkSync(this.metaFile);
+        }
+      } catch (error) {
+        // 文件不存在，忽略错误
+      }
       
       const file = fs.openSync(this.metaFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
       console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
@@ -458,13 +508,31 @@ export class FileStorageService {
       // 3. 保存项目数据到文件
       const projectFile = `${this.projectsDir}/${project.id}.json`;
       const content = JSON.stringify(storableProject, null, 2);
+      console.log(`[FileStorageService] 准备保存项目 ${project.id}，JSON内容长度: ${content.length}`);
+      console.log(`[FileStorageService] JSON内容预览: ${content.substring(0, 200)}...`);
+      
       const encoder = new util.TextEncoder();
       const uint8Array = encoder.encode(content);
       const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+      console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
+      
+      // 先删除旧文件，确保完全重写
+      try {
+        if (fs.accessSync(projectFile)) {
+          fs.unlinkSync(projectFile);
+        }
+      } catch (error) {
+        // 文件不存在，忽略错误
+      }
       
       const file = fs.openSync(projectFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+      console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
+      
       fs.writeSync(file.fd, buffer);
+      console.log(`[FileStorageService] 数据已写入文件`);
+      
       fs.closeSync(file);
+      console.log(`[FileStorageService] 文件已关闭`);
       
       console.log(`[FileStorageService] 项目 ${project.id} 已保存到文件`);
     } catch (error) {
@@ -594,6 +662,85 @@ export class FileStorageService {
     } catch (error) {
       console.error('[FileStorageService] 导入项目失败:', error);
       throw new Error(`导入项目失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 清理损坏的项目文件
+   */
+  public async cleanupCorruptedFiles(): Promise<CleanupResult> {
+    const errors: string[] = [];
+    let cleaned = 0;
+    
+    try {
+      console.log('[FileStorageService] 开始清理损坏的项目文件...');
+      
+      if (!fs.accessSync(this.projectsDir)) {
+        console.log('[FileStorageService] 项目目录不存在，无需清理');
+        const result: CleanupResult = { cleaned: 0, errors: [] };
+        return result;
+      }
+      
+      const files = fs.listFileSync(this.projectsDir);
+      console.log(`[FileStorageService] 检查 ${files.length} 个文件`);
+      
+      for (const fileName of files) {
+        if (fileName.endsWith('.json')) {
+          const projectFile = `${this.projectsDir}/${fileName}`;
+          
+          try {
+            // 尝试读取和解析文件
+            const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
+            const stat = fs.statSync(projectFile);
+            const buffer = new ArrayBuffer(stat.size);
+            fs.readSync(file.fd, buffer);
+            fs.closeSync(file);
+            
+            const decoder = new util.TextDecoder();
+            const content = decoder.decode(new Uint8Array(buffer));
+            console.log(`[FileStorageService] 检查文件 ${fileName}，内容长度: ${content.length}`);
+            console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
+            
+            // 验证JSON格式
+            try {
+              JSON.parse(content);
+              console.log(`[FileStorageService] 文件 ${fileName} 正常`);
+            } catch (parseError) {
+              console.log(`[FileStorageService] 发现损坏的文件: ${fileName}，错误: ${parseError.message}`);
+              console.log(`[FileStorageService] 文件内容: ${content}`);
+              fs.unlinkSync(projectFile);
+              cleaned++;
+              console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+            }
+          } catch (error) {
+            console.error(`[FileStorageService] 检查文件 ${fileName} 失败:`, error);
+            // 如果文件无法读取，也删除它
+            try {
+              fs.unlinkSync(projectFile);
+              cleaned++;
+              console.log(`[FileStorageService] 已删除无法读取的文件: ${fileName}`);
+            } catch (deleteError) {
+              console.error(`[FileStorageService] 删除文件 ${fileName} 失败:`, deleteError);
+              errors.push(`删除文件 ${fileName} 失败: ${deleteError.message}`);
+            }
+          }
+        }
+      }
+      
+      // 如果清理了文件，重新创建空的元数据文件
+      if (cleaned > 0) {
+        console.log(`[FileStorageService] 重新创建空的元数据文件`);
+        await this.saveProjectList([]);
+      }
+      
+      console.log(`[FileStorageService] 清理完成，删除了 ${cleaned} 个损坏的文件`);
+      const result: CleanupResult = { cleaned, errors };
+      return result;
+    } catch (error) {
+      console.error('[FileStorageService] 清理损坏文件失败:', error);
+      errors.push(`清理过程失败: ${error.message}`);
+      const result: CleanupResult = { cleaned, errors };
+      return result;
     }
   }
 

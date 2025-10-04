@@ -114,6 +114,14 @@ struct Index {
     }
   }
 
+  onPageHide() {
+    // 页面隐藏时确保项目数据已保存
+    if (this.project && this.projectManager) {
+      console.log(`[EasyFlow] Index.ets onPageHide - 确保项目数据已保存: ${this.project.name}`);
+      this.projectManager.getActions().saveProject();
+    }
+  }
+
   // 设置事件监听器
   private setupEventListeners() {
     const eventBus = EventBus.getInstance();

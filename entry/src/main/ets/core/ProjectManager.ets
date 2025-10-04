@@ -488,12 +488,16 @@ export class ProjectManager {
     this.autoSaveTimer = setTimeout(async () => {
       if (this.appState.project && this.serviceContainer.isInitialized()) {
         try {
+          console.log(`[ProjectManager] 开始自动保存项目: ${this.appState.project.name} (${this.appState.project.id})`);
           const storageService = this.serviceContainer.get<StorageService>('storageService');
           await storageService.saveProject(this.appState.project);
-          console.log('[ProjectManager] 项目已自动保存');
+          console.log(`[ProjectManager] 项目已自动保存: ${this.appState.project.name}`);
         } catch (error) {
+          console.error(`[ProjectManager] 自动保存失败:`, error);
           this.errorHandler.handleStorageError(error as Error, 'ProjectManager.autoSaveProject');
         }
+      } else {
+        console.warn('[ProjectManager] 无法自动保存：项目为空或服务容器未初始化');
       }
       this.autoSaveTimer = null;
     }, 500);

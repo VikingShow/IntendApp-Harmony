@@ -86,6 +86,8 @@ struct Index {
     
     // 初始化项目管理器
     await this.projectManager.initialize((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+    // 注入uiContext
+    this.projectManager.setContext(this.uiContext);
     
     // 设置画布控制器回调
     this.canvasController.setCallbacks(

@@ -30,18 +30,17 @@
  * 
  * @author EasyFlow开发团队
  * @version 1.0.0
- * @since 2024-01-01
+ * @since 2025-06
  */
 
 import { Project, TaskNode, ChecklistItem, Dependency } from '../model/ProjectData';
 import { StorageService } from '../services/StorageService';
-import { CriticalPathService, TaskWithDuration, CriticalPathResult } from '../services/CriticalPathService';
+import { CriticalPathService, TaskWithDuration } from '../services/CriticalPathService';
 import { TemplateService } from '../services/TemplateService';
 import { EventBus, Events } from './EventBus';
 import { AppState } from './AppState';
 import { ErrorHandler, ErrorType } from './ErrorHandler';
 import { ServiceContainer } from './ServiceContainer';
-import promptAction from '@ohos.promptAction';
 
 /**
  * 项目状态接口
@@ -104,6 +103,12 @@ export class ProjectManager {
   private errorHandler: ErrorHandler;
   private eventBus: EventBus;
   private autoSaveTimer: number | null = null;
+
+  private uiContext: UIContext | null = null;
+
+  setContext(ctx: UIContext) {
+    this.uiContext = ctx;
+  }
 
   private constructor() {
     this.serviceContainer = ServiceContainer.getInstance();
@@ -181,7 +186,10 @@ export class ProjectManager {
         this.appState.setSelectedTask(null);
         this.calculateCriticalPath();
         this.eventBus.emit(Events.PROJECT_LOADED, project);
-        promptAction.showToast({ message: `项目 "${project.name}" 已加载` });
+        if(this.uiContext){
+          const promptAction = this.uiContext.getPromptAction()
+          promptAction.showToast({ message: `项目 "${project.name}" 已加载` });
+        }
       } else {
         this.errorHandler.handleBusinessError(`项目 ${projectId} 不存在`, 'ProjectManager.loadProject');
       }
@@ -239,7 +247,10 @@ export class ProjectManager {
       const storageService = this.serviceContainer.get<StorageService>('storageService');
       await storageService.saveProject(this.appState.project);
       this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
-      promptAction.showToast({ message: `项目 "${this.appState.project.name}" 已保存` });
+      if(this.uiContext){
+        const promptAction = this.uiContext.getPromptAction()
+        promptAction.showToast({ message: `项目 "${this.appState.project.name}" 已保存` });
+      }
     } catch (error) {
       this.errorHandler.handleStorageError(error as Error, 'ProjectManager.saveProject');
     }
@@ -272,7 +283,10 @@ export class ProjectManager {
     this.appState.project.tasks = this.appState.project.tasks.concat([newTask]);
     this.calculateCriticalPath();
     this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
-    promptAction.showToast({ message: '新任务已添加' });
+    if(this.uiContext){
+      const promptAction = this.uiContext.getPromptAction();
+      promptAction.showToast({ message: '新任务已添加' });
+    }
   }
 
   private updateTask(taskId: string, updates: Partial<TaskNode>): void {
@@ -445,9 +459,15 @@ export class ProjectManager {
       };
       this.appState.project.dependencies = this.appState.project.dependencies.concat([newDependency]);
       this.calculateCriticalPath();
-      promptAction.showToast({ message: '依赖已创建' });
+      if(this.uiContext){
+        const promptAction = this.uiContext.getPromptAction();
+        promptAction.showToast({ message: '依赖已创建' });
+      }
     } else {
-      promptAction.showToast({ message: '该依赖已存在' });
+      if(this.uiContext){
+        const promptAction = this.uiContext.getPromptAction();
+        promptAction.showToast({ message: '该依赖已存在' });
+      }
     }
   }
 

@@ -28,7 +28,7 @@
  * 
  * @author EasyFlow开发团队
  * @version 1.0.0
- * @since 2024-01-01
+ * @since 2025-06
  */
 
 import router from '@ohos.router';
@@ -39,11 +39,11 @@ import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
 import { ThemeConfig } from '../utils/ThemeConfig';
 import common from '@ohos.app.ability.common';
-import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
+import { Project, TaskNode } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
-import promptAction from '@ohos.promptAction';
 import vibrator from '@ohos.vibrator';
+import { PromptAction } from '@kit.ArkUI';
 
 /**
  * ActionMenu按钮接口
@@ -98,12 +98,12 @@ struct HomePage {
   private templateService: TemplateService = TemplateService.getInstance();
   private permissionService: PermissionService | null = null;
   private migrationService: DataMigrationService | null = null;
+  private uiContext: UIContext = this.getUIContext();
+  private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   async aboutToAppear() {
-    const context = getContext(this);
-    
     // 初始化权限服务
-    this.permissionService = PermissionService.getInstance(context as common.UIAbilityContext);
+    this.permissionService = PermissionService.getInstance(this.uiContext.getHostContext() as common.UIAbilityContext);
     
     // 申请文件系统权限
     console.log('[Home] 开始申请文件系统权限...');
@@ -112,14 +112,14 @@ struct HomePage {
     
     if (!hasPermission) {
       console.warn('[Home] 文件系统权限申请失败，但继续初始化存储服务');
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '文件系统权限申请失败，部分功能可能受限' 
       });
       // 不直接返回，继续初始化，让用户尝试使用
     }
     
     // 初始化存储服务
-    this.storageService = StorageService.getInstance(context.filesDir);
+    this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
     // 测试文件系统操作
     console.log('[Home] 开始测试文件系统操作...');
@@ -127,13 +127,13 @@ struct HomePage {
     console.log(`[Home] 文件系统测试结果: ${fileSystemTestResult}`);
     
     if (!fileSystemTestResult) {
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '文件系统测试失败，请检查权限设置' 
       });
     }
     
     // 初始化数据迁移服务
-    this.migrationService = DataMigrationService.getInstance(context.filesDir);
+    this.migrationService = DataMigrationService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
     // 检查并执行数据迁移
     await this.checkAndMigrateData();
@@ -173,7 +173,7 @@ struct HomePage {
       
       if (needsMigration) {
         console.log('[Home] 检测到需要数据迁移');
-        promptAction.showToast({ 
+        this.promptAction.showToast({
           message: '正在迁移数据到新的存储系统...',
           duration: 2000
         });
@@ -184,14 +184,14 @@ struct HomePage {
         
         if (result.success) {
           console.log(`[Home] 数据迁移成功，迁移了 ${result.migratedCount} 个项目`);
-          promptAction.showToast({ 
+          this.promptAction.showToast({
             message: `数据迁移成功，已迁移 ${result.migratedCount} 个项目`,
             duration: 3000
           });
         } else {
           console.error('[Home] 数据迁移失败:', result.errors);
           console.error(`[Home] 迁移错误详情: ${JSON.stringify(result.errors)}`);
-          promptAction.showToast({ 
+          this.promptAction.showToast({
             message: `数据迁移部分失败，${result.errors.length} 个项目迁移失败`,
             duration: 3000
           });
@@ -202,7 +202,7 @@ struct HomePage {
     } catch (error) {
       console.error('[Home] 数据迁移检查失败:', error);
       console.error(`[Home] 迁移错误详情: ${JSON.stringify(error)}`);
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '数据迁移检查失败，请查看日志',
         duration: 3000
       });
@@ -223,7 +223,7 @@ struct HomePage {
       
       if (result.cleaned > 0) {
         console.log(`[Home] 清理了 ${result.cleaned} 个损坏的项目文件`);
-        promptAction.showToast({ 
+        this.promptAction.showToast({
           message: `已清理 ${result.cleaned} 个损坏的项目文件`,
           duration: 2000
         });
@@ -233,14 +233,14 @@ struct HomePage {
       
       if (result.errors.length > 0) {
         console.error('[Home] 清理过程中的错误:', result.errors);
-        promptAction.showToast({ 
+        this.promptAction.showToast({
           message: `清理过程中遇到 ${result.errors.length} 个错误，请查看日志`,
           duration: 3000
         });
       }
     } catch (error) {
       console.error('[Home] 清理损坏文件失败:', error);
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '清理损坏文件失败，请查看日志',
         duration: 3000
       });
@@ -285,7 +285,7 @@ struct HomePage {
       
       // 更友好的错误提示
       const errorMessage = this.getUserFriendlyErrorMessage(error as Error);
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: errorMessage,
         duration: 4000
       });
@@ -325,14 +325,14 @@ struct HomePage {
           }, 200); // 与淡出动画时长匹配
         } else {
           console.error(`[Home] Project not found: ${projectId}`);
-          promptAction.showToast({ message: '项目不存在或已删除' });
+          this.promptAction.showToast({ message: '项目不存在或已删除' });
           this.selectedProjectId = null;
           this.isTransitioning = false;
           this.startContentFadeIn();
         }
       } catch (error) {
         console.error(`[Home] Error loading project ${projectId}:`, error);
-        promptAction.showToast({ message: '加载项目失败' });
+        this.promptAction.showToast({ message: '加载项目失败' });
         this.handleError(error as Error, "onSelectProject");
         this.selectedProjectId = null;
         this.isTransitioning = false;
@@ -371,7 +371,7 @@ struct HomePage {
     this.startContentFadeIn();
     
     // 显示切换提示
-    promptAction.showToast({ message: `已切换到项目: ${loadedProject.name}` });
+    this.promptAction.showToast({ message: `已切换到项目: ${loadedProject.name}` });
   }
 
   // 开始内容淡入动画
@@ -451,7 +451,7 @@ struct HomePage {
     }
 
     // 添加创建确认对话框
-    AlertDialog.show({
+   this.uiContext.showAlertDialog({
       title: '确认创建项目',
       message: `确定要创建项目 "${projectName}" 吗？`,
       primaryButton: {
@@ -468,7 +468,7 @@ struct HomePage {
             console.log(`[Home] Creating project from template: ${templateId}`);
 
             // 显示创建进度
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: '正在创建项目...',
               duration: 1000
             });
@@ -484,7 +484,7 @@ struct HomePage {
             console.log(`[Home] Project created from template: ${newProject.id}`);
             
             // 成功提示
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: `项目 "${newProject.name}" 创建成功！`,
               duration: 2000
             });
@@ -507,7 +507,7 @@ struct HomePage {
               });
             }, 500);
           } catch (error) {
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: '创建项目失败，请重试',
               duration: 2000
             });
@@ -522,7 +522,7 @@ struct HomePage {
   // 统一的错误处理
   private handleError(error: Error, context: string) {
     console.error(`[${context}] Error:`, error);
-    promptAction.showToast({ message: `操作失败: ${error.message}` });
+    this.promptAction.showToast({ message: `操作失败: ${error.message}` });
   }
 
   // 获取用户友好的错误信息
@@ -553,7 +553,7 @@ struct HomePage {
 
   async deleteProject(projectId: string) {
     // 添加删除确认对话框
-    AlertDialog.show({
+    this.uiContext.showAlertDialog({
       title: '确认删除',
       message: '确定要删除这个项目吗？删除后无法恢复。',
       primaryButton: {
@@ -569,14 +569,14 @@ struct HomePage {
           if (this.storageService) {
             try {
               await this.storageService.deleteProject(projectId);
-              promptAction.showToast({ message: '项目已删除' });
+              this.promptAction.showToast({ message: '项目已删除' });
               if (this.selectedProjectId === projectId) {
                 this.selectedProjectId = null;
                 this.selectedProjectDetail = null;
               }
               await this.loadProjects();
             } catch (error) {
-              promptAction.showToast({ message: '删除失败，请重试' });
+              this.promptAction.showToast({ message: '删除失败，请重试' });
               console.error('[Home] Delete project error:', error);
             }
           }
@@ -588,7 +588,7 @@ struct HomePage {
 
   // 显示创建项目选项的原生弹窗
   showCreateProjectOptions() {
-    promptAction.showActionMenu({
+    this.promptAction.showActionMenu({
       title: '创建新项目',
       buttons: [
         {
@@ -615,7 +615,7 @@ struct HomePage {
 
   // 显示空白项目创建对话框
   showBlankProjectDialog() {
-    AlertDialog.show({
+    this.uiContext.showAlertDialog({
       title: '创建空白项目',
       message: '确定要创建一个新的空白项目吗？',
       primaryButton: {
@@ -637,7 +637,7 @@ struct HomePage {
 
   // 显示模板选择对话框
   showTemplateSelectionDialog() {
-    promptAction.showActionMenu({
+    this.promptAction.showActionMenu({
       title: '选择模板分类',
       buttons: [
         {
@@ -676,7 +676,7 @@ struct HomePage {
   showTemplateListDialog() {
     const templates = this.getTemplatesByCategory();
     if (templates.length === 0) {
-      promptAction.showToast({ message: '该分类下没有可用模板' });
+      this.promptAction.showToast({ message: '该分类下没有可用模板' });
       return;
     }
 
@@ -702,7 +702,7 @@ struct HomePage {
 
     // 使用固定长度的元组类型
     if (templateButtons.length === 1) {
-      promptAction.showActionMenu({
+      this.promptAction.showActionMenu({
         title: '选择模板',
         buttons: [templateButtons[0]]
       }).then((result) => {
@@ -715,7 +715,7 @@ struct HomePage {
         console.error('Template selection error:', error);
       });
     } else if (templateButtons.length === 2) {
-      promptAction.showActionMenu({
+      this.promptAction.showActionMenu({
         title: '选择模板',
         buttons: [templateButtons[0], templateButtons[1]]
       }).then((result) => {
@@ -728,7 +728,7 @@ struct HomePage {
         console.error('Template selection error:', error);
       });
     } else if (templateButtons.length === 3) {
-      promptAction.showActionMenu({
+      this.promptAction.showActionMenu({
         title: '选择模板',
         buttons: [templateButtons[0], templateButtons[1], templateButtons[2]]
       }).then((result) => {
@@ -741,7 +741,7 @@ struct HomePage {
         console.error('Template selection error:', error);
       });
     } else if (templateButtons.length === 4) {
-      promptAction.showActionMenu({
+      this.promptAction.showActionMenu({
         title: '选择模板',
         buttons: [templateButtons[0], templateButtons[1], templateButtons[2], templateButtons[3]]
       }).then((result) => {
@@ -760,41 +760,41 @@ struct HomePage {
 
 
 
-  // 获取分类名称
-  private getCategoryName(category: string): string {
-    switch (category) {
-      case 'development': return '开发';
-      case 'design': return '设计';
-      case 'marketing': return '营销';
-      case 'research': return '研究';
-      case 'other': return '其他';
-      default: return '其他';
-    }
-  }
-
-  // 获取分类图标
-  private getCategoryIcon(category: string): string {
-    switch (category) {
-      case 'development': return '💻';
-      case 'design': return '🎨';
-      case 'marketing': return '📢';
-      case 'research': return '🔬';
-      case 'other': return '📋';
-      default: return '📋';
-    }
-  }
-
-  // 获取分类颜色
-  private getCategoryColor(category: string): string {
-    switch (category) {
-      case 'development': return '#3B82F6';
-      case 'design': return '#8B5CF6';
-      case 'marketing': return '#F59E0B';
-      case 'research': return '#10B981';
-      case 'other': return '#6B7280';
-      default: return '#6B7280';
-    }
-  }
+  // // 获取分类名称
+  // private getCategoryName(category: string): string {
+  //   switch (category) {
+  //     case 'development': return '开发';
+  //     case 'design': return '设计';
+  //     case 'marketing': return '营销';
+  //     case 'research': return '研究';
+  //     case 'other': return '其他';
+  //     default: return '其他';
+  //   }
+  // }
+  //
+  // // 获取分类图标
+  // private getCategoryIcon(category: string): string {
+  //   switch (category) {
+  //     case 'development': return '💻';
+  //     case 'design': return '🎨';
+  //     case 'marketing': return '📢';
+  //     case 'research': return '🔬';
+  //     case 'other': return '📋';
+  //     default: return '📋';
+  //   }
+  // }
+  //
+  // // 获取分类颜色
+  // private getCategoryColor(category: string): string {
+  //   switch (category) {
+  //     case 'development': return '#3B82F6';
+  //     case 'design': return '#8B5CF6';
+  //     case 'marketing': return '#F59E0B';
+  //     case 'research': return '#10B981';
+  //     case 'other': return '#6B7280';
+  //     default: return '#6B7280';
+  //   }
+  // }
 
   // 获取当前分类的模板
   private getTemplatesByCategory(): ProjectTemplate[] {
@@ -819,7 +819,7 @@ struct HomePage {
       console.log(`[Home] Creating blank project with name: ${this.projectName}`);
 
       // 显示创建进度
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '正在创建项目...',
         duration: 1000
       });
@@ -835,7 +835,7 @@ struct HomePage {
       console.log(`[Home] Blank project created: ${newProject.id}`);
       
       // 成功提示
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: `项目 "${newProject.name}" 创建成功！`,
         duration: 2000
       });
@@ -852,13 +852,13 @@ struct HomePage {
 
       // 延迟导航，让用户看到成功提示
       setTimeout(() => {
-        router.pushUrl({
+        this.getUIContext().getRouter().pushUrl({
           url: 'pages/Index',
           params: { projectId: newProject.id }
         });
       }, 500);
     } catch (error) {
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '创建项目失败，请重试',
         duration: 2000
       });
@@ -875,7 +875,7 @@ struct HomePage {
     }
 
     // 添加创建确认对话框
-    AlertDialog.show({
+    this.uiContext.showAlertDialog({
       title: '创建空白项目',
       message: '确定要创建一个新的空白项目吗？',
       primaryButton: {
@@ -892,7 +892,7 @@ struct HomePage {
             console.log(`[Home] Creating blank project`);
 
             // 显示创建进度
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: '正在创建项目...',
               duration: 1000
             });
@@ -908,7 +908,7 @@ struct HomePage {
             console.log(`[Home] Blank project created: ${newProject.id}`);
             
             // 成功提示
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: `项目 "${newProject.name}" 创建成功！`,
               duration: 2000
             });
@@ -925,13 +925,13 @@ struct HomePage {
 
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
-              router.pushUrl({
+              this.getUIContext().getRouter().pushUrl({
                 url: 'pages/Index',
                 params: { projectId: newProject.id }
               });
             }, 500);
           } catch (error) {
-            promptAction.showToast({ 
+            this.promptAction.showToast({
               message: '创建项目失败，请重试',
               duration: 2000
             });
@@ -1048,7 +1048,7 @@ struct HomePage {
             Circle()
               .width(56)
               .height(56)
-              .stroke('#007DFF')
+              .stroke($r('sys.color.brand'))
               .strokeWidth(3)
               .fill(Color.Transparent)
               .strokeDashArray([this.progressAngle * 3.14 * 56 / 360, 3.14 * 56])
@@ -1113,7 +1113,7 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor('#FFFFFF')
+      .backgroundColor($r('sys.color.comp_background_list_card'))
       .border({ width: { bottom: 1 }, color: '#E2E8F0' })
 
       // 当前项目信息区域 - 简约设计
@@ -1277,36 +1277,10 @@ struct HomePage {
             })
           })
         }
+        .height('100%')
+        .width('100%')
         .layoutWeight(1)
         .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingS })
-        } else {
-          // 空状态 - 引导用户创建第一个项目
-          Column({ space: ThemeConfig.spacingXXL }) {
-            Column({ space: ThemeConfig.spacingL }) {
-              Text('📁')
-                .fontSize(ThemeConfig.fontSizeXXXXL)
-                .fontColor(ThemeConfig.gray400)
-              Text('还没有项目')
-                .fontSize(ThemeConfig.fontSizeXXL)
-                .fontColor(ThemeConfig.gray600)
-                .fontWeight(ThemeConfig.fontWeightBold)
-              Text('点击右上角的"+"按钮创建您的第一个项目')
-                .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(ThemeConfig.gray500)
-                .textAlign(TextAlign.Center)
-                .lineHeight(24)
-            }
-          }
-          .width('100%')
-          .padding(ThemeConfig.spacingXXXXL)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .backgroundColor(ThemeConfig.white)
-          .borderRadius(ThemeConfig.radiusXLarge)
-          .shadow(ThemeConfig.cardShadow)
-          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
-          .layoutWeight(1)
-          .margin({ left: ThemeConfig.spacingXL, right: ThemeConfig.spacingXL, top: 0, bottom: ThemeConfig.spacingXL })
         }
       }
     }
@@ -1314,23 +1288,6 @@ struct HomePage {
     .height('100%')
     .backgroundColor('#FAFBFC')
     .border({ width: { right: 1 }, color: '#E2E8F0' })
-    .layoutWeight(1)
-  }
-
-
-  @Builder
-  EmptyState() {
-    Column({ space: 16 }) {
-      Image($r('app.media.ic_empty_box')).width(100).height(100).opacity(0.5)
-      Text('还没有任何项目')
-        .fontSize(18)
-        .fontColor(Color.Gray)
-      Text('点击上方的"+"按钮来创建一个新项目吧！')
-        .fontSize(14)
-        .fontColor(Color.Gray)
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center)
     .layoutWeight(1)
   }
 }

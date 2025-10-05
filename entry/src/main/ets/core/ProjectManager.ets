@@ -106,7 +106,7 @@ export class ProjectManager {
 
   private uiContext: UIContext | null = null;
 
-  setContext(ctx: UIContext) {
+  public setContext(ctx: UIContext) {
     this.uiContext = ctx;
   }
 

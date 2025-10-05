@@ -89,6 +89,7 @@ export class ServiceContainer {
   /**
    * 设置服务依赖关系
    */
+  // TODO:这是干什么的？
   private async setupDependencies(): Promise<void> {
     const storageService = this.get<StorageService>('storageService');
 

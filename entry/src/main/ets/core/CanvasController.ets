@@ -109,7 +109,6 @@ export interface CanvasActions {
  * @version 1.0.0
  * @since 2024-01-01
  */
-@Observed
 export class CanvasController {
   private renderer: CanvasRenderer;
   private state: CanvasState = {

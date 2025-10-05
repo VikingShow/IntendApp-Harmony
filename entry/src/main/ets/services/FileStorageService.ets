@@ -28,8 +28,9 @@
  * @since 2024-01-01
  */
 
-import fs from '@ohos.file.fs';
-import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
+// import fs from '@ohos.file.fs';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { Project, TaskNode } from '../model/ProjectData';
 import util from '@ohos.util';
 
 /**
@@ -206,7 +207,7 @@ export class FileStorageService {
       const testFile = `${this.baseDir}/test.txt`;
       const testContent = "Hello World";
       const encoder = new util.TextEncoder();
-      const uint8Array = encoder.encode(testContent);
+      const uint8Array = encoder.encodeInto(testContent);
       const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
       
       console.log(`[FileStorageService] 测试文件路径: ${testFile}`);

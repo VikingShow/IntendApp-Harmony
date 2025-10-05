@@ -25,7 +25,7 @@
  * 
  * @author EasyFlow开发团队
  * @version 1.0.0
- * @since 2024-01-01
+ * @since 2025-06
  */
 
 import { Project, TaskNode } from '../model/ProjectData';

@@ -40,7 +40,6 @@ import { PermissionService } from '../services/PermissionService';
 import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
-import promptAction from '@ohos.promptAction';
 import { PromptAction } from '@kit.ArkUI';
 
 /**
@@ -60,13 +59,14 @@ struct Index {
   // 使用@State来响应ProjectManager的状态变化
   @State project: Project | null = null;
   @State selectedTask: TaskNode | null = null;
-  
-  private projectManager: ProjectManager = ProjectManager.getInstance();
+
   private canvasController: CanvasController = new CanvasController();
+  private projectManager: ProjectManager = ProjectManager.getInstance();
   private storageService: StorageService | null = null;
   private permissionService: PermissionService | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+  @State canvasLock: boolean = false;
 
   async aboutToAppear() {
     // 初始化权限服务
@@ -351,7 +351,7 @@ struct Index {
         Column() {
           Row() {
             Button() {
-              Text(this.canvasController.getState().isCanvasLocked ? '解锁画布' : '锁定画布')
+              Text(this.canvasLock ? '解锁画布' : '锁定画布')
                 .fontSize(13)
                 .fontColor($r('sys.color.brand'))
             }
@@ -361,7 +361,9 @@ struct Index {
             .borderRadius(8)
             .margin({ right: 12, top: 12 })
             .onClick(() => { 
-              this.canvasController.getActions().toggleCanvasLock(); 
+              this.canvasController.getActions().toggleCanvasLock();
+              this.canvasLock = !this.canvasLock
+              // this.canvasController.getState().isCanvasLocked = !(this.canvasController.getState().isCanvasLocked);
             })
 
             Button() {

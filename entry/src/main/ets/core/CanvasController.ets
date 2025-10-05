@@ -109,6 +109,7 @@ export interface CanvasActions {
  * @version 1.0.0
  * @since 2024-01-01
  */
+@Observed
 export class CanvasController {
   private renderer: CanvasRenderer;
   private state: CanvasState = {
@@ -147,11 +148,9 @@ export class CanvasController {
   public getRenderer(): CanvasRenderer {
     return this.renderer;
   }
-
   public getState(): CanvasState {
     return this.state;
   }
-
   public getActions(): CanvasActions {
     return {
       handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => this.handleTouch(event, project, selectedTaskId),
@@ -276,7 +275,7 @@ export class CanvasController {
   }
 
   private toggleCanvasLock(): void {
-    this.state.isCanvasLocked = !this.state.isCanvasLocked;
+    this.state.isCanvasLocked = !(this.state.isCanvasLocked);
   }
 
   private startConnecting(taskId: string): void {

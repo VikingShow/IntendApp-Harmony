@@ -41,6 +41,7 @@ import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import promptAction from '@ohos.promptAction';
+import { PromptAction } from '@kit.ArkUI';
 
 /**
  * 路由参数接口
@@ -64,27 +65,27 @@ struct Index {
   private canvasController: CanvasController = new CanvasController();
   private storageService: StorageService | null = null;
   private permissionService: PermissionService | null = null;
+  private uiContext: UIContext = this.getUIContext();
+  private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   async aboutToAppear() {
-    const context = getContext(this);
-    
     // 初始化权限服务
-    this.permissionService = PermissionService.getInstance(context as common.UIAbilityContext);
+    this.permissionService = PermissionService.getInstance(this.uiContext.getHostContext() as common.UIAbilityContext);
     
     // 申请文件系统权限
     const hasPermission = await this.permissionService.requestFileSystemPermission();
     if (!hasPermission) {
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权' 
       });
       return;
     }
     
     // 初始化存储服务
-    this.storageService = StorageService.getInstance(context.filesDir);
+    this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
     // 初始化项目管理器
-    await this.projectManager.initialize(context.filesDir);
+    await this.projectManager.initialize((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
     // 设置画布控制器回调
     this.canvasController.setCallbacks(
@@ -125,42 +126,42 @@ struct Index {
   // 设置事件监听器
   private setupEventListeners() {
     const eventBus = EventBus.getInstance();
-    
+
     // 监听项目加载事件
     eventBus.on('project_loaded', (...args: EventArgs[]) => {
       const project = args[0] as Project;
       this.updateStateFromManager();
       this.drawGraph();
     });
-    
+
     // 监听项目保存事件
     eventBus.on('project_saved', (...args: EventArgs[]) => {
       const project = args[0] as Project;
       this.updateStateFromManager();
       this.drawGraph();
     });
-    
+
     // 监听任务选择事件
     eventBus.on('task_selected', (...args: EventArgs[]) => {
       const task = args[0] as TaskNode | null;
       this.updateStateFromManager();
       this.drawGraph();
     });
-    
+
     // 监听任务更新事件
     eventBus.on('task_updated', (...args: EventArgs[]) => {
       const task = args[0] as TaskNode;
       this.updateStateFromManager();
       this.drawGraph();
     });
-    
+
     // 监听任务删除事件
     eventBus.on('task_deleted', (...args: EventArgs[]) => {
       const taskId = args[0] as string;
       this.updateStateFromManager();
       this.drawGraph();
     });
-    
+
     // 监听关键路径计算事件
     eventBus.on('critical_path_calculated', (...args: EventArgs[]) => {
       const project = args[0] as Project;
@@ -330,7 +331,7 @@ struct Index {
       Stack() {
         Canvas(this.canvasController.getRenderer().getContext())
           .height('100%')
-          .backgroundColor('#FFFFFF')
+          .backgroundColor($r('sys.color.comp_background_list_card'))
           .borderRadius(12)
           .margin({ top: 16, right: 16, bottom: 16, left: 0 })
           .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
@@ -352,7 +353,7 @@ struct Index {
             Button() {
               Text(this.canvasController.getState().isCanvasLocked ? '解锁画布' : '锁定画布')
                 .fontSize(13)
-                .fontColor('#007DFF')
+                .fontColor($r('sys.color.brand'))
             }
             .width(80)
             .height(32)

@@ -194,52 +194,58 @@ export class FileStorageService {
       console.log(`[FileStorageService] 基础目录: ${this.baseDir}`);
       console.log(`[FileStorageService] 项目目录: ${this.projectsDir}`);
       console.log(`[FileStorageService] 元数据文件: ${this.metaFile}`);
-      
-      // 测试目录访问
-      try {
-        const baseDirExists = fs.accessSync(this.baseDir);
-        console.log(`[FileStorageService] 基础目录访问结果: ${baseDirExists}`);
-      } catch (error) {
-        console.log(`[FileStorageService] 基础目录不存在，需要创建`);
+
+      if (canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 测试目录访问
+        try {
+          const baseDirExists = fs.accessSync(this.baseDir);
+          console.log(`[FileStorageService] 基础目录访问结果: ${baseDirExists}`);
+        } catch (error) {
+          console.log(`[FileStorageService] 基础目录不存在，需要创建`);
+        }
+
+        // 测试文件写入
+        const testFile = `${this.baseDir}/test.txt`;
+        const testContent = "Hello World";
+        const encoder = new util.TextEncoder();
+        const uint8Array = encoder.encodeInto(testContent);
+        const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+
+        console.log(`[FileStorageService] 测试文件路径: ${testFile}`);
+        console.log(`[FileStorageService] 测试内容: ${testContent}`);
+        console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
+
+        const file = fs.openSync(testFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+        console.log(`[FileStorageService] 测试文件已打开，文件描述符: ${file.fd}`);
+
+        fs.writeSync(file.fd, buffer);
+        console.log(`[FileStorageService] 测试数据已写入`);
+
+        fs.closeSync(file);
+        console.log(`[FileStorageService] 测试文件已关闭`);
+
+        // 测试文件读取
+        const readFile = fs.openSync(testFile, fs.OpenMode.READ_ONLY);
+        const stat = fs.statSync(testFile);
+        const readBuffer = new ArrayBuffer(stat.size);
+        fs.readSync(readFile.fd, readBuffer);
+        fs.closeSync(readFile);
+
+        const decoder = new util.TextDecoder();
+        const readContent = decoder.decode(new Uint8Array(readBuffer));
+        console.log(`[FileStorageService] 读取的测试内容: ${readContent}`);
+
+        // 清理测试文件
+        fs.unlinkSync(testFile);
+        console.log(`[FileStorageService] 测试文件已删除`);
+
+        console.log('[FileStorageService] 文件系统测试成功！');
+        return true;
+      } else {
+        console.warn('[FileStorageService] 当前设备不支持 testFileSystem()');
+        console.error('[FileStorageService] 文件系统测试失败:');
+        return false;
       }
-      
-      // 测试文件写入
-      const testFile = `${this.baseDir}/test.txt`;
-      const testContent = "Hello World";
-      const encoder = new util.TextEncoder();
-      const uint8Array = encoder.encodeInto(testContent);
-      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
-      
-      console.log(`[FileStorageService] 测试文件路径: ${testFile}`);
-      console.log(`[FileStorageService] 测试内容: ${testContent}`);
-      console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
-      
-      const file = fs.openSync(testFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
-      console.log(`[FileStorageService] 测试文件已打开，文件描述符: ${file.fd}`);
-      
-      fs.writeSync(file.fd, buffer);
-      console.log(`[FileStorageService] 测试数据已写入`);
-      
-      fs.closeSync(file);
-      console.log(`[FileStorageService] 测试文件已关闭`);
-      
-      // 测试文件读取
-      const readFile = fs.openSync(testFile, fs.OpenMode.READ_ONLY);
-      const stat = fs.statSync(testFile);
-      const readBuffer = new ArrayBuffer(stat.size);
-      fs.readSync(readFile.fd, readBuffer);
-      fs.closeSync(readFile);
-      
-      const decoder = new util.TextDecoder();
-      const readContent = decoder.decode(new Uint8Array(readBuffer));
-      console.log(`[FileStorageService] 读取的测试内容: ${readContent}`);
-      
-      // 清理测试文件
-      fs.unlinkSync(testFile);
-      console.log(`[FileStorageService] 测试文件已删除`);
-      
-      console.log('[FileStorageService] 文件系统测试成功！');
-      return true;
     } catch (error) {
       console.error('[FileStorageService] 文件系统测试失败:', error);
       console.error(`[FileStorageService] 错误详情: ${JSON.stringify(error)}`);
@@ -253,28 +259,33 @@ export class FileStorageService {
   private async initializeDirectories(): Promise<void> {
     try {
       console.log(`[FileStorageService] 开始初始化目录结构，基础目录: ${this.baseDir}`);
-      
-      // 确保基础目录存在
-      try {
-        if (!fs.accessSync(this.baseDir)) {
-          console.log(`[FileStorageService] 创建基础目录: ${this.baseDir}`);
-          fs.mkdirSync(this.baseDir, true);
+
+      if (canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 确保基础目录存在
+        try {
+          if (!fs.accessSync(this.baseDir)) {
+            console.log(`[FileStorageService] 创建基础目录: ${this.baseDir}`);
+            fs.mkdirSync(this.baseDir, true);
+          }
+        } catch (error) {
+          console.log(`[FileStorageService] 基础目录可能已存在，继续创建项目目录`);
         }
-      } catch (error) {
-        console.log(`[FileStorageService] 基础目录可能已存在，继续创建项目目录`);
-      }
-      
-      // 确保项目目录存在
-      try {
-        if (!fs.accessSync(this.projectsDir)) {
-          console.log(`[FileStorageService] 创建项目目录: ${this.projectsDir}`);
-          fs.mkdirSync(this.projectsDir, true);
+
+        // 确保项目目录存在
+        try {
+          if (!fs.accessSync(this.projectsDir)) {
+            console.log(`[FileStorageService] 创建项目目录: ${this.projectsDir}`);
+            fs.mkdirSync(this.projectsDir, true);
+          }
+        } catch (error) {
+          console.log(`[FileStorageService] 项目目录可能已存在，继续初始化`);
         }
-      } catch (error) {
-        console.log(`[FileStorageService] 项目目录可能已存在，继续初始化`);
+
+        console.log('[FileStorageService] 目录初始化完成');
+      } else {
+        console.warn('[FileStorageService] 当前设备不支持 initializeDirectories()');
+        console.error('[FileStorageService] 目录初始化失败:');
       }
-      
-      console.log('[FileStorageService] 目录初始化完成');
     } catch (error) {
       console.error('[FileStorageService] 目录初始化失败:', error);
       throw new Error(`目录初始化失败: ${error.message || '未知错误'}`);
@@ -286,42 +297,48 @@ export class FileStorageService {
    */
   public async getProjectList(): Promise<ProjectMeta[]> {
     try {
-      if (!fs.accessSync(this.metaFile)) {
-        console.log('[FileStorageService] 元数据文件不存在，返回空列表');
-        return [];
-      }
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        if (!fs.accessSync(this.metaFile)) {
+          console.log('[FileStorageService] 元数据文件不存在，返回空列表');
+          return [];
+        }
 
-      const file = fs.openSync(this.metaFile, fs.OpenMode.READ_ONLY);
-      const stat = fs.statSync(this.metaFile);
-      const buffer = new ArrayBuffer(stat.size);
-      fs.readSync(file.fd, buffer);
-      fs.closeSync(file);
+        const file = fs.openSync(this.metaFile, fs.OpenMode.READ_ONLY);
+        const stat = fs.statSync(this.metaFile);
+        const buffer = new ArrayBuffer(stat.size);
+        fs.readSync(file.fd, buffer);
+        fs.closeSync(file);
 
-      const decoder = new util.TextDecoder();
-      const content = decoder.decode(new Uint8Array(buffer));
-      console.log(`[FileStorageService] 读取到的元数据文件内容长度: ${content.length}`);
-      console.log(`[FileStorageService] 元数据文件内容预览: ${content.substring(0, 200)}...`);
-      
-      // 检查内容是否为空或无效
-      if (!content || content.trim() === '') {
-        console.log('[FileStorageService] 元数据文件为空，返回空列表');
-        return [];
-      }
-      
-      // 验证JSON格式
-      try {
-        const projectList = JSON.parse(content) as ProjectMeta[];
-        console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
-        return projectList;
-      } catch (parseError) {
-        console.error('[FileStorageService] 元数据文件JSON解析失败:', parseError);
+        const decoder = new util.TextDecoder();
+        const content = decoder.decodeToString(new Uint8Array(buffer));
+        console.log(`[FileStorageService] 读取到的元数据文件内容长度: ${content.length}`);
+        console.log(`[FileStorageService] 元数据文件内容预览: ${content.substring(0, 200)}...`);
+
+        // 检查内容是否为空或无效
+        if (!content || content.trim() === '') {
+          console.log('[FileStorageService] 元数据文件为空，返回空列表');
+          return [];
+        }
+
+        // 验证JSON格式
+        try {
+          const projectList = JSON.parse(content) as ProjectMeta[];
+          console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
+          return projectList;
+        } catch (parseError) {
+          console.error('[FileStorageService] 元数据文件JSON解析失败:', parseError);
+          console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
+          return await this.rebuildProjectList();
+        }
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 getProjectList()');
         console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
         return await this.rebuildProjectList();
       }
     } catch (error) {
       console.error('[FileStorageService] 获取项目列表失败:', error);
       console.log('[FileStorageService] 尝试从项目文件重建元数据列表...');
-      
+
       // 如果元数据文件损坏，尝试从项目文件重建
       return await this.rebuildProjectList();
     }
@@ -333,84 +350,90 @@ export class FileStorageService {
   private async rebuildProjectList(): Promise<ProjectMeta[]> {
     try {
       console.log('[FileStorageService] 开始重建项目元数据列表...');
-      
-      // 检查项目目录是否存在
-      if (!fs.accessSync(this.projectsDir)) {
-        console.log('[FileStorageService] 项目目录不存在，返回空列表');
-        return [];
-      }
-      
-      const projectList: ProjectMeta[] = [];
-      
-      // 遍历项目目录中的所有JSON文件
-      const files = fs.listFileSync(this.projectsDir);
-      console.log(`[FileStorageService] 在项目目录中找到 ${files.length} 个文件`);
-      
-      for (const fileName of files) {
-        if (fileName.endsWith('.json')) {
-          const projectId = fileName.replace('.json', '');
-          const projectFile = `${this.projectsDir}/${fileName}`;
-          
-          try {
-            // 读取项目文件
-            const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
-            const stat = fs.statSync(projectFile);
-            const buffer = new ArrayBuffer(stat.size);
-            fs.readSync(file.fd, buffer);
-            fs.closeSync(file);
-            
-            const decoder = new util.TextDecoder();
-            const content = decoder.decode(new Uint8Array(buffer));
-            console.log(`[FileStorageService] 读取项目文件 ${fileName}，内容长度: ${content.length}`);
-            console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
-            
-            // 验证JSON格式
-            let projectData: Record<string, string | number | boolean | object>;
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 检查项目目录是否存在
+        if (!fs.accessSync(this.projectsDir)) {
+          console.log('[FileStorageService] 项目目录不存在，返回空列表');
+          return [];
+        }
+
+        const projectList: ProjectMeta[] = [];
+
+        // 遍历项目目录中的所有JSON文件
+        const files = fs.listFileSync(this.projectsDir);
+        console.log(`[FileStorageService] 在项目目录中找到 ${files.length} 个文件`);
+
+        for (const fileName of files) {
+          if (fileName.endsWith('.json')) {
+            const projectId = fileName.replace('.json', '');
+            const projectFile = `${this.projectsDir}/${fileName}`;
+
             try {
-              projectData = JSON.parse(content);
-            } catch (parseError) {
-              console.error(`[FileStorageService] 项目文件 ${fileName} JSON解析失败:`, parseError);
-              console.log(`[FileStorageService] 删除损坏的项目文件: ${fileName}`);
-              // 删除损坏的文件
+              // 读取项目文件
+              const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
+              const stat = fs.statSync(projectFile);
+              const buffer = new ArrayBuffer(stat.size);
+              fs.readSync(file.fd, buffer);
+              fs.closeSync(file);
+
+              const decoder = new util.TextDecoder();
+              const content = decoder.decodeToString(new Uint8Array(buffer));
+              console.log(`[FileStorageService] 读取项目文件 ${fileName}，内容长度: ${content.length}`);
+              console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
+
+              // 验证JSON格式
+              let projectData: Record<string, string | number | boolean | object>;
+              try {
+                projectData = JSON.parse(content);
+              } catch (parseError) {
+                console.error(`[FileStorageService] 项目文件 ${fileName} JSON解析失败:`, parseError);
+                console.log(`[FileStorageService] 删除损坏的项目文件: ${fileName}`);
+                // 删除损坏的文件
+                try {
+                  fs.unlinkSync(projectFile);
+                  console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+                } catch (deleteError) {
+                  console.error(`[FileStorageService] 删除文件失败:`, deleteError);
+                }
+                continue;
+              }
+
+              // 创建项目元数据
+              const projectMeta: ProjectMeta = {
+                id: (projectData.id as string) || projectId,
+                name: (projectData.name as string) || '未命名项目',
+                lastModified: (projectData.lastModified as number) || Date.now(),
+                category: (projectData.category as string) || '其他'
+              };
+
+              projectList.push(projectMeta);
+              console.log(`[FileStorageService] 重建项目元数据: ${projectMeta.name} (${projectMeta.id})`);
+            } catch (error) {
+              console.error(`[FileStorageService] 读取项目文件 ${fileName} 失败:`, error);
+              // 如果文件损坏，尝试删除它
               try {
                 fs.unlinkSync(projectFile);
                 console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
               } catch (deleteError) {
                 console.error(`[FileStorageService] 删除文件失败:`, deleteError);
               }
-              continue;
-            }
-            
-            // 创建项目元数据
-            const projectMeta: ProjectMeta = {
-              id: (projectData.id as string) || projectId,
-              name: (projectData.name as string) || '未命名项目',
-              lastModified: (projectData.lastModified as number) || Date.now(),
-              category: (projectData.category as string) || '其他'
-            };
-            
-            projectList.push(projectMeta);
-            console.log(`[FileStorageService] 重建项目元数据: ${projectMeta.name} (${projectMeta.id})`);
-          } catch (error) {
-            console.error(`[FileStorageService] 读取项目文件 ${fileName} 失败:`, error);
-            // 如果文件损坏，尝试删除它
-            try {
-              fs.unlinkSync(projectFile);
-              console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
-            } catch (deleteError) {
-              console.error(`[FileStorageService] 删除文件失败:`, deleteError);
             }
           }
         }
+
+        // 保存重建的元数据列表
+        if (projectList.length > 0) {
+          await this.saveProjectList(projectList);
+          console.log(`[FileStorageService] 重建完成，共 ${projectList.length} 个项目`);
+        }
+
+        return projectList;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 rebuildProjectList()');
+        console.error('[FileStorageService] 重建项目列表失败:');
+        return [];
       }
-      
-      // 保存重建的元数据列表
-      if (projectList.length > 0) {
-        await this.saveProjectList(projectList);
-        console.log(`[FileStorageService] 重建完成，共 ${projectList.length} 个项目`);
-      }
-      
-      return projectList;
     } catch (error) {
       console.error('[FileStorageService] 重建项目列表失败:', error);
       return [];
@@ -424,34 +447,38 @@ export class FileStorageService {
     try {
       console.log(`[FileStorageService] 开始保存项目列表，共 ${list.length} 个项目`);
       console.log(`[FileStorageService] 保存路径: ${this.metaFile}`);
-      
-      const content = JSON.stringify(list, null, 2);
-      console.log(`[FileStorageService] 项目列表JSON内容长度: ${content.length}`);
-      
-      const encoder = new util.TextEncoder();
-      const uint8Array = encoder.encode(content);
-      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
-      console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
-      
-      // 先删除旧文件，确保完全重写
-      try {
-        if (fs.accessSync(this.metaFile)) {
-          fs.unlinkSync(this.metaFile);
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        const content = JSON.stringify(list, null, 2);
+        console.log(`[FileStorageService] 项目列表JSON内容长度: ${content.length}`);
+
+        const encoder = new util.TextEncoder();
+        const uint8Array = encoder.encodeInto(content);
+        const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+        console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
+
+        // 先删除旧文件，确保完全重写
+        try {
+          if (fs.accessSync(this.metaFile)) {
+            fs.unlinkSync(this.metaFile);
+          }
+        } catch (error) {
+          // 文件不存在，忽略错误
         }
-      } catch (error) {
-        // 文件不存在，忽略错误
+
+        const file = fs.openSync(this.metaFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+        console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
+
+        fs.writeSync(file.fd, buffer);
+        console.log(`[FileStorageService] 数据已写入文件`);
+
+        fs.closeSync(file);
+        console.log(`[FileStorageService] 文件已关闭`);
+
+        console.log(`[FileStorageService] 项目列表已保存，共 ${list.length} 个项目`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 saveProjectList()');
       }
-      
-      const file = fs.openSync(this.metaFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
-      console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
-      
-      fs.writeSync(file.fd, buffer);
-      console.log(`[FileStorageService] 数据已写入文件`);
-      
-      fs.closeSync(file);
-      console.log(`[FileStorageService] 文件已关闭`);
-      
-      console.log(`[FileStorageService] 项目列表已保存，共 ${list.length} 个项目`);
     } catch (error) {
       console.error('[FileStorageService] 保存项目列表失败:', error);
       console.error(`[FileStorageService] 错误详情: ${JSON.stringify(error)}`);
@@ -516,26 +543,30 @@ export class FileStorageService {
       const uint8Array = encoder.encode(content);
       const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
       console.log(`[FileStorageService] 编码后缓冲区大小: ${buffer.byteLength}`);
-      
-      // 先删除旧文件，确保完全重写
-      try {
-        if (fs.accessSync(projectFile)) {
-          fs.unlinkSync(projectFile);
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 先删除旧文件，确保完全重写
+        try {
+          if (fs.accessSync(projectFile)) {
+            fs.unlinkSync(projectFile);
+          }
+        } catch (error) {
+          // 文件不存在，忽略错误
         }
-      } catch (error) {
-        // 文件不存在，忽略错误
+
+        const file = fs.openSync(projectFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+        console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
+
+        fs.writeSync(file.fd, buffer);
+        console.log(`[FileStorageService] 数据已写入文件`);
+
+        fs.closeSync(file);
+        console.log(`[FileStorageService] 文件已关闭`);
+
+        console.log(`[FileStorageService] 项目 ${project.id} 已保存到文件`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 saveProject()');
       }
-      
-      const file = fs.openSync(projectFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
-      console.log(`[FileStorageService] 文件已打开，文件描述符: ${file.fd}`);
-      
-      fs.writeSync(file.fd, buffer);
-      console.log(`[FileStorageService] 数据已写入文件`);
-      
-      fs.closeSync(file);
-      console.log(`[FileStorageService] 文件已关闭`);
-      
-      console.log(`[FileStorageService] 项目 ${project.id} 已保存到文件`);
     } catch (error) {
       console.error(`[FileStorageService] 保存项目 ${project.id} 失败:`, error);
       throw new Error(`保存项目失败: ${error.message}`);
@@ -547,47 +578,53 @@ export class FileStorageService {
    */
   public async getProject(projectId: string): Promise<Project | null> {
     try {
-      const projectFile = `${this.projectsDir}/${projectId}.json`;
-      
-      if (!fs.accessSync(projectFile)) {
-        console.log(`[FileStorageService] 项目文件不存在: ${projectId}`);
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        const projectFile = `${this.projectsDir}/${projectId}.json`;
+
+        if (!fs.accessSync(projectFile)) {
+          console.log(`[FileStorageService] 项目文件不存在: ${projectId}`);
+          return null;
+        }
+
+        const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
+        const stat = fs.statSync(projectFile);
+        const buffer = new ArrayBuffer(stat.size);
+        fs.readSync(file.fd, buffer);
+        fs.closeSync(file);
+
+        const decoder = new util.TextDecoder();
+        const content = decoder.decode(new Uint8Array(buffer));
+        const storableProject = JSON.parse(content) as StorableProject;
+
+        // 转换回完整的Project对象
+        const project = new Project(storableProject.id, storableProject.name);
+        project.lastModified = storableProject.lastModified;
+        project.dependencies = storableProject.dependencies;
+        project.tasks = storableProject.tasks.map((task: StorableTaskNode): TaskNode => {
+          return {
+            id: task.id,
+            name: task.name,
+            checklist: task.checklist,
+            x: task.x,
+            y: task.y,
+            earlyStart: task.earlyStart,
+            earlyFinish: task.earlyFinish,
+            lateStart: task.lateStart,
+            lateFinish: task.lateFinish,
+            isCritical: task.isCritical,
+            startDate: new Date(task.startDate),
+            endDate: new Date(task.endDate),
+          };
+        });
+        project.category = storableProject.category || '其他';
+
+        console.log(`[FileStorageService] 项目 ${projectId} 已从文件加载`);
+        return project;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 getProject()');
+        console.error(`[FileStorageService] 获取项目 ${projectId} 失败:`);
         return null;
       }
-
-      const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
-      const stat = fs.statSync(projectFile);
-      const buffer = new ArrayBuffer(stat.size);
-      fs.readSync(file.fd, buffer);
-      fs.closeSync(file);
-
-      const decoder = new util.TextDecoder();
-      const content = decoder.decode(new Uint8Array(buffer));
-      const storableProject = JSON.parse(content) as StorableProject;
-
-      // 转换回完整的Project对象
-      const project = new Project(storableProject.id, storableProject.name);
-      project.lastModified = storableProject.lastModified;
-      project.dependencies = storableProject.dependencies;
-      project.tasks = storableProject.tasks.map((task: StorableTaskNode): TaskNode => {
-        return {
-          id: task.id,
-          name: task.name,
-          checklist: task.checklist,
-          x: task.x,
-          y: task.y,
-          earlyStart: task.earlyStart,
-          earlyFinish: task.earlyFinish,
-          lateStart: task.lateStart,
-          lateFinish: task.lateFinish,
-          isCritical: task.isCritical,
-          startDate: new Date(task.startDate),
-          endDate: new Date(task.endDate),
-        };
-      });
-      project.category = storableProject.category || '其他';
-      
-      console.log(`[FileStorageService] 项目 ${projectId} 已从文件加载`);
-      return project;
     } catch (error) {
       console.error(`[FileStorageService] 获取项目 ${projectId} 失败:`, error);
       return null;
@@ -599,18 +636,23 @@ export class FileStorageService {
    */
   public async deleteProject(projectId: string): Promise<void> {
     try {
-      // 1. 从项目列表中移除
-      const list = await this.getProjectList();
-      const filteredList = list.filter(p => p.id !== projectId);
-      await this.saveProjectList(filteredList);
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 1. 从项目列表中移除
+        const list = await this.getProjectList();
+        const filteredList = list.filter(p => p.id !== projectId);
+        await this.saveProjectList(filteredList);
 
-      // 2. 删除项目文件
-      const projectFile = `${this.projectsDir}/${projectId}.json`;
-      if (fs.accessSync(projectFile)) {
-        fs.unlinkSync(projectFile);
+        // 2. 删除项目文件
+        const projectFile = `${this.projectsDir}/${projectId}.json`;
+        if (fs.accessSync(projectFile)) {
+          fs.unlinkSync(projectFile);
+        }
+
+        console.log(`[FileStorageService] 项目 ${projectId} 已删除`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 deleteProject()');
+        console.error(`[FileStorageService] 删除项目 ${projectId} 失败:`);
       }
-      
-      console.log(`[FileStorageService] 项目 ${projectId} 已删除`);
     } catch (error) {
       console.error(`[FileStorageService] 删除项目 ${projectId} 失败:`, error);
       throw new Error(`删除项目失败: ${error.message}`);
@@ -653,7 +695,7 @@ export class FileStorageService {
       const project = data.project as Project;
       
       // 生成新的项目ID
-      project.id = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      project.id = `project_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
       project.lastModified = Date.now();
       
       await this.saveProject(project);
@@ -675,68 +717,75 @@ export class FileStorageService {
     
     try {
       console.log('[FileStorageService] 开始清理损坏的项目文件...');
-      
-      if (!fs.accessSync(this.projectsDir)) {
-        console.log('[FileStorageService] 项目目录不存在，无需清理');
-        const result: CleanupResult = { cleaned: 0, errors: [] };
-        return result;
-      }
-      
-      const files = fs.listFileSync(this.projectsDir);
-      console.log(`[FileStorageService] 检查 ${files.length} 个文件`);
-      
-      for (const fileName of files) {
-        if (fileName.endsWith('.json')) {
-          const projectFile = `${this.projectsDir}/${fileName}`;
-          
-          try {
-            // 尝试读取和解析文件
-            const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
-            const stat = fs.statSync(projectFile);
-            const buffer = new ArrayBuffer(stat.size);
-            fs.readSync(file.fd, buffer);
-            fs.closeSync(file);
-            
-            const decoder = new util.TextDecoder();
-            const content = decoder.decode(new Uint8Array(buffer));
-            console.log(`[FileStorageService] 检查文件 ${fileName}，内容长度: ${content.length}`);
-            console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
-            
-            // 验证JSON格式
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        if (!fs.accessSync(this.projectsDir)) {
+          console.log('[FileStorageService] 项目目录不存在，无需清理');
+          const result: CleanupResult = { cleaned: 0, errors: [] };
+          return result;
+        }
+
+        const files = fs.listFileSync(this.projectsDir);
+        console.log(`[FileStorageService] 检查 ${files.length} 个文件`);
+
+        for (const fileName of files) {
+          if (fileName.endsWith('.json')) {
+            const projectFile = `${this.projectsDir}/${fileName}`;
+
             try {
-              JSON.parse(content);
-              console.log(`[FileStorageService] 文件 ${fileName} 正常`);
-            } catch (parseError) {
-              console.log(`[FileStorageService] 发现损坏的文件: ${fileName}，错误: ${parseError.message}`);
-              console.log(`[FileStorageService] 文件内容: ${content}`);
-              fs.unlinkSync(projectFile);
-              cleaned++;
-              console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
-            }
-          } catch (error) {
-            console.error(`[FileStorageService] 检查文件 ${fileName} 失败:`, error);
-            // 如果文件无法读取，也删除它
-            try {
-              fs.unlinkSync(projectFile);
-              cleaned++;
-              console.log(`[FileStorageService] 已删除无法读取的文件: ${fileName}`);
-            } catch (deleteError) {
-              console.error(`[FileStorageService] 删除文件 ${fileName} 失败:`, deleteError);
-              errors.push(`删除文件 ${fileName} 失败: ${deleteError.message}`);
+              // 尝试读取和解析文件
+              const file = fs.openSync(projectFile, fs.OpenMode.READ_ONLY);
+              const stat = fs.statSync(projectFile);
+              const buffer = new ArrayBuffer(stat.size);
+              fs.readSync(file.fd, buffer);
+              fs.closeSync(file);
+
+              const decoder = new util.TextDecoder();
+              const content = decoder.decode(new Uint8Array(buffer));
+              console.log(`[FileStorageService] 检查文件 ${fileName}，内容长度: ${content.length}`);
+              console.log(`[FileStorageService] 文件内容预览: ${content.substring(0, 100)}...`);
+
+              // 验证JSON格式
+              try {
+                JSON.parse(content);
+                console.log(`[FileStorageService] 文件 ${fileName} 正常`);
+              } catch (parseError) {
+                console.log(`[FileStorageService] 发现损坏的文件: ${fileName}，错误: ${parseError.message}`);
+                console.log(`[FileStorageService] 文件内容: ${content}`);
+                fs.unlinkSync(projectFile);
+                cleaned++;
+                console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+              }
+            } catch (error) {
+              console.error(`[FileStorageService] 检查文件 ${fileName} 失败:`, error);
+              // 如果文件无法读取，也删除它
+              try {
+                fs.unlinkSync(projectFile);
+                cleaned++;
+                console.log(`[FileStorageService] 已删除无法读取的文件: ${fileName}`);
+              } catch (deleteError) {
+                console.error(`[FileStorageService] 删除文件 ${fileName} 失败:`, deleteError);
+                errors.push(`删除文件 ${fileName} 失败: ${deleteError.message}`);
+              }
             }
           }
         }
+
+        // 如果清理了文件，重新创建空的元数据文件
+        if (cleaned > 0) {
+          console.log(`[FileStorageService] 重新创建空的元数据文件`);
+          await this.saveProjectList([]);
+        }
+
+        console.log(`[FileStorageService] 清理完成，删除了 ${cleaned} 个损坏的文件`);
+        const result: CleanupResult = { cleaned, errors };
+        return result;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 cleanupCorruptedFiles()');
+        console.error('[FileStorageService] 清理损坏文件失败:');
+        errors.push(`清理过程失败}`);
+        const result: CleanupResult = { cleaned, errors };
+        return result;
       }
-      
-      // 如果清理了文件，重新创建空的元数据文件
-      if (cleaned > 0) {
-        console.log(`[FileStorageService] 重新创建空的元数据文件`);
-        await this.saveProjectList([]);
-      }
-      
-      console.log(`[FileStorageService] 清理完成，删除了 ${cleaned} 个损坏的文件`);
-      const result: CleanupResult = { cleaned, errors };
-      return result;
     } catch (error) {
       console.error('[FileStorageService] 清理损坏文件失败:', error);
       errors.push(`清理过程失败: ${error.message}`);
@@ -750,22 +799,29 @@ export class FileStorageService {
    */
   public async getStorageStats(): Promise<StorageStats> {
     try {
-      const list = await this.getProjectList();
-      let totalSize = 0;
-      
-      for (const meta of list) {
-        const projectFile = `${this.projectsDir}/${meta.id}.json`;
-        if (fs.accessSync(projectFile)) {
-          const stat = fs.statSync(projectFile);
-          totalSize += stat.size;
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        const list = await this.getProjectList();
+        let totalSize = 0;
+
+        for (const meta of list) {
+          const projectFile = `${this.projectsDir}/${meta.id}.json`;
+          if (fs.accessSync(projectFile)) {
+            const stat = fs.statSync(projectFile);
+            totalSize += stat.size;
+          }
         }
+
+        const stats: StorageStats = {
+          totalProjects: list.length,
+          totalSize: totalSize
+        };
+        return stats;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 getStorageStats()');
+        console.error('[FileStorageService] 获取存储统计失败:');
+        const defaultStats: StorageStats = { totalProjects: 0, totalSize: 0 };
+        return defaultStats;
       }
-      
-      const stats: StorageStats = {
-        totalProjects: list.length,
-        totalSize: totalSize
-      };
-      return stats;
     } catch (error) {
       console.error('[FileStorageService] 获取存储统计失败:', error);
       const defaultStats: StorageStats = { totalProjects: 0, totalSize: 0 };

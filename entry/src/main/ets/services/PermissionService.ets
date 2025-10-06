@@ -1,7 +1,6 @@
 // File: entry/src/main/ets/services/PermissionService.ets
 import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
 import common from '@ohos.app.ability.common';
-import promptAction from '@ohos.promptAction';
 
 // 权限状态接口
 interface PermissionStatus {
@@ -17,6 +16,11 @@ export class PermissionService {
   private static instance: PermissionService;
   private context: common.UIAbilityContext;
   private atManager: abilityAccessCtrl.AtManager;
+  private uiContext: UIContext | null = null;
+
+  public setContext(ctx: UIContext) {
+    this.uiContext = ctx;
+  }
 
   private constructor(context: common.UIAbilityContext) {
     this.context = context;
@@ -118,11 +122,14 @@ export class PermissionService {
       default:
         message = '需要相关权限才能正常使用此功能';
     }
-    
-    promptAction.showToast({
-      message: message,
-      duration: 3000
-    });
+
+    if(this.uiContext){
+      const promptAction = this.uiContext.getPromptAction()
+      promptAction.showToast({
+        message: message,
+        duration: 3000
+      });
+    }
   }
 
   /**

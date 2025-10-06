@@ -1,6 +1,5 @@
 // File: entry/src/main/ets/services/LoadingService.ets
 
-import { TaskNode } from '../model/ProjectData';
 
 export class LoadingService {
   private static instance: LoadingService;

@@ -41,6 +41,7 @@ import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
+import { PerformanceMetric, PerformanceService } from '../services/PerformanceService';
 
 /**
  * 路由参数接口
@@ -71,7 +72,9 @@ struct Index {
   async aboutToAppear() {
     // 初始化权限服务
     this.permissionService = PermissionService.getInstance(this.uiContext.getHostContext() as common.UIAbilityContext);
-    
+    // 注入uiContext
+    this.permissionService.setContext(this.uiContext);
+
     // 申请文件系统权限
     const hasPermission = await this.permissionService.requestFileSystemPermission();
     if (!hasPermission) {

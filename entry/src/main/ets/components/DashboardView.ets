@@ -289,6 +289,8 @@ export struct DashboardView {
               }
             })
           }
+          .height('100%')
+          .width('100%')
         } else {
           // 没有即将到期的任务 - 更友好的空状态设计
           Column({ space: ThemeConfig.spacingXXL }) {

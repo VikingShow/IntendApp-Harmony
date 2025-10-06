@@ -36,7 +36,7 @@ import { TaskNode, ChecklistItem } from '../model/ProjectData';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
 import { ThemeConfig } from '../utils/ThemeConfig';
-import promptAction from '@ohos.promptAction';
+import { PromptAction } from '@kit.ArkUI';
 
 /**
  * 任务编辑器组件
@@ -64,6 +64,8 @@ export struct TaskEditor {
   @State private autoSaveTimer: number | null = null;
   @State private hasUnsavedChanges: boolean = false;
   @State private debounceTimer: number | null = null;
+  private uiContext: UIContext = this.getUIContext();
+  private promptAction: PromptAction = this.uiContext.getPromptAction();
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
@@ -145,7 +147,7 @@ export struct TaskEditor {
       // 验证清单项
       const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
       if (!validation.isValid) {
-        promptAction.showToast({ message: validation.message });
+        this.promptAction.showToast({ message: validation.message });
         return;
       }
 
@@ -180,7 +182,7 @@ export struct TaskEditor {
       // 然后通知父组件更新数据
       this.onDeleteChecklistItem(this.localTask.id, itemId);
       
-      promptAction.showToast({ message: '子任务已删除' });
+      this.promptAction.showToast({ message: '子任务已删除' });
     }
   }
 
@@ -225,7 +227,7 @@ export struct TaskEditor {
       this.hasUnsavedChanges = false;
       
       // 显示保存提示
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '已自动保存', 
         duration: 1000 
       });
@@ -239,7 +241,7 @@ export struct TaskEditor {
         Column({ space: 20 }) {
           Column({ space: 16 }) {
             Row({ space: 12 }) {
-                             Text('编辑任务')
+              Text('编辑任务')
                  .fontSize(ThemeConfig.fontSizeXXL)
                  .fontWeight(ThemeConfig.fontWeightMedium)
                  .fontColor(ThemeConfig.gray800)
@@ -288,7 +290,7 @@ export struct TaskEditor {
                     // 验证任务名称
                     const validation = ValidationUtils.validateProjectName(value);
                     if (!validation.isValid) {
-                      promptAction.showToast({ message: validation.message });
+                      this.promptAction.showToast({ message: validation.message });
                       return;
                     }
 

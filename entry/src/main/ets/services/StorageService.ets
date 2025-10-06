@@ -1,6 +1,6 @@
 // File: entry/src/main/ets/services/StorageService.ets
 import { FileStorageService, ProjectMeta } from './FileStorageService';
-import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
+import { Project } from '../model/ProjectData';
 
 /**
  * 清理结果接口

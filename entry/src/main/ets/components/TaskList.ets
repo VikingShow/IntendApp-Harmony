@@ -254,6 +254,8 @@ export struct TaskList {
             }
           })
         }
+        .height('100%')
+        .width('100%')
         .layoutWeight(1)
       }
     }

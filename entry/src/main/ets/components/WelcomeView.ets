@@ -152,13 +152,13 @@ export struct NewProjectDialog {
       }
       .width('100%')
       .height(48)
-      .backgroundColor('#007DFF')
+      .backgroundColor($r('sys.color.brand'))
       .borderRadius(8)
       .margin({ top: 12 })
       .onClick(() => this.onBlank())
 
       Button() {
-        Text('选择模板').fontSize(16).fontColor('#007DFF')
+        Text('选择模板').fontSize(16).fontColor($r('sys.color.brand'))
       }
       .width('100%')
       .height(48)

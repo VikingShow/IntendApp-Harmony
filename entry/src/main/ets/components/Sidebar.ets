@@ -37,7 +37,7 @@ import { NewProjectDialog } from './WelcomeView';
 import { TemplateDialog } from './TemplateDialog';
 import { ThemeConfig } from '../utils/ThemeConfig';
 import promptAction from '@ohos.promptAction';
-import { TemplateService } from '../services/TemplateService';
+import { PromptAction } from '@kit.ArkUI';
 
 /**
  * 侧边栏组件
@@ -73,7 +73,10 @@ export struct Sidebar {
   @State tempProjectName: string = '';
   @State showNewProjectDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
-  @State private taskEditorKey: number = 0;
+  // @State private taskEditorKey: number = 0;
+
+  private uiContext: UIContext = this.getUIContext();
+  private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   aboutToAppear() {
     this.selectedTaskForEditor = this.selectedTask;
@@ -81,7 +84,7 @@ export struct Sidebar {
 
   // 删除任务方法
   private deleteTask(task: TaskNode) {
-    AlertDialog.show({
+    this.uiContext.showAlertDialog({
       title: '确认删除任务',
       message: `确定要删除任务"${task.name}"吗？删除后无法恢复。`,
       primaryButton: {
@@ -141,7 +144,7 @@ export struct Sidebar {
 
   private saveProjectName() {
     if (this.tempProjectName.trim() === '') {
-      promptAction.showToast({ message: '项目名称不能为空' });
+      this.promptAction.showToast({ message: '项目名称不能为空' });
       return;
     }
     this.onUpdateProjectName(this.tempProjectName);
@@ -206,7 +209,7 @@ export struct Sidebar {
             LoadingProgress()
               .width(40)
               .height(40)
-              .color('#007DFF')
+              .color($r('sys.color.brand'))
             Text('正在加载项目...')
               .fontSize(16)
               .fontColor('#666666')
@@ -297,7 +300,7 @@ export struct Sidebar {
           .width(48)
           .height(48)
           .type(ButtonType.Circle)
-          .backgroundColor('#FFFFFF')
+          .backgroundColor($r('sys.color.comp_background_list_card'))
           .borderRadius(24)
           .shadow({ radius: 8, color: '#00000012', offsetX: 0, offsetY: 3 })
           .onClick(() => { this.onBack() })
@@ -370,7 +373,7 @@ export struct Sidebar {
             .width(44)
             .height(44)
             .type(ButtonType.Circle)
-            .backgroundColor('#FFFFFF')
+            .backgroundColor($r('sys.color.comp_background_list_card'))
             .borderRadius(22)
             .shadow({ radius: 6, color: '#00000012', offsetX: 0, offsetY: 2 })
             .onClick(() => {
@@ -398,7 +401,7 @@ export struct Sidebar {
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor('#FFFFFF')
+            .backgroundColor($r('sys.color.comp_background_list_card'))
             .borderRadius(12)
             .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
 
@@ -413,7 +416,7 @@ export struct Sidebar {
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor('#FFFFFF')
+            .backgroundColor($r('sys.color.comp_background_list_card'))
             .borderRadius(12)
             .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
           }
@@ -542,6 +545,8 @@ export struct Sidebar {
                 }
               })
             }
+            .height('100%')
+            .width('100%')
             .layoutWeight(1)
           }
         }

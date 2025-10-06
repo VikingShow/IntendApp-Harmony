@@ -3,7 +3,7 @@
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { CommonButton } from './CommonButton';
 import { ThemeConfig } from '../utils/ThemeConfig';
-import promptAction from '@ohos.promptAction';
+import { PromptAction } from '@kit.ArkUI';
 
 @Component
 export struct TemplateDialog {
@@ -16,6 +16,8 @@ export struct TemplateDialog {
   @State selectedCategory: string = 'development';
   @State showPreview: boolean = false;
   @State previewTemplate: ProjectTemplate | null = null;
+  private uiContext: UIContext = this.getUIContext();
+  private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   private templateService: TemplateService = TemplateService.getInstance();
 
@@ -33,9 +35,6 @@ export struct TemplateDialog {
             .height(44)
             .backgroundColor('transparent')
             .onClick(() => { this.onClose(); })
-            Text('📋')
-              .fontSize(ThemeConfig.fontSizeXXL)
-              .fontColor(ThemeConfig.primaryColor)
             Text('选择项目模板')
               .fontSize(ThemeConfig.fontSizeXXL)
               .fontWeight(FontWeight.Bold)
@@ -88,6 +87,8 @@ export struct TemplateDialog {
                 }
               })
             }
+            .height('100')
+            .width('100%')
             .layoutWeight(1)
           }
           .padding(ThemeConfig.spacingL)
@@ -319,7 +320,7 @@ export struct TemplateDialog {
   private createProject() {
     if (this.selectedTemplate && this.projectName.trim()) {
       // 显示创建进度提示
-      promptAction.showToast({ 
+      this.promptAction.showToast({
         message: '正在创建项目...',
         duration: 1000
       });
@@ -332,12 +333,12 @@ export struct TemplateDialog {
     } else {
       // 输入验证提示
       if (!this.selectedTemplate) {
-        promptAction.showToast({ 
+        this.promptAction.showToast({
           message: '请先选择一个模板',
           duration: 1500
         });
       } else if (!this.projectName.trim()) {
-        promptAction.showToast({ 
+        this.promptAction.showToast({
           message: '请输入项目名称',
           duration: 1500
         });

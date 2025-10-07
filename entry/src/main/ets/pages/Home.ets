@@ -41,6 +41,8 @@ import common from '@ohos.app.ability.common';
 import { Project, TaskNode } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
+import { CanvasController } from '../core/CanvasController';
+import { CanvasRenderer } from '../core/CanvasRenderer';
 import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
 import { ErrorHandler } from '../core/ErrorHandler';
@@ -98,6 +100,10 @@ struct HomePage {
   @State deleteButtonOpacity: number = 1;
   @State hoveredDeleteId: string | null = null;
 
+  // 画布背景相关状态
+  private canvasController: CanvasController = new CanvasController();
+  @State showCanvasBackground: boolean = false;
+
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
   private templateService: TemplateService = TemplateService.getInstance();
@@ -154,6 +160,9 @@ struct HomePage {
         this.isLoading = loading;
       }
     });
+
+    // 初始化画布控制器
+    this.canvasController.setContext(this.uiContext);
 
     // 清理损坏的项目文件（在加载项目之前）
     await this.cleanupCorruptedFiles();
@@ -285,6 +294,7 @@ struct HomePage {
           console.log(`[Home] 选中的项目 ${this.selectedProjectId} 不再存在，清空选择`);
           this.selectedProjectId = null;
           this.selectedProjectDetail = null;
+          this.showCanvasBackground = false;
         }
       }
       
@@ -332,11 +342,18 @@ struct HomePage {
           // 等待淡出动画完成后再更新内容
           setTimeout(() => {
             this.updateProjectContent(loadedProject);
+            // 显示画布背景
+            this.showCanvasBackground = true;
+            // 延迟渲染画布以确保组件已更新
+            setTimeout(() => {
+              this.renderProjectCanvas();
+            }, 100);
           }, 200); // 与淡出动画时长匹配
         } else {
           console.error(`[Home] Project not found: ${projectId}`);
           this.promptAction.showToast({ message: '项目不存在或已删除' });
           this.selectedProjectId = null;
+          this.showCanvasBackground = false;
           this.isTransitioning = false;
           this.startContentFadeIn();
         }
@@ -345,6 +362,7 @@ struct HomePage {
         this.promptAction.showToast({ message: '加载项目失败' });
         this.handleError(error as Error, "onSelectProject");
         this.selectedProjectId = null;
+        this.showCanvasBackground = false;
         this.isTransitioning = false;
         this.startContentFadeIn();
       }
@@ -583,6 +601,7 @@ struct HomePage {
               if (this.selectedProjectId === projectId) {
                 this.selectedProjectId = null;
                 this.selectedProjectDetail = null;
+                this.showCanvasBackground = false;
               }
               await this.loadProjects();
             } catch (error) {
@@ -952,6 +971,11 @@ struct HomePage {
 
   build() {
     Stack() {
+      // 画布背景 - 当选中项目时显示
+      if (this.showCanvasBackground && this.selectedProjectDetail) {
+        this.CanvasBackground()
+      }
+      
       // 主界面
       Row() {
         // --- 左侧边栏 ---
@@ -992,7 +1016,7 @@ struct HomePage {
           }
         }
         .layoutWeight(2)
-        .backgroundColor(ThemeConfig.backgroundSecondary)
+        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite20 : ThemeConfig.backgroundSecondary)
         .opacity(this.contentOpacity)
         .scale({ x: this.contentScale, y: this.contentScale })
         .translate({ x: 0, y: this.contentTranslateY })
@@ -1305,8 +1329,35 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ThemeConfig.backgroundPage)
+    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite30 : ThemeConfig.backgroundPage)
     .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)
+  }
+
+  // 画布背景构建器
+  @Builder
+  CanvasBackground() {
+    Canvas(this.canvasController.getRenderer().getContext())
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Color.Transparent)
+      .position({ x: 0, y: 0 })
+      .zIndex(-1) // 确保在背景层
+      .onReady(() => {
+        if (this.selectedProjectDetail) {
+          this.renderProjectCanvas();
+        }
+      })
+  }
+
+  // 渲染项目画布
+  private renderProjectCanvas() {
+    if (!this.selectedProjectDetail) return;
+    
+    const renderer = this.canvasController.getRenderer();
+    const config = this.canvasController.getActions().getRenderConfig(null);
+    
+    // 渲染画布内容
+    renderer.render(this.selectedProjectDetail, config);
   }
 }

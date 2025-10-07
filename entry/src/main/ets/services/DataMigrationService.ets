@@ -2,6 +2,7 @@
 import preferences from '@ohos.data.preferences';
 import { FileStorageService, ProjectMeta } from './FileStorageService';
 import { Project, TaskNode } from '../model/ProjectData';
+import { application } from '@kit.AbilityKit';
 
 // 迁移结果接口
 interface MigrationResult {
@@ -36,15 +37,16 @@ export class DataMigrationService {
   private static instance: DataMigrationService;
   private fileStorage: FileStorageService;
   private oldStore: Promise<preferences.Preferences>;
-  private uiContext: UIContext | null = null;
+  // private uiContext: UIContext | null = null;
+  //
+  // public setContext(ctx: UIContext) {
+  //   this.uiContext = ctx;
+  // }
 
-  public setContext(ctx: UIContext) {
-    this.uiContext = ctx;
-  }
-
+  //TODO: getContext() waited to replaced
   private constructor(filesDir: string) {
     this.fileStorage = FileStorageService.getInstance(filesDir);
-    this.oldStore = preferences.getPreferences(this.uiContext?.getHostContext(), 'project_storage');
+    this.oldStore = preferences.getPreferences(getContext(), 'project_storage');
   }
 
   /**

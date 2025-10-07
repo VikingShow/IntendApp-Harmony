@@ -54,6 +54,11 @@ interface RouterParams {
 @Entry
 @Component
 struct Index {
+  // @StorageProp('bottomRectHeight')
+  // bottomRectHeight: number = 0;
+  @StorageProp('topRectHeight')
+  topRectHeight: number = 0;
+
   @State sidebarVisible: boolean = true;
   
   // 使用@State来响应ProjectManager的状态变化
@@ -309,7 +314,7 @@ struct Index {
       }
       .width(32)
       .height(48)
-      .backgroundColor('#F3F4F6')
+      .backgroundColor('#00f3f4f6')
       .borderRadius(8)
       .margin({ left: 0, right: 0, top: 24, bottom: 24 })
       .zIndex(100)
@@ -361,6 +366,7 @@ struct Index {
       Stack() {
         Canvas(this.canvasController.getRenderer().getContext())
           .height('100%')
+          .width('100%')
           .backgroundColor($r('sys.color.comp_background_list_card'))
           .borderRadius(12)
           .margin({ top: 16, right: 16, bottom: 16, left: 0 })
@@ -481,8 +487,13 @@ struct Index {
       }
       .layoutWeight(1)
       .height('100%')
+      .width('100%')
     }
     .width('100%')
     .height('100%')
+    .padding({
+      top: this.getUIContext().px2vp(this.topRectHeight),
+      // bottom: this.getUIContext().px2vp(this.bottomRectHeight)
+    })
   }
 }

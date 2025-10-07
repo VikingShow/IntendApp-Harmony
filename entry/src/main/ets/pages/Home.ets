@@ -60,6 +60,11 @@ interface ActionMenuButton {
 @Entry
 @Component
 struct HomePage {
+  // @StorageProp('bottomRectHeight')
+  // bottomRectHeight: number = 0;
+  @StorageProp('topRectHeight')
+  topRectHeight: number = 0;
+
   @State projectList: ProjectMeta[] = [];
   @State selectedProjectDetail: Project | null = null;
   @State selectedProjectId: string | null = null;
@@ -119,8 +124,7 @@ struct HomePage {
       });
       // 不直接返回，继续初始化，让用户尝试使用
     }
-    // 注入uiContext
-    this.errorHandler?.setContext(this.uiContext);
+
     // 初始化存储服务
     this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
@@ -134,12 +138,13 @@ struct HomePage {
         message: '文件系统测试失败，请检查权限设置' 
       });
     }
-
+    // 注入uiContext
+    this.errorHandler?.setContext(this.uiContext);
     // 初始化数据迁移服务
     this.migrationService = DataMigrationService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     // 注入uiContext
-    this.migrationService.setContext(this.uiContext);
-    
+    // this.migrationService.setContext(this.uiContext);
+
     // 检查并执行数据迁移
     await this.checkAndMigrateData();
     
@@ -149,7 +154,7 @@ struct HomePage {
         this.isLoading = loading;
       }
     });
-    
+
     // 清理损坏的项目文件（在加载项目之前）
     await this.cleanupCorruptedFiles();
     
@@ -698,12 +703,6 @@ struct HomePage {
       templateButtons.push(button);
     }
 
-    // // 添加取消按钮
-    // const cancelButton: ActionMenuButton = {
-    //   text: '取消',
-    //   color: '#FF0000'
-    // };
-    // templateButtons.push(cancelButton);
 
     // 使用固定长度的元组类型
     if (templateButtons.length === 1) {
@@ -1015,6 +1014,10 @@ struct HomePage {
     .width('100%')
     .height('100%')
     .backgroundColor(ThemeConfig.backgroundSecondary)
+    .padding({
+      top: this.getUIContext().px2vp(this.topRectHeight),
+      // bottom: this.getUIContext().px2vp(this.bottomRectHeight)
+    })
   }
 
   @Builder

@@ -1,6 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 const DOMAIN = 0x0000;
 
@@ -23,7 +24,36 @@ export default class EntryAbility extends UIAbility {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
       }
+      // windowStage.getMainWindowSync().setWindowBackgroundColor('#d5d5d5');
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+    });
+
+    let windowClass: window.Window = windowStage.getMainWindowSync();
+    let isLayoutFullScreen = true;
+    windowClass.setWindowLayoutFullScreen(isLayoutFullScreen).then(() => {
+      console.info('Succeeded in setting the window layout to full-screen mode.');
+    }).catch((err: BusinessError) => {
+      console.error(`Failed to set the window layout to full-screen mode. Code is ${err.code}, message is ${err.message}`);
+    });
+
+    // let type = window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR; // 此处以导航条避让为例
+    // let avoidArea = windowClass.getWindowAvoidArea(type);
+    // let bottomRectHeight = avoidArea.bottomRect.height; // 获取到导航区域的高度
+    // AppStorage.setOrCreate('bottomRectHeight', bottomRectHeight);
+
+    const type = window.AvoidAreaType.TYPE_SYSTEM; // 以状态栏避让为例
+    const avoidArea = windowClass.getWindowAvoidArea(type);
+    let topRectHeight = avoidArea.topRect.height; // 获取状态栏区域高度
+    AppStorage.setOrCreate('topRectHeight', topRectHeight);
+
+    windowClass.on('avoidAreaChange', (data) => {
+      if (data.type === window.AvoidAreaType.TYPE_SYSTEM) {
+        let topRectHeight = data.area.topRect.height;
+        AppStorage.setOrCreate('topRectHeight', topRectHeight);
+      } else if (data.type == window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
+        let bottomRectHeight = data.area.bottomRect.height;
+        AppStorage.setOrCreate('bottomRectHeight', bottomRectHeight);
+      }
     });
   }
 

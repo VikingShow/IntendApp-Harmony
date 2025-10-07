@@ -14,7 +14,7 @@
  * 工作原理：
  * - undoStack: 存储已执行的命令，用于撤销
  * - redoStack: 存储已撤销的命令，用于重做
- * - 执行新命令时，清空redoStack（因为历史分支已改变）
+ * - 执行新命令时，将重做栈中的命令移到撤销栈末尾（保持历史顺序）
  * 
  * 设计模式：
  * - 单例模式：确保全局只有一个历史记录管理器
@@ -67,11 +67,11 @@ export class CommandHistory {
   /**
    * 执行并记录命令
    * 
-   * 工作流程：
-   * 1. 执行命令
-   * 2. 将命令压入撤销栈
-   * 3. 清空重做栈（新操作使之前的重做历史失效）
-   * 4. 限制历史栈大小
+ * 工作流程：
+ * 1. 执行命令
+ * 2. 将命令压入撤销栈
+ * 3. 将重做栈中的命令移到撤销栈末尾（保持历史顺序）
+ * 4. 限制历史栈大小
    * 
    * @param command 要执行的命令
    */
@@ -84,8 +84,12 @@ export class CommandHistory {
     // 记录到撤销栈
     this.undoStack.push(command);
     
-    // 清空重做栈（执行新命令后，之前的重做历史失效）
-    this.redoStack = [];
+    // 将重做栈中的命令移到撤销栈的末尾，保持历史顺序
+    // 这样用户可以在执行新操作后仍然重做之前的操作
+    while (this.redoStack.length > 0) {
+      const redoCommand = this.redoStack.pop()!;
+      this.undoStack.push(redoCommand);
+    }
     
     // 限制历史记录大小，避免内存溢出
     if (this.undoStack.length > this.maxHistorySize) {

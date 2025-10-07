@@ -36,6 +36,32 @@ export default class EntryAbility extends UIAbility {
       console.error(`Failed to set the window layout to full-screen mode. Code is ${err.code}, message is ${err.message}`);
     });
 
+    // let windowClass: window.Window | undefined = undefined;
+    windowStage.getMainWindow((err: BusinessError, data) => {
+      const errCode: number = err.code;
+      if (errCode) {
+        console.error(`Failed to obtain the main window. Cause code: ${err.code}, message: ${err.message}`);
+        return;
+      }
+    windowClass = data;
+    let SystemBarProperties: window.SystemBarProperties = {
+      statusBarColor: '#00000000',     // 完全透明
+      navigationBarColor: '#00000000', // 完全透明
+      //以下两个属性从API Version8开始支持
+      // statusBarContentColor: '#ffffff',
+      // navigationBarContentColor: '#00ffff'
+    };
+    try {
+      let promise = windowClass.setWindowSystemBarProperties(SystemBarProperties);
+      promise.then(() => {
+        console.info('Succeeded in setting the system bar properties.');
+      }).catch((err: BusinessError) => {
+        console.error(`Failed to set the system bar properties. Cause code: ${err.code}, message: ${err.message}`);
+      });
+    } catch (exception) {
+      console.error(`Failed to set the system bar properties. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
+  });
     // let type = window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR; // 此处以导航条避让为例
     // let avoidArea = windowClass.getWindowAvoidArea(type);
     // let bottomRectHeight = avoidArea.bottomRect.height; // 获取到导航区域的高度

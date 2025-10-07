@@ -91,6 +91,9 @@ export class CanvasRenderer {
   public render(project: Project, config: RenderConfig): void {
     this.context.clearRect(0, 0, 3000, 3000);
     
+    // 先绘制网格背景
+    this.renderGrid();
+    
     if (!project) return;
 
     // 渲染依赖连线
@@ -98,6 +101,51 @@ export class CanvasRenderer {
     
     // 渲染任务节点
     this.renderTasks(project, config);
+  }
+
+  private renderGrid(): void {
+    const width = 3000;
+    const height = 3000;
+    
+    // 设置网格样式
+    this.context.strokeStyle = '#E0E0E0';
+    this.context.lineWidth = 1;
+    
+    // 绘制主网格线
+    this.context.beginPath();
+    
+    // 垂直线
+    for (let x = 0; x <= width; x += 200) {
+      this.context.moveTo(x, 0);
+      this.context.lineTo(x, height);
+    }
+    
+    // 水平线
+    for (let y = 0; y <= height; y += 200) {
+      this.context.moveTo(0, y);
+      this.context.lineTo(width, y);
+    }
+    
+    this.context.stroke();
+    
+    // 绘制细网格线
+    this.context.strokeStyle = '#F0F0F0';
+    this.context.lineWidth = 0.5;
+    this.context.beginPath();
+    
+    // 细垂直线
+    for (let x = 0; x <= width; x += 100) {
+      this.context.moveTo(x, 0);
+      this.context.lineTo(x, height);
+    }
+    
+    // 细水平线
+    for (let y = 0; y <= height; y += 100) {
+      this.context.moveTo(0, y);
+      this.context.lineTo(width, y);
+    }
+    
+    this.context.stroke();
   }
 
   private renderDependencies(project: Project, config: RenderConfig): void {

@@ -14,7 +14,7 @@
  * 工作原理：
  * - undoStack: 存储已执行的命令，用于撤销
  * - redoStack: 存储已撤销的命令，用于重做
- * - 执行新命令时，将重做栈中的命令移到撤销栈末尾（保持历史顺序）
+ * - 执行新命令时，保持redoStack（允许重做之前的操作）
  * 
  * 设计模式：
  * - 单例模式：确保全局只有一个历史记录管理器
@@ -70,8 +70,8 @@ export class CommandHistory {
  * 工作流程：
  * 1. 执行命令
  * 2. 将命令压入撤销栈
- * 3. 将重做栈中的命令移到撤销栈末尾（保持历史顺序）
- * 4. 限制历史栈大小
+ * 3. 保持重做栈（允许重做之前的操作）
+ * 4. 保持完整的操作历史（不限制大小）
    * 
    * @param command 要执行的命令
    */
@@ -84,18 +84,11 @@ export class CommandHistory {
     // 记录到撤销栈
     this.undoStack.push(command);
     
-    // 将重做栈中的命令移到撤销栈的末尾，保持历史顺序
+    // 注意：不清空重做栈，保持重做历史
     // 这样用户可以在执行新操作后仍然重做之前的操作
-    while (this.redoStack.length > 0) {
-      const redoCommand = this.redoStack.pop()!;
-      this.undoStack.push(redoCommand);
-    }
     
-    // 限制历史记录大小，避免内存溢出
-    if (this.undoStack.length > this.maxHistorySize) {
-      const removedCommand = this.undoStack.shift();
-      console.log(`[CommandHistory] 历史记录已满，移除最旧的命令: ${removedCommand?.getName()}`);
-    }
+    // 注意：不限制历史记录大小，保持完整的操作历史
+    // 历史记录将在应用退出时统一清空
     
     console.log(`[CommandHistory] 当前状态 - 可撤销: ${this.undoStack.length}, 可重做: ${this.redoStack.length}`);
   }
@@ -176,10 +169,10 @@ export class CommandHistory {
 
   /**
    * 清空所有历史记录
-   * 通常在切换项目或重置状态时调用
+   * 只在应用退出时调用，保持完整的操作历史
    */
   public clear(): void {
-    console.log('[CommandHistory] 清空历史记录');
+    console.log('[CommandHistory] 清空历史记录（应用退出）');
     this.undoStack = [];
     this.redoStack = [];
   }

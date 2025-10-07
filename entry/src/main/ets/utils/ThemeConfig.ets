@@ -9,11 +9,12 @@ interface ShadowConfig {
 }
 
 export class ThemeConfig {
-  // 主色调 - 现代蓝色系
+  // 主色调 - 现代蓝色系，增强视觉层次
   static readonly primaryColor = '#007AFF';
   static readonly primaryLight = '#E3F2FD';
   static readonly primaryDark = '#0056CC';
   static readonly primaryGradient = ['#007AFF', '#0056CC'];
+  static readonly primaryUltraLight = '#F0F8FF';
 
   // 辅助色 - 中性灰色系
   static readonly secondaryColor = '#8E8E93';
@@ -49,7 +50,7 @@ export class ThemeConfig {
   static readonly backgroundTertiary = '#E5E5EA';
   static readonly backgroundElevated = '#FFFFFF';
 
-  // 阴影系统 - 现代阴影设计
+  // 阴影系统 - 现代阴影设计，增强层次感
   static readonly shadowSmall: ShadowConfig = {
     radius: 2,
     color: '#0000000A',
@@ -58,38 +59,54 @@ export class ThemeConfig {
   };
 
   static readonly shadowMedium: ShadowConfig = {
-    radius: 4,
-    color: '#0000000F',
+    radius: 6,
+    color: '#00000012',
     offsetX: 0,
-    offsetY: 2
+    offsetY: 3
   };
 
   static readonly shadowLarge: ShadowConfig = {
-    radius: 8,
-    color: '#00000015',
+    radius: 12,
+    color: '#00000018',
     offsetX: 0,
-    offsetY: 4
+    offsetY: 6
   };
 
   static readonly shadowXLarge: ShadowConfig = {
+    radius: 20,
+    color: '#00000025',
+    offsetX: 0,
+    offsetY: 10
+  };
+
+  // 新增：悬浮阴影效果
+  static readonly shadowHover: ShadowConfig = {
     radius: 16,
     color: '#00000020',
     offsetX: 0,
     offsetY: 8
   };
 
-  // 卡片阴影
+  // 卡片阴影 - 增强立体感
   static readonly cardShadow: ShadowConfig = {
+    radius: 8,
+    color: '#00000010',
+    offsetX: 0,
+    offsetY: 4
+  };
+
+  // 按钮阴影 - 增强交互感
+  static readonly buttonShadow: ShadowConfig = {
     radius: 6,
-    color: '#0000000D',
+    color: '#00000015',
     offsetX: 0,
     offsetY: 3
   };
 
-  // 按钮阴影
-  static readonly buttonShadow: ShadowConfig = {
+  // 新增：输入框阴影
+  static readonly inputShadow: ShadowConfig = {
     radius: 4,
-    color: '#00000012',
+    color: '#00000008',
     offsetX: 0,
     offsetY: 2
   };

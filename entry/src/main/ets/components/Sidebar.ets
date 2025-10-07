@@ -221,11 +221,11 @@ export struct Sidebar {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(ThemeConfig.white)
+      .backgroundColor('rgba(255, 255, 255, 0.7)')
       .padding(ThemeConfig.spacingXXL)
       .shadow(ThemeConfig.shadowMedium)
       .border({ width: { right: 1 }, color: ThemeConfig.gray200 })
-      .backdropBlur(10)
+      .backdropBlur(20)
 
       // 弹窗遮罩层
       // 只有首页才显示新建相关弹窗
@@ -289,50 +289,53 @@ export struct Sidebar {
       Column({ space: 16 }) {
         // --- 顶部操作栏 ---
         Row({space: 16}) {
-          // 返回主页按钮
+          // 返回主页按钮 - 现代化设计
           Button() {
-            Image($r('app.media.ic_back'))
-              .width(20)
-              .height(20)
-              .fillColor('#666666')
+            Text('←')
+              .fontSize(ThemeConfig.fontSizeXL)
+              .fontColor(ThemeConfig.gray600)
+              .fontWeight(ThemeConfig.fontWeightBold)
           }
-          .width(48)
-          .height(48)
+          .width(52)
+          .height(52)
           .type(ButtonType.Circle)
-          .backgroundColor($r('sys.color.comp_background_list_card'))
-          .borderRadius(24)
-          .shadow({ radius: 8, color: '#00000012', offsetX: 0, offsetY: 3 })
+          .backgroundColor(ThemeConfig.gray100)
+          .borderRadius(26)
+          .shadow(ThemeConfig.shadowMedium)
+          .border({ width: 2, color: ThemeConfig.gray200, radius: 26 })
           .onClick(() => { this.onBack() })
 
-          // 新建任务按钮（仅编辑页显示）
+          // 新建任务按钮（仅编辑页显示）- 现代化设计
           if (!this.isHomePage) {
             Button({ type: ButtonType.Circle }) {
-              Image($r('app.media.ic_add'))
-                .width(20)
-                .height(20)
-                .fillColor(Color.White)
+              Text('+')
+                .fontSize(ThemeConfig.fontSizeXL)
+                .fontColor(Color.White)
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .shadow({ radius: 1, color: '#00000030', offsetX: 0, offsetY: 1 })
             }
-            .width(48)
-            .height(48)
-            .backgroundColor('#34C759')
-            .borderRadius(24)
-            .shadow({ radius: 8, color: '#34C75930', offsetX: 0, offsetY: 3 })
+            .width(52)
+            .height(52)
+            .backgroundColor(ThemeConfig.successColor)
+            .borderRadius(26)
+            .shadow(ThemeConfig.shadowMedium)
+            .border({ width: 2, color: ThemeConfig.successLight, radius: 26 })
             .onClick(() => { this.onAddTask() })
             .margin({ left: 0, right: 0 })
           }
 
-          // 保存项目按钮
+          // 保存项目按钮 - 现代化设计
           Button({ type: ButtonType.Circle }) {
-            Image($r('app.media.ic_save'))
-              .width(20)
-              .height(20)
-              .fillColor(Color.White)
+            Text('💾')
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontColor(Color.White)
           }
-          .width(48)
-          .height(48)
-          .backgroundColor('#007AFF')
-          .borderRadius(24) // 确保圆形
-          .shadow({ radius: 8, color: '#007AFF30', offsetX: 0, offsetY: 3 })
+          .width(52)
+          .height(52)
+          .backgroundColor(ThemeConfig.primaryColor)
+          .borderRadius(26)
+          .shadow(ThemeConfig.shadowMedium)
+          .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: 26 })
           .onClick(() => { this.onSave() })
 
           // 占位拉伸
@@ -400,7 +403,7 @@ export struct Sidebar {
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor($r('sys.color.comp_background_list_card'))
+            .backgroundColor('#00000000')
             .borderRadius(12)
             .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
 
@@ -415,17 +418,18 @@ export struct Sidebar {
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor($r('sys.color.comp_background_list_card'))
+            .backgroundColor('#00000000')
             .borderRadius(12)
             .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
           }
           .width('100%')
         }
         .padding(ThemeConfig.spacingXL)
-        .backgroundColor(ThemeConfig.white)
+        .backgroundColor('rgba(255, 255, 255, 0.6)')
         .borderRadius(ThemeConfig.radiusXLarge)
         .shadow(ThemeConfig.cardShadow)
         .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
+        .backdropBlur(10)
 
         // 操作按钮区域
         Column({ space: 16 }) {
@@ -495,21 +499,22 @@ export struct Sidebar {
                     .alignItems(HorizontalAlign.Start)
                     .layoutWeight(1)
 
-                    // 删除按钮
+                    // 删除按钮 - 现代化设计
                     Button() {
                       Text('×')
                         .fontSize(ThemeConfig.fontSizeL)
                         .fontColor(ThemeConfig.errorColor)
                         .fontWeight(ThemeConfig.fontWeightBold)
                     }
-                    .width(32)
-                    .height(32)
+                    .width(36)
+                    .height(36)
                     .backgroundColor(ThemeConfig.errorLight)
-                    .borderRadius(ThemeConfig.radiusSmall)
+                    .borderRadius(ThemeConfig.radiusMedium)
+                    .shadow(ThemeConfig.shadowSmall)
                     .border({ 
-                      width: 1, 
+                      width: 2, 
                       color: ThemeConfig.errorColor, 
-                      radius: ThemeConfig.radiusSmall 
+                      radius: ThemeConfig.radiusMedium 
                     })
                     .onClick(() => {
                       this.deleteTask(task);
@@ -518,7 +523,7 @@ export struct Sidebar {
                   }
                   .width('100%')
                   .padding(ThemeConfig.spacingXL)
-                  .backgroundColor(this.selectedTask?.id === task.id ? ThemeConfig.primaryLight : ThemeConfig.white)
+                  .backgroundColor(this.selectedTask?.id === task.id ? 'rgba(0, 122, 255, 0.2)' : 'rgba(255, 255, 255, 0.5)')
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(this.selectedTask?.id === task.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
                   .border({ 
@@ -526,6 +531,7 @@ export struct Sidebar {
                     color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : 'transparent', 
                     radius: ThemeConfig.radiusMedium 
                   })
+                  .backdropBlur(5)
                   .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     this.selectedTask = task;

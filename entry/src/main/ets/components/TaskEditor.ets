@@ -256,15 +256,16 @@ export struct TaskEditor {
                 .fontWeight(ThemeConfig.fontWeightMedium)
                 .fontColor(ThemeConfig.gray500)
               TextInput({ text: this.localTask.name || '', placeholder: '请输入任务名称' })
-                .backgroundColor(ThemeConfig.gray100)
+                .backgroundColor('#00000000')
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
                 .width('100%')
                 .fontColor(ThemeConfig.gray800)
                 .placeholderColor(ThemeConfig.gray500)
+                .shadow(ThemeConfig.inputShadow)
                 .border({ 
-                  width: 1, 
+                  width: 2, 
                   color: ThemeConfig.gray200, 
                   radius: ThemeConfig.radiusMedium 
                 })
@@ -316,7 +317,7 @@ export struct TaskEditor {
                    end: new Date('2030-12-31'),
                    selected: this.localTask.startDate || new Date()
                  })
-                   .backgroundColor('#F5F5F7')
+                   .backgroundColor('#00000000')
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -346,7 +347,7 @@ export struct TaskEditor {
                    end: new Date('2030-12-31'),
                    selected: this.localTask.endDate || new Date()
                  })
-                   .backgroundColor('#F5F5F7')
+                   .backgroundColor('#00000000')
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -377,7 +378,7 @@ export struct TaskEditor {
             .justifyContent(FlexAlign.End)
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor(ThemeConfig.white)
+          .backgroundColor('#00000000')
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
@@ -401,14 +402,15 @@ export struct TaskEditor {
                 text: this.newChecklistItemText 
               })
                 .layoutWeight(1)
-                .backgroundColor(ThemeConfig.gray100)
+                .backgroundColor('#00000000')
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
                 .fontColor(ThemeConfig.gray800)
                 .placeholderColor(ThemeConfig.gray500)
+                .shadow(ThemeConfig.inputShadow)
                 .border({ 
-                  width: 1, 
+                  width: 2, 
                   color: ThemeConfig.gray200, 
                   radius: ThemeConfig.radiusMedium 
                 })
@@ -430,13 +432,14 @@ export struct TaskEditor {
                   .fontSize(ThemeConfig.fontSizeXL)
                   .fontColor(Color.White)
                   .fontWeight(ThemeConfig.fontWeightBold)
+                  .shadow({ radius: 1, color: '#00000030', offsetX: 0, offsetY: 1 })
               }
-              .width(48)
-              .height(48)
+              .width(52)
+              .height(52)
               .backgroundColor(ThemeConfig.primaryColor)
               .borderRadius(ThemeConfig.radiusMedium)
               .shadow(ThemeConfig.buttonShadow)
-              .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusMedium })
+              .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: ThemeConfig.radiusMedium })
               .onClick(() => {
                 this.submitNewChecklistItem();
               })
@@ -493,24 +496,26 @@ export struct TaskEditor {
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)
                     
-                    // 删除按钮 - 与首页删除项目按钮样式保持一致
+                    // 删除按钮 - 现代化设计，增强交互反馈
                     Button() {
                       Text('×')
                         .fontSize(16)
-                        .fontColor('#EF4444')
+                        .fontColor(ThemeConfig.errorColor)
+                        .fontWeight(ThemeConfig.fontWeightBold)
                     }
-                    .width(36)
-                    .height(36)
+                    .width(40)
+                    .height(40)
                     .type(ButtonType.Circle)
-                    .backgroundColor('#FEF2F2')
-                    .border({ width: 1, color: '#FECACA', radius: 18 })
+                    .backgroundColor(ThemeConfig.errorLight)
+                    .border({ width: 2, color: ThemeConfig.errorColor, radius: 20 })
+                    .shadow(ThemeConfig.shadowSmall)
                     .onClick(() => {
                       this.deleteChecklistItem(item.id);
                     })
                   }
                   .width('100%')
                   .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
-                  .backgroundColor(item.isCompleted ? ThemeConfig.gray100 : ThemeConfig.white)
+                  .backgroundColor(item.isCompleted ? ThemeConfig.gray100 : '#00000000')
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(item.isCompleted ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
                   .border({ 
@@ -525,7 +530,7 @@ export struct TaskEditor {
             }
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor(ThemeConfig.white)
+          .backgroundColor('#00000000')
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })

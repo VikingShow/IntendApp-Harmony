@@ -11,25 +11,27 @@ export struct WelcomeView {
       
       // 主要内容层 - 铺满整个区域
       Column({ space: 32 }) {
-        // 中心标题
-        Column({ space: 16 }) {
+        // 中心标题 - 增强视觉层次
+        Column({ space: 20 }) {
           Text('一思不漏')
             .fontSize(ThemeConfig.fontSizeXXXXXXL)
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ThemeConfig.primaryColor)
             .textAlign(TextAlign.Center)
-            .shadow({ radius: 2, color: ThemeConfig.primaryColor + '20', offsetX: 0, offsetY: 2 })
+            .shadow({ radius: 4, color: ThemeConfig.primaryColor + '30', offsetX: 0, offsetY: 4 })
           Text('EazyFlow')
             .fontSize(ThemeConfig.fontSizeXXXL)
             .fontColor(ThemeConfig.gray600)
             .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
+            .shadow({ radius: 2, color: ThemeConfig.gray600 + '20', offsetX: 0, offsetY: 2 })
             .margin({ top: ThemeConfig.spacingS })
           Text('让每个想法都不被遗漏，让每个项目都井然有序')
             .fontSize(ThemeConfig.fontSizeL)
             .fontColor(ThemeConfig.gray500)
             .textAlign(TextAlign.Center)
             .lineHeight(28)
+            .fontWeight(ThemeConfig.fontWeightMedium)
             .margin({ top: ThemeConfig.spacingL })
         }
         .alignItems(HorizontalAlign.Center)

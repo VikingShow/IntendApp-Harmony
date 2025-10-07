@@ -1039,48 +1039,55 @@ struct HomePage {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        // 新建项目按钮 - 圆形设计，放在右侧
+        // 新建项目按钮 - 现代化设计，增强视觉吸引力
         Stack() {
-          // 进度环背景
+          // 进度环背景 - 更柔和的颜色
           if (this.isLongPressing) {
             Circle()
-              .width(56)
-              .height(56)
-              .stroke('#007DFF20')
-              .strokeWidth(3)
+              .width(60)
+              .height(60)
+              .stroke(ThemeConfig.primaryUltraLight)
+              .strokeWidth(4)
               .fill(Color.Transparent)
           }
           
-          // 进度环
+          // 进度环 - 更流畅的动画
           if (this.isLongPressing && this.progressAngle > 0) {
             Circle()
-              .width(56)
-              .height(56)
-              .stroke($r('sys.color.brand'))
-              .strokeWidth(3)
+              .width(60)
+              .height(60)
+              .stroke(ThemeConfig.primaryColor)
+              .strokeWidth(4)
               .fill(Color.Transparent)
-              .strokeDashArray([this.progressAngle * 3.14 * 56 / 360, 3.14 * 56])
+              .strokeDashArray([this.progressAngle * 3.14 * 60 / 360, 3.14 * 60])
               .strokeDashOffset(0)
               .rotate({ angle: -90 })
+              .animation({
+                duration: 50,
+                curve: Curve.Linear,
+                iterations: 1,
+                playMode: PlayMode.Normal
+              })
           }
           
-          // 按钮主体
+          // 按钮主体 - 增强渐变效果
           Button() {
             Text('+')
               .fontSize(ThemeConfig.fontSizeXXXXL)
               .fontColor(Color.White)
               .fontWeight(ThemeConfig.fontWeightBold)
+              .shadow({ radius: 2, color: '#00000030', offsetX: 0, offsetY: 1 })
           }
           .accessibilityLevel('important')
-          .width(ThemeConfig.spacingXXXXXL)
-          .height(ThemeConfig.spacingXXXXXL)
+          .width(60)
+          .height(60)
           .type(ButtonType.Circle)
           .backgroundColor(this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
-          .shadow(this.isLongPressing ? ThemeConfig.shadowXLarge : ThemeConfig.shadowLarge)
+          .shadow(this.isLongPressing ? ThemeConfig.shadowXLarge : ThemeConfig.shadowHover)
           .border({ 
-            width: 0, 
-            color: 'transparent', 
-            radius: ThemeConfig.radiusRound 
+            width: 2, 
+            color: this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight, 
+            radius: 30 
           })
           .scale({ x: this.buttonScale, y: this.buttonScale })
           .opacity(this.buttonOpacity)
@@ -1116,8 +1123,8 @@ struct HomePage {
               })
           )
         }
-        .width(56)
-        .height(56)
+        .width(60)
+        .height(60)
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
@@ -1176,7 +1183,7 @@ struct HomePage {
             ForEach(this.projectList, (meta: ProjectMeta) => {
               ListItem() {
               Row({ space: 16 }) {
-                // 项目信息 - 简约设计
+                // 项目信息 - 增强视觉层次
                 Column({ space: ThemeConfig.spacingS }) {
                   Text(meta.name)
                     .fontSize(ThemeConfig.fontSizeL)
@@ -1184,28 +1191,32 @@ struct HomePage {
                     .fontColor(ThemeConfig.gray800)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .shadow({ radius: 1, color: '#00000010', offsetX: 0, offsetY: 1 })
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
                     .fontSize(ThemeConfig.fontSizeS)
                     .fontColor(ThemeConfig.gray500)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
                 }
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
 
-                // 删除按钮 - 简约设计，带交互效果
+                // 删除按钮 - 现代化设计，增强交互反馈
                 Button() {
                   Text('×')
                     .fontSize(ThemeConfig.fontSizeL)
                     .fontColor(ThemeConfig.errorColor)
+                    .fontWeight(ThemeConfig.fontWeightBold)
                 }
-                .width(36)
-                .height(36)
+                .width(40)
+                .height(40)
                 .type(ButtonType.Circle)
-                .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorLight : ThemeConfig.errorLight)
+                .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorLight)
                 .border({ 
-                  width: 1, 
+                  width: 2, 
                   color: this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorColor, 
-                  radius: 18 
+                  radius: 20 
                 })
+                .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
                 .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
                 .opacity(this.deleteButtonOpacity)
                 .animation({
@@ -1227,18 +1238,18 @@ struct HomePage {
                 .hitTestBehavior(HitTestMode.Block)
               }
               .width('100%')
-              .padding(ThemeConfig.spacingL)
-              .backgroundColor(this.selectedProjectId === meta.id ? ThemeConfig.primaryLight : 
+              .padding(ThemeConfig.spacingXL)
+              .backgroundColor(this.selectedProjectId === meta.id ? ThemeConfig.primaryUltraLight : 
                                this.hoveredProjectId === meta.id ? ThemeConfig.gray50 : ThemeConfig.white)
-              .borderRadius(ThemeConfig.radiusLarge)
-              .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowLarge : 
+              .borderRadius(ThemeConfig.radiusXLarge)
+              .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
                      this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
-                width: this.selectedProjectId === meta.id ? 2 : 0, 
-                color: this.selectedProjectId === meta.id ? ThemeConfig.primaryColor : 'transparent', 
-                radius: ThemeConfig.radiusLarge 
+                width: this.selectedProjectId === meta.id ? 3 : 1, 
+                color: this.selectedProjectId === meta.id ? ThemeConfig.primaryColor : ThemeConfig.gray200, 
+                radius: ThemeConfig.radiusXLarge 
               })
-              .margin({ bottom: ThemeConfig.spacingS })
+              .margin({ bottom: ThemeConfig.spacingM })
             }
             .accessibilityLevel('important')
             .onClick(() => {

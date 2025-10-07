@@ -41,6 +41,7 @@ import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
 import { CommandHistory } from '../core/CommandHistory';
+import { ThemeConfig } from '../utils/ThemeConfig';
 
 /**
  * 路由参数接口
@@ -274,6 +275,7 @@ struct Index {
     this.updateStateFromManager();
   }
 
+
   // 渲染画布
   private drawGraph(): void {
     const renderConfig = this.canvasController.getActions().getRenderConfig(
@@ -304,20 +306,92 @@ struct Index {
     this.canRedo = this.commandHistory.canRedo();
   }
 
+  // 画布背景构建器 - 白色背景灰色网格
+  @Builder
+  CanvasBackground() {
+    Stack() {
+      // 白色背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(Color.White)
+      
+      // 网格线层
+      Column() {
+        // 主要网格线 - 粗线
+        Stack() {
+          // 垂直线
+          ForEach(Array.from({ length: 8 }), (item: number, index: number) => {
+            Line()
+              .startPoint([index * 200, 0])
+              .endPoint([index * 200, '100%'])
+              .stroke('#E0E0E0')
+              .strokeWidth(1)
+          })
+          
+          // 水平线
+          ForEach(Array.from({ length: 6 }), (item: number, index: number) => {
+            Line()
+              .startPoint([0, index * 200])
+              .endPoint(['100%', index * 200])
+              .stroke('#E0E0E0')
+              .strokeWidth(1)
+          })
+        }
+        .width('100%')
+        .height('100%')
+        
+        // 细网格线 - 细线
+        Stack() {
+          // 细垂直线
+          ForEach(Array.from({ length: 16 }), (item: number, index: number) => {
+            Line()
+              .startPoint([index * 100, 0])
+              .endPoint([index * 100, '100%'])
+              .stroke('#F0F0F0')
+              .strokeWidth(0.5)
+          })
+          
+          // 细水平线
+          ForEach(Array.from({ length: 12 }), (item: number, index: number) => {
+            Line()
+              .startPoint([0, index * 100])
+              .endPoint(['100%', index * 100])
+              .stroke('#F0F0F0')
+              .strokeWidth(0.5)
+          })
+        }
+        .width('100%')
+        .height('100%')
+      }
+      .width('100%')
+      .height('100%')
+    }
+    .width('100%')
+    .height('100%')
+    .borderRadius(12)
+    .margin({ top: 16, right: 16, bottom: 16, left: 0 })
+    .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
+  }
+
   build() {
-    Row() {
-      // 展开/收起按钮
+    Stack() {
+      // 展开/收起按钮 - 固定在左侧中间
       Button() {
         Text(this.sidebarVisible ? '<' : '>')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
+          .fontColor(ThemeConfig.gray700)
       }
       .width(32)
       .height(48)
-      .backgroundColor('#00f3f4f6')
+      .backgroundColor('rgba(255, 255, 255, 0.7)')
       .borderRadius(8)
-      .margin({ left: 0, right: 0, top: 24, bottom: 24 })
-      .zIndex(100)
+      .position({ x: 16, y: '50%' })
+      .translate({ x: 0, y: -24 })
+      .zIndex(200)
+      .backdropBlur(10)
+      .border({ width: 1, color: 'rgba(0, 0, 0, 0.1)', radius: 8 })
       .onClick(() => { this.sidebarVisible = !this.sidebarVisible })
 
       // 侧边栏
@@ -360,18 +434,25 @@ struct Index {
             this.projectManager.getActions().createFromTemplate(templateId, projectName)
         })
         .width(380)
+        .height('100%')
+        .position({ x: 0, y: 0 })
+        .zIndex(150)
       }
 
       // 画布
       Stack() {
+        // 画布背景 - 格子纹效果
+        this.CanvasBackground()
+        
         Canvas(this.canvasController.getRenderer().getContext())
           .height('100%')
           .width('100%')
-          .backgroundColor($r('sys.color.comp_background_list_card'))
+          .backgroundColor(Color.Transparent)
           .borderRadius(12)
-          .margin({ top: 16, right: 16, bottom: 16, left: 0 })
-          .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
-          .onReady(() => { this.drawGraph(); })
+          .margin({ top: 16, right: 16, bottom: 16, left: 16 })
+          .onReady(() => { 
+            this.drawGraph(); // 绘制图形（包含网格）
+          })
           .onTouch((event: TouchEvent) => {
             if (!this.project) return;
             
@@ -380,25 +461,28 @@ struct Index {
               this.project, 
               this.selectedTask?.id || null
             );
-            this.drawGraph();
+            this.drawGraph(); // 重新绘制图形（包含网格）
           })
 
         // 右上角控制按钮
         Column() {
           Row() {
-            // 撤销按钮
+            // 撤销按钮 - 现代化设计
             Button() {
               Text('↶ 撤销')
                 .fontSize(13)
-                .fontColor(this.canUndo ? '#EF4444' : '#9CA3AF')
+                .fontColor(this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray400)
+                .fontWeight(ThemeConfig.fontWeightMedium)
             }
-            .width(70)
-            .height(32)
-            .backgroundColor('#F3F4F6')
-            .borderRadius(8)
+            .width(75)
+            .height(36)
+            .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.gray100)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .border({ width: 2, color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
+            .shadow(this.canUndo ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
             .margin({ right: 12, top: 12 })
             .enabled(this.canUndo)
-            .opacity(this.canUndo ? 1 : 0.5)
+            .opacity(this.canUndo ? 1 : 0.6)
             .onClick(() => { 
               if (this.commandHistory.undo()) {
                 // 更新按钮状态
@@ -417,19 +501,22 @@ struct Index {
               }
             })
 
-            // 重做按钮
+            // 重做按钮 - 现代化设计
             Button() {
               Text('↷ 重做')
                 .fontSize(13)
-                .fontColor(this.canRedo ? '#3B82F6' : '#9CA3AF')
+                .fontColor(this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray400)
+                .fontWeight(ThemeConfig.fontWeightMedium)
             }
-            .width(70)
-            .height(32)
-            .backgroundColor('#F3F4F6')
-            .borderRadius(8)
+            .width(75)
+            .height(36)
+            .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.gray100)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .border({ width: 2, color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
+            .shadow(this.canRedo ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
             .margin({ right: 12, top: 12 })
             .enabled(this.canRedo)
-            .opacity(this.canRedo ? 1 : 0.5)
+            .opacity(this.canRedo ? 1 : 0.6)
             .onClick(() => { 
               if (this.commandHistory.redo()) {
                 // 更新按钮状态
@@ -449,14 +536,17 @@ struct Index {
             })
 
             Button() {
-              Text(this.canvasLock ? '解锁画布' : '锁定画布')
+              Text(this.canvasLock ? '🔓 解锁' : '🔒 锁定')
                 .fontSize(13)
-                .fontColor($r('sys.color.brand'))
+                .fontColor(ThemeConfig.primaryColor)
+                .fontWeight(ThemeConfig.fontWeightMedium)
             }
-            .width(80)
-            .height(32)
-            .backgroundColor('#F3F4F6')
-            .borderRadius(8)
+            .width(75)
+            .height(36)
+            .backgroundColor(ThemeConfig.primaryUltraLight)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .border({ width: 2, color: ThemeConfig.primaryColor, radius: ThemeConfig.radiusMedium })
+            .shadow(ThemeConfig.shadowSmall)
             .margin({ right: 12, top: 12 })
             .onClick(() => { 
               this.canvasController.getActions().toggleCanvasLock();
@@ -465,14 +555,17 @@ struct Index {
             })
 
             Button() {
-              Text('复原')
+              Text('🔄 复原')
                 .fontSize(13)
-                .fontColor('#10B981')
+                .fontColor(ThemeConfig.successColor)
+                .fontWeight(ThemeConfig.fontWeightMedium)
             }
-            .width(60)
-            .height(32)
-            .backgroundColor('#F3F4F6')
-            .borderRadius(8)
+            .width(70)
+            .height(36)
+            .backgroundColor(ThemeConfig.successLight)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .border({ width: 2, color: ThemeConfig.successColor, radius: ThemeConfig.radiusMedium })
+            .shadow(ThemeConfig.shadowSmall)
             .margin({ right: 12, top: 12 })
             .onClick(() => { 
               this.canvasController.getActions().resetCanvas(); 
@@ -485,9 +578,8 @@ struct Index {
         .justifyContent(FlexAlign.End)
         .position({ x: 0, y: 0 })
       }
-      .layoutWeight(1)
-      .height('100%')
       .width('100%')
+      .height('100%')
     }
     .width('100%')
     .height('100%')

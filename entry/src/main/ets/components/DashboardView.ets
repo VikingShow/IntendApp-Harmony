@@ -211,7 +211,10 @@ export struct DashboardView {
 
           Button() {
             Row({ space: ThemeConfig.spacingS }) {
-              Text('编辑')
+              Text('✏️')
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(Color.White)
+              Text('编辑项目')
                 .fontSize(ThemeConfig.fontSizeXL)
                 .fontColor(Color.White)
                 .fontWeight(ThemeConfig.fontWeightMedium)
@@ -221,7 +224,12 @@ export struct DashboardView {
           .padding({ left: ThemeConfig.spacingXXL, right: ThemeConfig.spacingXXL })
           .backgroundColor(this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
           .borderRadius(ThemeConfig.radiusXLarge)
-          .shadow(this.isEditButtonPressed ? ThemeConfig.shadowLarge : ThemeConfig.buttonShadow)
+          .shadow(this.isEditButtonPressed ? ThemeConfig.shadowHover : ThemeConfig.buttonShadow)
+          .border({ 
+            width: 2, 
+            color: this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight, 
+            radius: ThemeConfig.radiusXLarge 
+          })
           .scale({ x: this.editButtonScale, y: this.editButtonScale })
           .opacity(this.editButtonOpacity)
           .animation({
@@ -334,16 +342,17 @@ export struct DashboardView {
     })
   }
 
-  // 构建器：统计卡片 - 简约设计，等高布局
+  // 构建器：统计卡片 - 现代化设计，增强视觉吸引力
   @Builder
   StatCard(title: string, value: string, bgColor: string, textColor: string, icon?: string) {
     Column({ space: ThemeConfig.spacingM }) {
-      // 图标
+      // 图标 - 增强视觉效果
       if (icon) {
         Text(icon)
           .fontSize(ThemeConfig.fontSizeXXXXL)
           .fontColor(textColor)
           .margin({ bottom: ThemeConfig.spacingS })
+          .shadow({ radius: 2, color: textColor + '30', offsetX: 0, offsetY: 2 })
       }
       
       Text(title)
@@ -360,14 +369,15 @@ export struct DashboardView {
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .shadow({ radius: 1, color: textColor + '20', offsetX: 0, offsetY: 1 })
     }
     .layoutWeight(1)
-    .height(140)
+    .height(160)
     .padding(ThemeConfig.spacingXXL)
     .backgroundColor(ThemeConfig.white)
     .borderRadius(ThemeConfig.radiusXLarge)
-    .shadow(ThemeConfig.cardShadow)
-    .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
+    .shadow(ThemeConfig.shadowMedium)
+    .border({ width: 2, color: bgColor, radius: ThemeConfig.radiusXLarge })
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
     .opacity(this.fadeOpacity)

@@ -14,7 +14,7 @@ export struct WelcomeView {
         // 中心标题 - 增强视觉层次
         Column({ space: 20 }) {
           Text('一思不漏')
-            .fontSize(ThemeConfig.fontSizeXXXXXXL)
+            .fontSize(ThemeConfig.fontSizeXXXXXXXL)
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ThemeConfig.primaryColor)
             .textAlign(TextAlign.Center)

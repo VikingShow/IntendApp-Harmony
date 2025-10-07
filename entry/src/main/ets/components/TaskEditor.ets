@@ -438,7 +438,7 @@ export struct TaskEditor {
               .height(52)
               .backgroundColor(ThemeConfig.primaryColor)
               .borderRadius(ThemeConfig.radiusMedium)
-              .shadow(ThemeConfig.buttonShadow)
+              .shadow(ThemeConfig.shadowMedium)
               .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: ThemeConfig.radiusMedium })
               .onClick(() => {
                 this.submitNewChecklistItem();
@@ -508,7 +508,7 @@ export struct TaskEditor {
                     .type(ButtonType.Circle)
                     .backgroundColor(ThemeConfig.errorLight)
                     .border({ width: 2, color: ThemeConfig.errorColor, radius: 20 })
-                    .shadow(ThemeConfig.shadowSmall)
+                    .shadow(ThemeConfig.shadowMedium)
                     .onClick(() => {
                       this.deleteChecklistItem(item.id);
                     })

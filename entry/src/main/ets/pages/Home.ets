@@ -1016,7 +1016,8 @@ struct HomePage {
           }
         }
         .layoutWeight(2)
-        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite20 : ThemeConfig.backgroundSecondary)
+        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.backgroundSecondary)
+        .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .opacity(this.contentOpacity)
         .scale({ x: this.contentScale, y: this.contentScale })
         .translate({ x: 0, y: this.contentTranslateY })
@@ -1107,7 +1108,8 @@ struct HomePage {
           .height(60)
           .type(ButtonType.Circle)
           .backgroundColor(this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
-          .shadow(this.isLongPressing ? ThemeConfig.shadowXLarge : ThemeConfig.shadowHover)
+          .shadow(ThemeConfig.shadowMedium)
+          // .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
           .border({ 
             width: 2, 
             color: this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight, 
@@ -1152,7 +1154,8 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor($r('sys.color.comp_background_list_card'))
+      .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : $r('sys.color.comp_background_list_card'))
+      .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
       .border({ width: { bottom: 1 }, color: '#E2E8F0' })
 
       // 当前项目信息区域 - 简约设计
@@ -1175,7 +1178,8 @@ struct HomePage {
         }
         .width('100%')
         .padding(12)
-        .backgroundColor(ThemeConfig.backgroundCard)
+        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.backgroundCard)
+        .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .border({ width: { bottom: 1 }, color: '#E2E8F0' })
       }
 
@@ -1199,6 +1203,10 @@ struct HomePage {
         .width('100%')
         .padding(32)
         .justifyContent(FlexAlign.Center)
+        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.transparentNone)
+        .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
+        .borderRadius(ThemeConfig.radiusLarge)
+        .margin(ThemeConfig.spacingM)
         .layoutWeight(1)
       } else {
         // 项目列表
@@ -1263,9 +1271,13 @@ struct HomePage {
               }
               .width('100%')
               .padding(ThemeConfig.spacingXL)
-              .backgroundColor(this.selectedProjectId === meta.id ? ThemeConfig.primaryUltraLight : 
-                               this.hoveredProjectId === meta.id ? ThemeConfig.gray50 : ThemeConfig.white)
+              .backgroundColor(this.selectedProjectId === meta.id ? 
+                               (this.showCanvasBackground ? ThemeConfig.transparentPrimary15 : ThemeConfig.primaryUltraLight) :
+                               this.hoveredProjectId === meta.id ? 
+                               (this.showCanvasBackground ? ThemeConfig.transparentWhite60 : ThemeConfig.gray50) : 
+                               (this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.white))
               .borderRadius(ThemeConfig.radiusXLarge)
+              .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
               .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
                      this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
@@ -1329,7 +1341,8 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite30 : ThemeConfig.backgroundPage)
+    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.backgroundPage)
+    .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)
   }

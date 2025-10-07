@@ -35,6 +35,7 @@
 import { Project, TaskNode } from '../model/ProjectData';
 import { ThemeConfig } from '../utils/ThemeConfig';
 import router from '@ohos.router';
+import vibrator from '@ohos.vibrator';
 
 /**
  * 项目仪表板视图组件
@@ -220,15 +221,17 @@ export struct DashboardView {
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
           }
+          .accessibilityLevel('important')
           .height(ThemeConfig.buttonHeightLarge)
           .padding({ left: ThemeConfig.spacingXXL, right: ThemeConfig.spacingXXL })
           .backgroundColor(this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
-          .borderRadius(ThemeConfig.radiusXLarge)
-          .shadow(this.isEditButtonPressed ? ThemeConfig.shadowHover : ThemeConfig.buttonShadow)
+          .borderRadius(26)
+          .shadow(ThemeConfig.shadowMedium)
+          // .backdropBlur(ThemeConfig.backdropBlurMedium)
           .border({ 
             width: 2, 
-            color: this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight, 
-            radius: ThemeConfig.radiusXLarge 
+            color: this.isEditButtonPressed ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight,
+            radius: 26
           })
           .scale({ x: this.editButtonScale, y: this.editButtonScale })
           .opacity(this.editButtonOpacity)
@@ -239,6 +242,19 @@ export struct DashboardView {
             playMode: PlayMode.Normal
           })
           .onClick(() => {
+            // 添加触觉反馈
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 50
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[DashboardView] Haptic feedback not available:', error);
+            }
+            
             this.getUIContext().getRouter().pushUrl({
               url: 'pages/Index',
               params: { projectId: this.project.id }
@@ -257,7 +273,7 @@ export struct DashboardView {
       }
       .width('100%')
       .padding(ThemeConfig.spacingXXL)
-      .backgroundColor(ThemeConfig.white)
+      .backgroundColor(ThemeConfig.transparentNone)
       .borderRadius(ThemeConfig.radiusXXLarge)
       .shadow(ThemeConfig.cardShadow)
       .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXXLarge })
@@ -318,7 +334,7 @@ export struct DashboardView {
           .padding(ThemeConfig.spacingXXXXL)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
-          .backgroundColor(ThemeConfig.white)
+          .backgroundColor(ThemeConfig.transparentNone)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
@@ -330,7 +346,7 @@ export struct DashboardView {
     .width('100%')
     .height('100%')
     .padding(ThemeConfig.spacingXXXL)
-    .backgroundColor(ThemeConfig.backgroundSecondary)
+    .backgroundColor(ThemeConfig.transparentNone)
     .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })
@@ -373,7 +389,7 @@ export struct DashboardView {
     .layoutWeight(1)
     .height(160)
     .padding(ThemeConfig.spacingXXL)
-    .backgroundColor(ThemeConfig.white)
+    .backgroundColor(ThemeConfig.transparentNone)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.shadowMedium)
     .border({ width: 2, color: bgColor, radius: ThemeConfig.radiusXLarge })
@@ -412,7 +428,7 @@ export struct DashboardView {
               .fontColor(ThemeConfig.errorColor)
               .fontWeight(ThemeConfig.fontWeightMedium)
               .padding({ left: ThemeConfig.spacingS, right: ThemeConfig.spacingS, top: ThemeConfig.spacingXS, bottom: ThemeConfig.spacingXS })
-              .backgroundColor(ThemeConfig.errorLight)
+              .backgroundColor(ThemeConfig.transparentError20)
               .borderRadius(ThemeConfig.radiusSmall)
               .border({ width: 1, color: ThemeConfig.errorColor, radius: ThemeConfig.radiusSmall })
           }
@@ -424,7 +440,7 @@ export struct DashboardView {
     }
     .width('100%')
     .padding(ThemeConfig.spacingXXL)
-    .backgroundColor(ThemeConfig.white)
+    .backgroundColor(ThemeConfig.transparentNone)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.cardShadow)
     .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXLarge })

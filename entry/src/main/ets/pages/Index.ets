@@ -506,7 +506,7 @@ struct Index {
             .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.gray100)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({ width: 2, color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
-            .shadow(this.canUndo ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
+            .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .enabled(this.canUndo)
             .opacity(this.canUndo ? 1 : 0.6)
@@ -540,7 +540,7 @@ struct Index {
             .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.gray100)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({ width: 2, color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
-            .shadow(this.canRedo ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
+            .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .enabled(this.canRedo)
             .opacity(this.canRedo ? 1 : 0.6)
@@ -573,7 +573,7 @@ struct Index {
             .backgroundColor(ThemeConfig.primaryUltraLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({ width: 2, color: ThemeConfig.primaryColor, radius: ThemeConfig.radiusMedium })
-            .shadow(ThemeConfig.shadowSmall)
+            .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .onClick(() => { 
               this.canvasController.getActions().toggleCanvasLock();
@@ -592,7 +592,7 @@ struct Index {
             .backgroundColor(ThemeConfig.successLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({ width: 2, color: ThemeConfig.successColor, radius: ThemeConfig.radiusMedium })
-            .shadow(ThemeConfig.shadowSmall)
+            .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .onClick(() => { 
               this.canvasController.getActions().resetCanvas(); 

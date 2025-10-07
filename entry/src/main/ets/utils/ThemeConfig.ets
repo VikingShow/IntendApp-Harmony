@@ -62,7 +62,9 @@ export class ThemeConfig {
   static readonly transparentWhite50 = 'rgba(255, 255, 255, 0.5)';
   static readonly transparentWhite40 = 'rgba(255, 255, 255, 0.4)';
   static readonly transparentWhite30 = 'rgba(255, 255, 255, 0.3)';
+  static readonly transparentWhite25 = 'rgba(255, 255, 255, 0.25)';
   static readonly transparentWhite20 = 'rgba(255, 255, 255, 0.2)';
+  static readonly transparentWhite15 = 'rgba(255, 255, 255, 0.15)';
   static readonly transparentWhite10 = 'rgba(255, 255, 255, 0.1)';
   
   // 黑色透明系列
@@ -234,6 +236,9 @@ export class ThemeConfig {
   static readonly fontSizeXXXXL = 28;
   static readonly fontSizeXXXXXL = 32;
   static readonly fontSizeXXXXXXL = 40;
+  static readonly fontSizeXXXXXXXL = 50;
+  static readonly fontSizeXXXXXXXXL = 60;
+  static readonly fontSizeXXXXXXXXXL = 70;
 
   // 字体权重
   static readonly fontWeightLight = FontWeight.Lighter;

@@ -41,6 +41,8 @@ import { EventBus, Events } from './EventBus';
 import { AppState } from './AppState';
 import { ErrorHandler, ErrorType } from './ErrorHandler';
 import { ServiceContainer } from './ServiceContainer';
+import { CommandHistory } from './CommandHistory';
+import { MoveTaskCommand } from './commands/MoveTaskCommand';
 
 /**
  * 项目状态接口
@@ -92,8 +94,15 @@ export interface ProjectActions {
   removeDependency: (fromId: string, toId: string) => void;
   /** 计算关键路径 */
   calculateCriticalPath: () => void;
-  /** 移动任务位置 */
+  /** 移动任务位置（创建命令，支持撤销） */
   moveTask: (taskId: string, x: number, y: number) => void;
+  /** 立即移动任务位置（不创建命令） */
+  moveTaskImmediate: (taskId: string, x: number, y: number) => void;
+}
+
+interface GeneratedTypeLiteralInterface_1 {
+  x: number;
+  y: number;
 }
 
 export class ProjectManager {
@@ -103,6 +112,10 @@ export class ProjectManager {
   private errorHandler: ErrorHandler;
   private eventBus: EventBus;
   private autoSaveTimer: number | null = null;
+  private commandHistory: CommandHistory;
+  
+  // 记录拖动开始时的位置（用于创建撤销/重做命令）
+  private dragStartPositions: Map<string, GeneratedTypeLiteralInterface_1> = new Map();
 
   private uiContext: UIContext | null = null;
 
@@ -115,6 +128,7 @@ export class ProjectManager {
     this.appState = AppState.getInstance();
     this.errorHandler = ErrorHandler.getInstance();
     this.eventBus = EventBus.getInstance();
+    this.commandHistory = CommandHistory.getInstance();
   }
 
   public static getInstance(): ProjectManager {
@@ -163,7 +177,8 @@ export class ProjectManager {
       addDependency: (fromId: string, toId: string) => this.addDependency(fromId, toId),
       removeDependency: (fromId: string, toId: string) => this.removeDependency(fromId, toId),
       calculateCriticalPath: () => this.calculateCriticalPath(),
-      moveTask: (taskId: string, x: number, y: number) => this.moveTask(taskId, x, y)
+      moveTask: (taskId: string, x: number, y: number) => this.moveTask(taskId, x, y),
+      moveTaskImmediate: (taskId: string, x: number, y: number) => this.moveTaskImmediate(taskId, x, y)
     };
   }
 
@@ -522,9 +537,47 @@ export class ProjectManager {
 
     const task = this.appState.project.tasks.find(t => t.id === taskId);
     if (task) {
+      // 从拖动开始位置记录中获取初始位置
+      const startPos = this.dragStartPositions.get(taskId);
+      if (startPos) {
+        // 创建并执行移动命令（支持撤销/重做）
+        const command = new MoveTaskCommand(
+          this.appState.project,
+          taskId,
+          startPos.x,
+          startPos.y,
+          x,
+          y
+        );
+        this.commandHistory.execute(command);
+        
+        // 清除拖动开始位置记录
+        this.dragStartPositions.delete(taskId);
+      }
+      
+      // 更新选中任务的显示
+      if (this.appState.selectedTask?.id === taskId) {
+        this.appState.setSelectedTask(this.copyTaskNode(task));
+      }
+    }
+  }
+  
+  // 立即移动任务（不创建命令）- 用于拖动过程中
+  private moveTaskImmediate(taskId: string, x: number, y: number): void {
+    if (!this.appState.project) return;
+
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
+    if (task) {
+      // 如果这是第一次移动，记录初始位置
+      if (!this.dragStartPositions.has(taskId)) {
+        this.dragStartPositions.set(taskId, { x: task.x, y: task.y });
+      }
+      
+      // 更新任务位置
       task.x = x;
       task.y = y;
       
+      // 更新选中任务的显示
       if (this.appState.selectedTask?.id === taskId) {
         this.appState.setSelectedTask(this.copyTaskNode(task));
       }

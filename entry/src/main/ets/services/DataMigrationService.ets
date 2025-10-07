@@ -36,10 +36,15 @@ export class DataMigrationService {
   private static instance: DataMigrationService;
   private fileStorage: FileStorageService;
   private oldStore: Promise<preferences.Preferences>;
+  private uiContext: UIContext | null = null;
+
+  public setContext(ctx: UIContext) {
+    this.uiContext = ctx;
+  }
 
   private constructor(filesDir: string) {
     this.fileStorage = FileStorageService.getInstance(filesDir);
-    this.oldStore = preferences.getPreferences(getContext(), 'project_storage');
+    this.oldStore = preferences.getPreferences(this.uiContext?.getHostContext(), 'project_storage');
   }
 
   /**

@@ -231,7 +231,7 @@ export struct DashboardView {
             playMode: PlayMode.Normal
           })
           .onClick(() => {
-            router.pushUrl({
+            this.getUIContext().getRouter().pushUrl({
               url: 'pages/Index',
               params: { projectId: this.project.id }
             } as router.RouterOptions);

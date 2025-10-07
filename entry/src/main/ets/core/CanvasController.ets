@@ -34,7 +34,6 @@
 
 import { Project, TaskNode } from '../model/ProjectData';
 import { CanvasRenderer, RenderConfig } from './CanvasRenderer';
-import promptAction from '@ohos.promptAction';
 
 /**
  * 画布状态接口
@@ -65,6 +64,10 @@ export interface CanvasState {
   dragOffsetY: number;
   /** 当前选中的任务 */
   selectedTask: TaskNode | null;
+  /** 拖拽开始时的任务X坐标（用于撤销/重做） */
+  dragStartX: number;
+  /** 拖拽开始时的任务Y坐标（用于撤销/重做） */
+  dragStartY: number;
 }
 
 /**
@@ -123,12 +126,20 @@ export class CanvasController {
     lastTouchY: 0,
     dragOffsetX: 0,
     dragOffsetY: 0,
-    selectedTask: null
+    selectedTask: null,
+    dragStartX: 0,
+    dragStartY: 0
   };
 
   private onTaskSelect: ((task: TaskNode | null) => void) | null = null;
   private onDependencyCreate: ((fromId: string, toId: string) => void) | null = null;
   private onTaskMove: ((taskId: string, x: number, y: number) => void) | null = null;
+  private onTaskMoveImmediate: ((taskId: string, x: number, y: number) => void) | null = null;
+  private uiContext: UIContext | null = null;
+
+  public setContext(ctx: UIContext) {
+    this.uiContext = ctx;
+  }
 
   constructor() {
     this.renderer = new CanvasRenderer();
@@ -137,11 +148,13 @@ export class CanvasController {
   public setCallbacks(
     onTaskSelect: (task: TaskNode | null) => void,
     onDependencyCreate: (fromId: string, toId: string) => void,
-    onTaskMove: (taskId: string, x: number, y: number) => void
+    onTaskMove: (taskId: string, x: number, y: number) => void,
+    onTaskMoveImmediate?: (taskId: string, x: number, y: number) => void
   ): void {
     this.onTaskSelect = onTaskSelect;
     this.onDependencyCreate = onDependencyCreate;
     this.onTaskMove = onTaskMove;
+    this.onTaskMoveImmediate = onTaskMoveImmediate || null;
   }
 
   public getRenderer(): CanvasRenderer {
@@ -212,6 +225,10 @@ export class CanvasController {
       this.state.dragOffsetX = touchX - (hitNode.x + this.state.canvasOffsetX);
       this.state.dragOffsetY = touchY - (hitNode.y + this.state.canvasOffsetY);
       
+      // 记录拖拽开始时的位置（用于撤销/重做）
+      this.state.dragStartX = hitNode.x;
+      this.state.dragStartY = hitNode.y;
+      
       if (this.onTaskSelect) {
         this.onTaskSelect(hitNode);
       }
@@ -228,22 +245,24 @@ export class CanvasController {
   }
 
   private handleConnectingTouchDown(hitNode: TaskNode | null): void {
-    if (!hitNode || !this.state.connectingFromTaskId) {
-      promptAction.showToast({ message: '请点击目标任务节点' });
-      this.stopConnecting();
-      return;
-    }
+    if(this.uiContext) {
+      const promptAction = this.uiContext.getPromptAction();
+      if (!hitNode || !this.state.connectingFromTaskId) {
+        promptAction.showToast({ message: '请点击目标任务节点' });
+        this.stopConnecting();
+        return;
+      }
 
-    if (this.state.connectingFromTaskId === hitNode.id) {
-      promptAction.showToast({ message: '不能依赖自己' });
-      this.stopConnecting();
-      return;
-    }
+      if (this.state.connectingFromTaskId === hitNode.id) {
+        promptAction.showToast({ message: '不能依赖自己' });
+        this.stopConnecting();
+        return;
+      }
 
-    if (this.onDependencyCreate) {
-      this.onDependencyCreate(this.state.connectingFromTaskId, hitNode.id);
+      if (this.onDependencyCreate) {
+        this.onDependencyCreate(this.state.connectingFromTaskId, hitNode.id);
+      }
     }
-    
     this.stopConnecting();
   }
 
@@ -252,8 +271,9 @@ export class CanvasController {
       const newX = touchX - this.state.dragOffsetX - this.state.canvasOffsetX;
       const newY = touchY - this.state.dragOffsetY - this.state.canvasOffsetY;
       
-      if (this.onTaskMove) {
-        this.onTaskMove(this.state.selectedTask.id, newX, newY);
+      // 移动过程中立即更新任务位置（不创建命令）
+      if (this.onTaskMoveImmediate) {
+        this.onTaskMoveImmediate(this.state.selectedTask.id, newX, newY);
       }
     } else if (this.state.isDraggingCanvas) {
       this.state.canvasOffsetX += touchX - this.state.lastTouchX;
@@ -264,6 +284,23 @@ export class CanvasController {
   }
 
   private handleTouchUp(): void {
+    // 如果正在拖拽节点，在抬起时创建命令（记录整个拖拽过程）
+    if (this.state.isDraggingNode && this.state.selectedTask) {
+      const finalX = this.state.selectedTask.x;
+      const finalY = this.state.selectedTask.y;
+      
+      // 只有当位置真的改变了才创建命令
+      if (finalX !== this.state.dragStartX || finalY !== this.state.dragStartY) {
+        if (this.onTaskMove) {
+          // 现在通过 ProjectManager 来创建命令
+          // ProjectManager 会从初始位置创建命令
+          // 我们需要传递一个特殊标记或者修改接口
+          // 暂时先调用，稍后修改 ProjectManager
+          this.onTaskMove(this.state.selectedTask.id, finalX, finalY);
+        }
+      }
+    }
+    
     this.state.isDraggingCanvas = false;
     this.state.isDraggingNode = false;
   }

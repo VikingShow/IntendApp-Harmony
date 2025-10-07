@@ -36,7 +36,6 @@ import { TaskEditor } from './TaskEditor';
 import { NewProjectDialog } from './WelcomeView';
 import { TemplateDialog } from './TemplateDialog';
 import { ThemeConfig } from '../utils/ThemeConfig';
-import promptAction from '@ohos.promptAction';
 import { PromptAction } from '@kit.ArkUI';
 
 /**
@@ -98,7 +97,7 @@ export struct Sidebar {
         fontColor: ThemeConfig.errorColor,
         action: () => {
           this.onDeleteTask(task.id);
-          promptAction.showToast({ message: '任务已删除' });
+          this.promptAction.showToast({ message: '任务已删除' });
         }
       }
     });

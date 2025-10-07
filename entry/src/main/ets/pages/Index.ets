@@ -31,7 +31,6 @@
  * @since 2025-06
  */
 
-import router from '@ohos.router';
 import { ProjectManager } from '../core/ProjectManager';
 import { CanvasController } from '../core/CanvasController';
 import { Sidebar } from '../components/Sidebar';
@@ -41,7 +40,7 @@ import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
-import { PerformanceMetric, PerformanceService } from '../services/PerformanceService';
+import { CommandHistory } from '../core/CommandHistory';
 
 /**
  * 路由参数接口
@@ -68,6 +67,9 @@ struct Index {
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   @State canvasLock: boolean = false;
+  private commandHistory: CommandHistory = CommandHistory.getInstance();
+  @State canUndo: boolean = false;
+  @State canRedo: boolean = false;
 
   async aboutToAppear() {
     // 初始化权限服务
@@ -96,15 +98,28 @@ struct Index {
     this.canvasController.setCallbacks(
       (task) => this.projectManager.getActions().selectTask(task),
       (fromId, toId) => this.projectManager.getActions().addDependency(fromId, toId),
-      (taskId, x, y) => this.projectManager.getActions().moveTask(taskId, x, y)
+      (taskId, x, y) => {
+        // TouchUp 时调用：创建命令，支持撤销/重做
+        this.projectManager.getActions().moveTask(taskId, x, y);
+        this.updateUndoRedoState(); // 移动后更新撤销/重做按钮状态
+      },
+      (taskId, x, y) => {
+        // TouchMove 时调用：立即更新位置，不创建命令
+        this.projectManager.getActions().moveTaskImmediate(taskId, x, y);
+      }
     );
+    // 注入uiContext
+    this.canvasController.setContext(this.uiContext);
 
     // 监听ProjectManager状态变化
     this.setupEventListeners();
     this.updateStateFromManager();
+    
+    // 初始化撤销/重做按钮状态
+    this.updateUndoRedoState();
 
     // 从路由参数中获取projectId
-    const params = router.getParams() as RouterParams;
+    const params = this.uiContext.getRouter().getParams() as RouterParams;
     const projectId = params?.projectId;
 
     console.log(`[EasyFlow] Index.ets aboutToAppear - projectId: ${projectId}`);
@@ -271,7 +286,13 @@ struct Index {
 
   // 处理返回主页
   private handleBackToHome(): void {
-    router.back();
+    this.uiContext.getRouter().back();
+  }
+
+  // 更新撤销/重做按钮状态
+  private updateUndoRedoState(): void {
+    this.canUndo = this.commandHistory.canUndo();
+    this.canRedo = this.commandHistory.canRedo();
   }
 
   build() {
@@ -355,6 +376,54 @@ struct Index {
         // 右上角控制按钮
         Column() {
           Row() {
+            // 撤销按钮
+            Button() {
+              Text('↶ 撤销')
+                .fontSize(13)
+                .fontColor(this.canUndo ? '#EF4444' : '#9CA3AF')
+            }
+            .width(70)
+            .height(32)
+            .backgroundColor('#F3F4F6')
+            .borderRadius(8)
+            .margin({ right: 12, top: 12 })
+            .enabled(this.canUndo)
+            .opacity(this.canUndo ? 1 : 0.5)
+            .onClick(() => { 
+              if (this.commandHistory.undo()) {
+                this.updateUndoRedoState();
+                this.drawGraph();
+                this.promptAction.showToast({ 
+                  message: '已撤销',
+                  duration: 1000
+                });
+              }
+            })
+
+            // 重做按钮
+            Button() {
+              Text('↷ 重做')
+                .fontSize(13)
+                .fontColor(this.canRedo ? '#3B82F6' : '#9CA3AF')
+            }
+            .width(70)
+            .height(32)
+            .backgroundColor('#F3F4F6')
+            .borderRadius(8)
+            .margin({ right: 12, top: 12 })
+            .enabled(this.canRedo)
+            .opacity(this.canRedo ? 1 : 0.5)
+            .onClick(() => { 
+              if (this.commandHistory.redo()) {
+                this.updateUndoRedoState();
+                this.drawGraph();
+                this.promptAction.showToast({ 
+                  message: '已重做',
+                  duration: 1000
+                });
+              }
+            })
+
             Button() {
               Text(this.canvasLock ? '解锁画布' : '锁定画布')
                 .fontSize(13)

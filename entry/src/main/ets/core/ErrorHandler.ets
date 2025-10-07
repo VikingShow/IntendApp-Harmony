@@ -1,6 +1,5 @@
 // File: entry/src/main/ets/core/ErrorHandler.ets
 
-import promptAction from '@ohos.promptAction';
 
 /**
  * 错误类型枚举
@@ -31,6 +30,11 @@ export interface ErrorInfo {
 export class ErrorHandler {
   private static instance: ErrorHandler;
   private errorLog: ErrorInfo[] = [];
+  private uiContext: UIContext | null = null;
+
+  public setContext(ctx: UIContext) {
+    this.uiContext = ctx;
+  }
 
   private constructor() {}
 
@@ -125,11 +129,14 @@ export class ErrorHandler {
    * @param errorInfo 错误信息
    */
   private showUserFriendlyMessage(errorInfo: ErrorInfo): void {
-    const userMessage = this.getUserFriendlyMessage(errorInfo);
-    promptAction.showToast({ 
-      message: userMessage,
-      duration: 3000
-    });
+    if(this.uiContext){
+      const promptAction = this.uiContext.getPromptAction();
+      const userMessage = this.getUserFriendlyMessage(errorInfo);
+      promptAction.showToast({
+        message: userMessage,
+        duration: 3000
+      });
+    }
   }
 
   /**

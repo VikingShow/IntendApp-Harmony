@@ -31,7 +31,6 @@
  * @since 2025-06
  */
 
-import router from '@ohos.router';
 import { StorageService, ProjectMeta } from '../services/StorageService';
 import { LoadingService } from '../services/LoadingService';
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
@@ -44,6 +43,7 @@ import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
+import { ErrorHandler } from '../core/ErrorHandler';
 
 /**
  * ActionMenu按钮接口
@@ -98,10 +98,12 @@ struct HomePage {
   private templateService: TemplateService = TemplateService.getInstance();
   private permissionService: PermissionService | null = null;
   private migrationService: DataMigrationService | null = null;
+  private errorHandler: ErrorHandler | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   async aboutToAppear() {
+
     // 初始化权限服务
     this.permissionService = PermissionService.getInstance(this.uiContext.getHostContext() as common.UIAbilityContext);
     
@@ -117,7 +119,8 @@ struct HomePage {
       });
       // 不直接返回，继续初始化，让用户尝试使用
     }
-    
+    // 注入uiContext
+    this.errorHandler?.setContext(this.uiContext);
     // 初始化存储服务
     this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     
@@ -131,9 +134,11 @@ struct HomePage {
         message: '文件系统测试失败，请检查权限设置' 
       });
     }
-    
+
     // 初始化数据迁移服务
     this.migrationService = DataMigrationService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+    // 注入uiContext
+    this.migrationService.setContext(this.uiContext);
     
     // 检查并执行数据迁移
     await this.checkAndMigrateData();
@@ -501,7 +506,7 @@ struct HomePage {
 
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
-              router.pushUrl({
+              this.getUIContext().getRouter().pushUrl({
                 url: 'pages/Index',
                 params: { projectId: newProject.id }
               });

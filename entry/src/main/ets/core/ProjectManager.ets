@@ -43,6 +43,11 @@ import { ErrorHandler, ErrorType } from './ErrorHandler';
 import { ServiceContainer } from './ServiceContainer';
 import { CommandHistory } from './CommandHistory';
 import { MoveTaskCommand } from './commands/MoveTaskCommand';
+import { AddTaskCommand } from './commands/AddTaskCommand';
+import { DeleteTaskCommand } from './commands/DeleteTaskCommand';
+import { AddDependencyCommand } from './commands/AddDependencyCommand';
+import { DeleteDependencyCommand } from './commands/DeleteDependencyCommand';
+import { UpdateTaskCommand } from './commands/UpdateTaskCommand';
 
 /**
  * 项目状态接口
@@ -295,7 +300,10 @@ export class ProjectManager {
       y: 50
     };
 
-    this.appState.project.tasks = this.appState.project.tasks.concat([newTask]);
+    // 使用命令模式添加任务（支持撤销/重做）
+    const command = new AddTaskCommand(this.appState.project, newTask);
+    this.commandHistory.execute(command);
+    
     this.calculateCriticalPath();
     this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
     if(this.uiContext){
@@ -307,35 +315,34 @@ export class ProjectManager {
   private updateTask(taskId: string, updates: Partial<TaskNode>): void {
     if (!this.appState.project) return;
 
-    const taskIndex = this.appState.project.tasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) return;
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-    // 更新任务属性
-    const originalTask = this.appState.project.tasks[taskIndex];
-    const updatedTask = this.copyTaskNode(originalTask);
-    
-    // 手动更新属性
-    if (updates.name !== undefined) updatedTask.name = updates.name;
-    if (updates.startDate !== undefined) updatedTask.startDate = updates.startDate;
-    if (updates.endDate !== undefined) updatedTask.endDate = updates.endDate;
-    if (updates.checklist !== undefined) updatedTask.checklist = updates.checklist.slice();
-    if (updates.x !== undefined) updatedTask.x = updates.x;
-    if (updates.y !== undefined) updatedTask.y = updates.y;
-    if (updates.isCritical !== undefined) updatedTask.isCritical = updates.isCritical;
-    if (updates.earlyStart !== undefined) updatedTask.earlyStart = updates.earlyStart;
-    if (updates.earlyFinish !== undefined) updatedTask.earlyFinish = updates.earlyFinish;
-    if (updates.lateStart !== undefined) updatedTask.lateStart = updates.lateStart;
-    if (updates.lateFinish !== undefined) updatedTask.lateFinish = updates.lateFinish;
-    
-    this.appState.project.tasks[taskIndex] = updatedTask;
+    // 记录更新前的状态（只记录要更新的字段）
+    const oldState: Partial<TaskNode> = {};
+    if (updates.name !== undefined) oldState.name = task.name;
+    if (updates.startDate !== undefined) oldState.startDate = task.startDate;
+    if (updates.endDate !== undefined) oldState.endDate = task.endDate;
+    if (updates.checklist !== undefined) oldState.checklist = task.checklist.slice();
+    if (updates.x !== undefined) oldState.x = task.x;
+    if (updates.y !== undefined) oldState.y = task.y;
+    if (updates.isCritical !== undefined) oldState.isCritical = task.isCritical;
+    if (updates.earlyStart !== undefined) oldState.earlyStart = task.earlyStart;
+    if (updates.earlyFinish !== undefined) oldState.earlyFinish = task.earlyFinish;
+    if (updates.lateStart !== undefined) oldState.lateStart = task.lateStart;
+    if (updates.lateFinish !== undefined) oldState.lateFinish = task.lateFinish;
+
+    // 使用命令模式更新任务（支持撤销/重做）
+    const command = new UpdateTaskCommand(this.appState.project, taskId, oldState, updates);
+    this.commandHistory.execute(command);
 
     // 更新selectedTask以保持同步
     if (this.appState.selectedTask?.id === taskId) {
-      this.appState.setSelectedTask(this.copyTaskNode(updatedTask));
+      this.appState.setSelectedTask(this.copyTaskNode(task));
     }
 
     // 先触发任务更新事件
-    this.eventBus.emit(Events.TASK_UPDATED, updatedTask);
+    this.eventBus.emit(Events.TASK_UPDATED, task);
     
     // 然后触发项目保存事件
     this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
@@ -350,14 +357,21 @@ export class ProjectManager {
   private deleteTask(taskId: string): void {
     if (!this.appState.project) return;
 
+    // 查找要删除的任务
+    const task = this.appState.project.tasks.find(t => t.id === taskId);
+    if (!task) {
+      console.error(`[ProjectManager] 任务不存在: ${taskId}`);
+      return;
+    }
+
+    // 如果删除的是选中任务，清空选择
     if (this.appState.selectedTask?.id === taskId) {
       this.appState.setSelectedTask(null);
     }
 
-    this.appState.project.tasks = this.appState.project.tasks.filter(t => t.id !== taskId);
-    this.appState.project.dependencies = this.appState.project.dependencies.filter(
-      d => d.fromId !== taskId && d.toId !== taskId
-    );
+    // 使用命令模式删除任务（支持撤销/重做）
+    const command = new DeleteTaskCommand(this.appState.project, task);
+    this.commandHistory.execute(command);
 
     this.eventBus.emit(Events.TASK_DELETED, taskId);
     this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
@@ -463,16 +477,16 @@ export class ProjectManager {
   private addDependency(fromId: string, toId: string): void {
     if (!this.appState.project) return;
 
+    // 检查依赖是否已存在
     const exists = this.appState.project.dependencies.some(
       d => d.fromId === fromId && d.toId === toId
     );
 
     if (!exists) {
-      const newDependency: Dependency = {
-        fromId: fromId,
-        toId: toId
-      };
-      this.appState.project.dependencies = this.appState.project.dependencies.concat([newDependency]);
+      // 使用命令模式添加依赖（支持撤销/重做）
+      const command = new AddDependencyCommand(this.appState.project, fromId, toId);
+      this.commandHistory.execute(command);
+      
       this.calculateCriticalPath();
       if(this.uiContext){
         const promptAction = this.uiContext.getPromptAction();
@@ -489,9 +503,10 @@ export class ProjectManager {
   private removeDependency(fromId: string, toId: string): void {
     if (!this.appState.project) return;
 
-    this.appState.project.dependencies = this.appState.project.dependencies.filter(
-      d => !(d.fromId === fromId && d.toId === toId)
-    );
+    // 使用命令模式删除依赖（支持撤销/重做）
+    const command = new DeleteDependencyCommand(this.appState.project, fromId, toId);
+    this.commandHistory.execute(command);
+    
     this.calculateCriticalPath();
   }
 

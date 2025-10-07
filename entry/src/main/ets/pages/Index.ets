@@ -151,6 +151,7 @@ struct Index {
     eventBus.on('project_loaded', (...args: EventArgs[]) => {
       const project = args[0] as Project;
       this.updateStateFromManager();
+      this.updateUndoRedoState();
       this.drawGraph();
     });
 
@@ -158,6 +159,7 @@ struct Index {
     eventBus.on('project_saved', (...args: EventArgs[]) => {
       const project = args[0] as Project;
       this.updateStateFromManager();
+      this.updateUndoRedoState();
       this.drawGraph();
     });
 
@@ -172,6 +174,7 @@ struct Index {
     eventBus.on('task_updated', (...args: EventArgs[]) => {
       const task = args[0] as TaskNode;
       this.updateStateFromManager();
+      this.updateUndoRedoState();
       this.drawGraph();
     });
 
@@ -179,6 +182,7 @@ struct Index {
     eventBus.on('task_deleted', (...args: EventArgs[]) => {
       const taskId = args[0] as string;
       this.updateStateFromManager();
+      this.updateUndoRedoState();
       this.drawGraph();
     });
 
@@ -391,11 +395,18 @@ struct Index {
             .opacity(this.canUndo ? 1 : 0.5)
             .onClick(() => { 
               if (this.commandHistory.undo()) {
+                // 更新按钮状态
                 this.updateUndoRedoState();
+                // 刷新状态和画布
+                this.updateStateFromManager();
                 this.drawGraph();
+                // 重新计算关键路径
+                this.projectManager.getActions().calculateCriticalPath();
+                // 显示提示
+                const commandName = this.commandHistory.getLastRedoCommandName();
                 this.promptAction.showToast({ 
-                  message: '已撤销',
-                  duration: 1000
+                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                  duration: 1500
                 });
               }
             })
@@ -415,11 +426,18 @@ struct Index {
             .opacity(this.canRedo ? 1 : 0.5)
             .onClick(() => { 
               if (this.commandHistory.redo()) {
+                // 更新按钮状态
                 this.updateUndoRedoState();
+                // 刷新状态和画布
+                this.updateStateFromManager();
                 this.drawGraph();
+                // 重新计算关键路径
+                this.projectManager.getActions().calculateCriticalPath();
+                // 显示提示
+                const commandName = this.commandHistory.getLastUndoCommandName();
                 this.promptAction.showToast({ 
-                  message: '已重做',
-                  duration: 1000
+                  message: commandName ? `已重做: ${commandName}` : '已重做',
+                  duration: 1500
                 });
               }
             })

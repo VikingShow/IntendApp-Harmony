@@ -58,6 +58,8 @@ import vibrator from '@ohos.vibrator';
 export struct DashboardView {
   /** 项目数据对象，使用@Prop实现属性传递 */
   @Prop project: Project;
+  /** 是否显示画布背景，用于控制毛玻璃效果 */
+  @Prop showCanvasBackground: boolean = false;
   /** 强制更新键，用于触发组件重新渲染 */
   @State private updateKey: number = 0;
   /** 透明度状态，用于过渡动画 */
@@ -257,7 +259,7 @@ export struct DashboardView {
             
             this.getUIContext().getRouter().pushUrl({
               url: 'pages/Index',
-              params: { projectId: this.project.id }
+              params: { projectId: this.project.id },
             } as router.RouterOptions);
           })
           .onTouch((event: TouchEvent) => {
@@ -347,6 +349,7 @@ export struct DashboardView {
     .height('100%')
     .padding(ThemeConfig.spacingXXXL)
     .backgroundColor(ThemeConfig.transparentNone)
+    .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })

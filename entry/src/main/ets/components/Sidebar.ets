@@ -154,34 +154,6 @@ export struct Sidebar {
     Stack() {
       // 主内容
       Column() {
-        // 只有首页才显示新建项目按钮
-        if (this.isHomePage) {
-          Row({ space: 12 }) {
-            Button() {
-              Row({ space: ThemeConfig.spacingS }) {
-                Text('＋')
-                  .fontSize(ThemeConfig.fontSizeXXL)
-                  .fontColor(Color.White)
-                  .fontWeight(ThemeConfig.fontWeightMedium)
-                Text('新建项目')
-                  .fontSize(ThemeConfig.fontSizeL)
-                  .fontColor(Color.White)
-                  .fontWeight(ThemeConfig.fontWeightMedium)
-              }
-            }
-            .width('100%')
-            .height(ThemeConfig.buttonHeightLarge)
-            .backgroundColor(ThemeConfig.primaryColor)
-            .borderRadius(ThemeConfig.radiusMedium)
-            .shadow(ThemeConfig.buttonShadow)
-            .onClick(() => {
-              console.log('点击+号');
-              this.showNewProjectDialog = true;
-              this.showTemplateDialog = false;
-            })
-          }
-          .margin({ bottom: 16 })
-        }
         // 只有当项目加载完成后才显示内容
         if (this.project) {
           if (this.selectedTaskForEditor === null) {
@@ -203,20 +175,54 @@ export struct Sidebar {
             })
           }
         } else {
-          // 项目加载中或加载失败时显示的内容
-          Column() {
-            LoadingProgress()
-              .width(40)
-              .height(40)
-              .color($r('sys.color.brand'))
-            Text('正在加载项目...')
-              .fontSize(16)
-              .fontColor('#666666')
-              .margin({ top: 12 })
+          // 项目加载中或加载失败时显示的内容 - 现代化毛玻璃设计
+          Column({ space: ThemeConfig.spacingXL }) {
+            // 加载图标容器 - 毛玻璃效果
+            Stack() {
+              // 背景圆形
+              Circle()
+                .width(80)
+                .height(80)
+                .fill(ThemeConfig.transparentWhite30)
+                .backdropBlur(ThemeConfig.backdropBlurMedium)
+                .shadow(ThemeConfig.shadowMedium)
+                .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: 40 })
+              
+              // 加载进度
+              LoadingProgress()
+                .width(50)
+                .height(50)
+                .color(ThemeConfig.primaryColor)
+                .shadow({ radius: 3, color: ThemeConfig.primaryColor + '40', offsetX: 0, offsetY: 1 })
+            }
+            .width(80)
+            .height(80)
+            
+            // 加载文本容器 - 毛玻璃效果
+            Column({ space: ThemeConfig.spacingS }) {
+              Text('正在加载项目...')
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(ThemeConfig.gray800)
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .shadow({ radius: 1, color: '#00000020', offsetX: 0, offsetY: 1 })
+              
+              Text('请稍候')
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontColor(ThemeConfig.gray600)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+                .textAlign(TextAlign.Center)
+            }
+            .padding(ThemeConfig.spacingL)
+            .backgroundColor(ThemeConfig.transparentWhite40)
+            .backdropBlur(ThemeConfig.backdropBlurSmall)
+            .borderRadius(ThemeConfig.radiusLarge)
+            .shadow(ThemeConfig.shadowSmall)
+            .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusLarge })
           }
           .width('100%')
           .height('100%')
           .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
         }
       }
       .width('100%')

@@ -43,7 +43,7 @@ export struct WelcomeView {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ThemeConfig.backgroundSecondary)
+    .backgroundColor(ThemeConfig.backgroundPrimary)
   }
 
   @Builder

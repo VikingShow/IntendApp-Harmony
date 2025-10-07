@@ -983,32 +983,63 @@ struct HomePage {
         // --- 右侧内容区 ---
         Column() {
           if (this.isLoading) {
-            // 改进的加载状态设计
+            // 现代化毛玻璃加载状态设计
             Column({ space: ThemeConfig.spacingXXL }) {
-              Column({ space: ThemeConfig.spacingL }) {
+              // 加载图标容器 - 毛玻璃效果
+              Stack() {
+                // 背景圆形
+                Circle()
+                  .width(120)
+                  .height(120)
+                  .fill(ThemeConfig.transparentWhite30)
+                  .backdropBlur(ThemeConfig.backdropBlurMedium)
+                  .shadow(ThemeConfig.shadowLarge)
+                  .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: 60 })
+                
+                // 加载进度
                 LoadingProgress()
-                  .width(48)
-                  .height(48)
+                  .width(80)
+                  .height(80)
                   .color(ThemeConfig.primaryColor)
+                  .shadow({ radius: 4, color: ThemeConfig.primaryColor + '40', offsetX: 0, offsetY: 2 })
+              }
+              .width(120)
+              .height(120)
+              
+              // 加载文本容器 - 毛玻璃效果
+              Column({ space: ThemeConfig.spacingM }) {
                 Text('加载项目中...')
+                  .fontSize(ThemeConfig.fontSizeXXL)
+                  .fontColor(ThemeConfig.gray800)
+                  .fontWeight(ThemeConfig.fontWeightBold)
+                  .shadow({ radius: 1, color: '#00000020', offsetX: 0, offsetY: 1 })
+                
+                Text('请稍候，正在为您准备数据')
                   .fontSize(ThemeConfig.fontSizeL)
                   .fontColor(ThemeConfig.gray600)
                   .fontWeight(ThemeConfig.fontWeightMedium)
-                Text('请稍候，正在为您准备数据')
-                  .fontSize(ThemeConfig.fontSizeM)
-                  .fontColor(ThemeConfig.gray500)
                   .textAlign(TextAlign.Center)
+                  .lineHeight(24)
               }
+              .padding(ThemeConfig.spacingXXL)
+              .backgroundColor(ThemeConfig.transparentWhite40)
+              .backdropBlur(ThemeConfig.backdropBlurSmall)
+              .borderRadius(ThemeConfig.radiusXLarge)
+              .shadow(ThemeConfig.shadowMedium)
+              .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXLarge })
             }
             .width('100%')
             .height('100%')
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
-            .backgroundColor(ThemeConfig.backgroundSecondary)
+            .backgroundColor(ThemeConfig.transparentNone)
           } else if (this.selectedProjectDetail) {
             // 使用条件渲染强制重新创建组件
             if (this.dashboardKey > 0) {
-              DashboardView({ project: this.selectedProjectDetail })
+              DashboardView({ 
+                project: this.selectedProjectDetail,
+                showCanvasBackground: this.showCanvasBackground
+              })
                 .key(`dashboard-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
             }
           } else {
@@ -1038,7 +1069,7 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ThemeConfig.backgroundSecondary)
+    .backgroundColor(ThemeConfig.transparentNone)
     .padding({
       top: this.getUIContext().px2vp(this.topRectHeight),
       // bottom: this.getUIContext().px2vp(this.bottomRectHeight)
@@ -1154,7 +1185,7 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : $r('sys.color.comp_background_list_card'))
+      .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentNone : $r('sys.color.comp_background_list_card'))
       .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
       .border({ width: { bottom: 1 }, color: '#E2E8F0' })
 
@@ -1178,7 +1209,7 @@ struct HomePage {
         }
         .width('100%')
         .padding(12)
-        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.backgroundCard)
+        .backgroundColor(ThemeConfig.transparentNone)
         .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .border({ width: { bottom: 1 }, color: '#E2E8F0' })
       }
@@ -1203,7 +1234,7 @@ struct HomePage {
         .width('100%')
         .padding(32)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.transparentNone)
+        .backgroundColor(ThemeConfig.transparentNone)
         .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .borderRadius(ThemeConfig.radiusLarge)
         .margin(ThemeConfig.spacingM)
@@ -1341,7 +1372,7 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentWhite70 : ThemeConfig.backgroundPage)
+    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparentNone : ThemeConfig.backgroundPage)
     .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)

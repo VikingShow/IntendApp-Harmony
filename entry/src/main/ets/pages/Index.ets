@@ -1,10 +1,10 @@
 // File: entry/src/main/ets/pages/Index.ets
 /**
  * 项目编辑页面模块
- * 
+ *
  * 本页面是EasyFlow应用的核心编辑界面，提供项目可视化编辑和任务管理的完整功能。
  * 采用左右分栏布局，左侧为操作面板，右侧为可视化画布，实现直观的项目管理体验。
- * 
+ *
  * 主要功能：
  * 1. 项目可视化：使用Canvas 2D技术绘制项目网络图和任务节点
  * 2. 任务管理：支持任务的创建、编辑、删除、移动等操作
@@ -12,20 +12,20 @@
  * 4. 关键路径：实时计算和显示项目的关键路径
  * 5. 交互操作：支持拖拽、点击、连接等丰富的交互操作
  * 6. 状态管理：维护项目状态和用户操作历史
- * 
+ *
  * 技术特点：
  * - Canvas 2D渲染：使用HarmonyOS Canvas 2D API实现高性能图形渲染
  * - 响应式设计：基于ArkTS响应式框架实现数据的自动同步
  * - 事件驱动：使用事件总线实现组件间的松耦合通信
  * - 状态管理：通过ProjectManager统一管理项目状态
  * - 权限管理：集成HarmonyOS权限系统确保数据安全
- * 
+ *
  * 界面布局：
  * - 左侧面板：Sidebar组件，提供项目操作和任务编辑功能
  * - 右侧画布：Canvas组件，显示项目可视化网络图
  * - 顶部控制：画布控制按钮，提供锁定、重置等功能
  * - 响应式布局：支持侧边栏的展开和收起
- * 
+ *
  * @author EasyFlow开发团队
  * @version 1.0.0
  * @since 2025-06
@@ -60,13 +60,10 @@ struct Index {
   // bottomRectHeight: number = 0;
   @StorageProp('topRectHeight')
   topRectHeight: number = 0;
-
-  @State sidebarVisible: boolean = true;
-  
+  @State sidebarVisible: boolean = false;
   // 使用@State来响应ProjectManager的状态变化
   @State project: Project | null = null;
   @State selectedTask: TaskNode | null = null;
-
   private canvasController: CanvasController = new CanvasController();
   private projectManager: ProjectManager = ProjectManager.getInstance();
   private storageService: StorageService | null = null;
@@ -89,19 +86,20 @@ struct Index {
     const hasPermission = await this.permissionService.requestFileSystemPermission();
     if (!hasPermission) {
       this.promptAction.showToast({
-        message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权' 
+        message: '需要文件系统权限才能保存项目数据，请重新启动应用并授权'
       });
       return;
     }
-    
+
     // 初始化存储服务
-    this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
-    
+    this.storageService =
+      StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+
     // 初始化项目管理器
     await this.projectManager.initialize((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     // 注入uiContext
     this.projectManager.setContext(this.uiContext);
-    
+
     // 设置画布控制器回调
     this.canvasController.setCallbacks(
       (task) => this.projectManager.getActions().selectTask(task),
@@ -122,12 +120,9 @@ struct Index {
     // 监听ProjectManager状态变化
     this.setupEventListeners();
     this.updateStateFromManager();
-    
+
     // 初始化撤销/重做按钮状态
     this.updateUndoRedoState();
-
-    // 恢复画布位置
-    this.restoreCanvasPosition();
 
     // 从路由参数中获取projectId
     const params = this.uiContext.getRouter().getParams() as RouterParams;
@@ -144,6 +139,9 @@ struct Index {
       console.log("[EasyFlow] Creating new project with example data.");
       await this.createNewExampleProject();
     }
+
+    // 项目加载完成后恢复画布位置
+    this.restoreCanvasPosition();
   }
 
   aboutToDisappear() {
@@ -169,6 +167,8 @@ struct Index {
       this.updateStateFromManager();
       this.updateUndoRedoState();
       this.drawGraph();
+      // 项目加载完成后恢复画布位置
+      this.restoreCanvasPosition();
     });
 
     // 监听项目保存事件
@@ -229,7 +229,7 @@ struct Index {
   private restoreCanvasPosition() {
     const savedOffsetX = this.appState.canvasOffsetX;
     const savedOffsetY = this.appState.canvasOffsetY;
-    
+
     // 设置到CanvasController
     this.canvasController.setCanvasOffset(savedOffsetX, savedOffsetY);
     console.log(`[EasyFlow] 恢复画布位置: x=${savedOffsetX}, y=${savedOffsetY}`);
@@ -238,14 +238,17 @@ struct Index {
   // 创建示例项目
   async createNewExampleProject(): Promise<void> {
     await this.projectManager.getActions().createNewProject('新移动应用开发计划');
-    
+
     const project = this.projectManager.getState().project;
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     const today = new Date();
 
     const task1: TaskNode = {
-      id: 'task_1', name: '需求分析与原型设计',
+      id: 'task_1',
+      name: '需求分析与原型设计',
       startDate: today,
       endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
       checklist: [
@@ -253,39 +256,48 @@ struct Index {
         { id: 'c1_2', text: '绘制线框图', isCompleted: true },
         { id: 'c1_3', text: '制作交互原型', isCompleted: false },
       ],
-      x: 50, y: 150
+      x: 50,
+      y: 150
     };
 
     const task2: TaskNode = {
-      id: 'task_2', name: 'UI/UX视觉设计',
+      id: 'task_2',
+      name: 'UI/UX视觉设计',
       startDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
       endDate: new Date(today.getTime() + 9 * 24 * 60 * 60 * 1000),
       checklist: [],
-      x: 350, y: 50
+      x: 350,
+      y: 50
     };
 
     const task3: TaskNode = {
-      id: 'task_3', name: '前端开发',
+      id: 'task_3',
+      name: '前端开发',
       startDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000),
       endDate: new Date(today.getTime() + 19 * 24 * 60 * 60 * 1000),
       checklist: [],
-      x: 650, y: 150
+      x: 650,
+      y: 150
     };
 
     const task4: TaskNode = {
-      id: 'task_4', name: '后端开发',
+      id: 'task_4',
+      name: '后端开发',
       startDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
       endDate: new Date(today.getTime() + 16 * 24 * 60 * 60 * 1000),
       checklist: [],
-      x: 350, y: 250
+      x: 350,
+      y: 250
     };
 
     const task5: TaskNode = {
-      id: 'task_5', name: '测试与部署',
+      id: 'task_5',
+      name: '测试与部署',
       startDate: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000),
       endDate: new Date(today.getTime() + 24 * 24 * 60 * 60 * 1000),
       checklist: [],
-      x: 950, y: 150
+      x: 950,
+      y: 150
     };
 
     project.tasks = [task1, task2, task3, task4, task5];
@@ -302,13 +314,12 @@ struct Index {
     this.updateStateFromManager();
   }
 
-
   // 渲染画布
   private drawGraph(): void {
     const renderConfig = this.canvasController.getActions().getRenderConfig(
       this.selectedTask?.id || null
     );
-    
+
     if (this.project) {
       this.canvasController.getRenderer().render(this.project, renderConfig);
     }
@@ -342,22 +353,22 @@ struct Index {
         .width('100%')
         .height('100%')
         .backgroundColor(Color.White)
-      
+
       // 网格线层
       Column() {
         // 主要网格线 - 粗线
         Stack() {
           // 垂直线
-          ForEach(Array.from({ length: 8 }), (item: number, index: number) => {
+          ForEach(Array.from({ length: 8 }), (verticalItem: number, index: number) => {
             Line()
               .startPoint([index * 200, 0])
               .endPoint([index * 200, '100%'])
               .stroke('#E0E0E0')
               .strokeWidth(1)
           })
-          
+
           // 水平线
-          ForEach(Array.from({ length: 6 }), (item: number, index: number) => {
+          ForEach(Array.from({ length: 6 }), (horizontalItem: number, index: number) => {
             Line()
               .startPoint([0, index * 200])
               .endPoint(['100%', index * 200])
@@ -367,20 +378,20 @@ struct Index {
         }
         .width('100%')
         .height('100%')
-        
+
         // 细网格线 - 细线
         Stack() {
           // 细垂直线
-          ForEach(Array.from({ length: 16 }), (item: number, index: number) => {
+          ForEach(Array.from({ length: 16 }), (thinVerticalItem: number, index: number) => {
             Line()
               .startPoint([index * 100, 0])
               .endPoint([index * 100, '100%'])
               .stroke('#F0F0F0')
               .strokeWidth(0.5)
           })
-          
+
           // 细水平线
-          ForEach(Array.from({ length: 12 }), (item: number, index: number) => {
+          ForEach(Array.from({ length: 12 }), (thinHorizontalItem: number, index: number) => {
             Line()
               .startPoint([0, index * 100])
               .endPoint(['100%', index * 100])
@@ -397,8 +408,18 @@ struct Index {
     .width('100%')
     .height('100%')
     .borderRadius(12)
-    .margin({ top: 16, right: 16, bottom: 16, left: 0 })
-    .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
+    .margin({
+      top: 16,
+      right: 16,
+      bottom: 16,
+      left: 0
+    })
+    .shadow({
+      radius: 8,
+      color: '#0000000A',
+      offsetX: 0,
+      offsetY: 2
+    })
   }
 
   build() {
@@ -419,7 +440,9 @@ struct Index {
       .zIndex(200)
       .backdropBlur(ThemeConfig.backdropBlurMedium)
       .border({ width: 1, color: ThemeConfig.transparentBlack10, radius: 8 })
-      .onClick(() => { this.sidebarVisible = !this.sidebarVisible })
+      .onClick(() => {
+        this.sidebarVisible = !this.sidebarVisible
+      })
 
       // 侧边栏
       if (this.sidebarVisible) {
@@ -457,35 +480,46 @@ struct Index {
           onSave: () => this.projectManager.getActions().saveProject(),
           onBack: () => this.handleBackToHome(),
           onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),
-          onCreateProjectFromTemplate: (templateId, projectName) => 
-            this.projectManager.getActions().createFromTemplate(templateId, projectName)
+          onCreateProjectFromTemplate: (templateId, projectName) =>
+          this.projectManager.getActions().createFromTemplate(templateId, projectName)
         })
-        .width(380)
-        .height('100%')
-        .position({ x: 0, y: 0 })
-        .zIndex(150)
+          .width(380)
+          .height('100%')
+          .position({ x: 0, y: 0 })
+          .zIndex(150)
       }
 
       // 画布
       Stack() {
         // 画布背景 - 格子纹效果
         this.CanvasBackground()
-        
+
         Canvas(this.canvasController.getRenderer().getContext())
           .height('100%')
           .width('100%')
           .backgroundColor(Color.Transparent)
           .borderRadius(12)
-          .margin({ top: 16, right: 16, bottom: 16, left: 16 })
-          .onReady(() => { 
+          .margin({
+            top: 16,
+            right: 16,
+            bottom: 16,
+            left: 16
+          })
+          .onReady(() => {
             this.drawGraph(); // 绘制图形（包含网格）
+            // Canvas准备就绪后恢复画布位置
+            setTimeout(() => {
+              this.restoreCanvasPosition();
+            }, 100);
           })
           .onTouch((event: TouchEvent) => {
-            if (!this.project) return;
-            
+            if (!this.project) {
+              return;
+            }
+
             this.canvasController.getActions().handleTouch(
-              event, 
-              this.project, 
+              event,
+              this.project,
               this.selectedTask?.id || null
             );
             this.drawGraph(); // 重新绘制图形（包含网格）
@@ -505,12 +539,16 @@ struct Index {
             .height(36)
             .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.gray100)
             .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
+            .border({
+              width: 2,
+              color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray200,
+              radius: ThemeConfig.radiusMedium
+            })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .enabled(this.canUndo)
             .opacity(this.canUndo ? 1 : 0.6)
-            .onClick(() => { 
+            .onClick(() => {
               if (this.commandHistory.undo()) {
                 // 更新按钮状态
                 this.updateUndoRedoState();
@@ -521,7 +559,7 @@ struct Index {
                 this.projectManager.getActions().calculateCriticalPath();
                 // 显示提示
                 const commandName = this.commandHistory.getLastRedoCommandName();
-                this.promptAction.showToast({ 
+                this.promptAction.showToast({
                   message: commandName ? `已撤销: ${commandName}` : '已撤销',
                   duration: 1500
                 });
@@ -539,12 +577,16 @@ struct Index {
             .height(36)
             .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.gray100)
             .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray200, radius: ThemeConfig.radiusMedium })
+            .border({
+              width: 2,
+              color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray200,
+              radius: ThemeConfig.radiusMedium
+            })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .enabled(this.canRedo)
             .opacity(this.canRedo ? 1 : 0.6)
-            .onClick(() => { 
+            .onClick(() => {
               if (this.commandHistory.redo()) {
                 // 更新按钮状态
                 this.updateUndoRedoState();
@@ -555,7 +597,7 @@ struct Index {
                 this.projectManager.getActions().calculateCriticalPath();
                 // 显示提示
                 const commandName = this.commandHistory.getLastUndoCommandName();
-                this.promptAction.showToast({ 
+                this.promptAction.showToast({
                   message: commandName ? `已重做: ${commandName}` : '已重做',
                   duration: 1500
                 });
@@ -575,7 +617,7 @@ struct Index {
             .border({ width: 2, color: ThemeConfig.primaryColor, radius: ThemeConfig.radiusMedium })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
-            .onClick(() => { 
+            .onClick(() => {
               this.canvasController.getActions().toggleCanvasLock();
               this.canvasLock = !this.canvasLock
               // this.canvasController.getState().isCanvasLocked = !(this.canvasController.getState().isCanvasLocked);
@@ -594,9 +636,9 @@ struct Index {
             .border({ width: 2, color: ThemeConfig.successColor, radius: ThemeConfig.radiusMedium })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
-            .onClick(() => { 
-              this.canvasController.getActions().resetCanvas(); 
-              this.drawGraph(); 
+            .onClick(() => {
+              this.canvasController.getActions().resetCanvas();
+              this.drawGraph();
             })
           }
           .justifyContent(FlexAlign.End)

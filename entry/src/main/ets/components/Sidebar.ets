@@ -33,8 +33,6 @@
 
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
-import { NewProjectDialog } from './WelcomeView';
-import { TemplateDialog } from './TemplateDialog';
 import { ThemeConfig } from '../utils/ThemeConfig';
 import { PromptAction } from '@kit.ArkUI';
 
@@ -232,58 +230,6 @@ export struct Sidebar {
       .shadow(ThemeConfig.shadowMedium)
       .border({ width: { right: 1 }, color: ThemeConfig.gray200 })
       .backdropBlur(ThemeConfig.backdropBlurXLarge)
-
-      // 弹窗遮罩层
-      // 只有首页才显示新建相关弹窗
-      if (this.isHomePage && this.showNewProjectDialog) {
-        Column() {
-          NewProjectDialog({
-            onBlank: () => {
-              console.log('点击新建空白图');
-              this.showNewProjectDialog = false;
-              this.showTemplateDialog = false;
-              this.onCreateBlankProject();
-            },
-            onTemplate: () => {
-              console.log('点击选择模板');
-              this.showNewProjectDialog = false;
-              this.showTemplateDialog = true;
-            },
-            onClose: () => {
-              console.log('关闭新建方式弹窗');
-              this.showNewProjectDialog = false;
-              this.showTemplateDialog = false;
-            }
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor(ThemeConfig.transparentBlack25)
-        .alignItems(HorizontalAlign.Center)
-        .justifyContent(FlexAlign.Center)
-        .zIndex(100)
-      } else if (this.isHomePage && this.showTemplateDialog) {
-        Column() {
-          TemplateDialog({
-            visible: true,
-            onClose: () => { 
-              console.log('关闭模板弹窗');
-              this.showTemplateDialog = false; 
-            },
-            onTemplateSelected: (templateId: string, projectName: string) => {
-              console.log('模板弹窗创建项目', templateId, projectName);
-              this.showTemplateDialog = false;
-              this.onCreateProjectFromTemplate(templateId, projectName);
-            }
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor(ThemeConfig.transparentBlack25)
-        .alignItems(HorizontalAlign.Center)
-        .justifyContent(FlexAlign.Center)
-        .zIndex(100)
-      }
     }
     .width('100%')
     .height('100%')
@@ -503,26 +449,28 @@ export struct Sidebar {
                     .alignItems(HorizontalAlign.Start)
                     .layoutWeight(1)
 
-                    // 删除按钮 - 现代化设计
-                    Button() {
-                      Text('×')
-                        .fontSize(ThemeConfig.fontSizeL)
-                        .fontColor(ThemeConfig.errorColor)
-                        .fontWeight(ThemeConfig.fontWeightBold)
+                    // 删除按钮 - 只在任务被选中时显示
+                    if (this.selectedTask?.id === task.id) {
+                      Button() {
+                        Text('×')
+                          .fontSize(ThemeConfig.fontSizeL)
+                          .fontColor(ThemeConfig.errorColor)
+                          .fontWeight(ThemeConfig.fontWeightBold)
+                      }
+                      .width(36)
+                      .height(36)
+                      .backgroundColor(ThemeConfig.errorLight)
+                      .borderRadius(ThemeConfig.radiusMedium)
+                      .shadow(ThemeConfig.shadowSmall)
+                      .border({ 
+                        width: 2, 
+                        color: ThemeConfig.errorColor, 
+                        radius: ThemeConfig.radiusMedium 
+                      })
+                      .onClick(() => {
+                        this.deleteTask(task);
+                      })
                     }
-                    .width(36)
-                    .height(36)
-                    .backgroundColor(ThemeConfig.errorLight)
-                    .borderRadius(ThemeConfig.radiusMedium)
-                    .shadow(ThemeConfig.shadowSmall)
-                    .border({ 
-                      width: 2, 
-                      color: ThemeConfig.errorColor, 
-                      radius: ThemeConfig.radiusMedium 
-                    })
-                    .onClick(() => {
-                      this.deleteTask(task);
-                    })
 
                   }
                   .width('100%')

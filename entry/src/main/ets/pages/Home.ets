@@ -1263,42 +1263,44 @@ struct HomePage {
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
 
-                // 删除按钮 - 现代化设计，增强交互反馈
-                Button() {
-                  Text('×')
-                    .fontSize(ThemeConfig.fontSizeL)
-                    .fontColor(ThemeConfig.errorColor)
-                    .fontWeight(ThemeConfig.fontWeightBold)
-                }
-                .width(40)
-                .height(40)
-                .type(ButtonType.Circle)
-                .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorLight)
-                .border({ 
-                  width: 2, 
-                  color: this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorColor, 
-                  radius: 20 
-                })
-                .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
-                .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
-                .opacity(this.deleteButtonOpacity)
-                .animation({
-                  duration: ThemeConfig.animationFast,
-                  curve: ThemeConfig.animationEaseInOut,
-                  iterations: 1,
-                  playMode: PlayMode.Normal
-                })
-                .onClick(() => this.deleteProject(meta.id))
-                .onTouch((event: TouchEvent) => {
-                  if (event.type === TouchType.Down) {
-                    this.hoveredDeleteId = meta.id;
-                    this.startDeleteButtonPress();
-                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                    this.hoveredDeleteId = null;
-                    this.endDeleteButtonPress();
+                // 删除按钮 - 只在项目被选中时显示
+                if (this.selectedProjectId === meta.id) {
+                  Button() {
+                    Text('×')
+                      .fontSize(ThemeConfig.fontSizeL)
+                      .fontColor(ThemeConfig.errorColor)
+                      .fontWeight(ThemeConfig.fontWeightBold)
                   }
-                })
-                .hitTestBehavior(HitTestMode.Block)
+                  .width(40)
+                  .height(40)
+                  .type(ButtonType.Circle)
+                  .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorLight)
+                  .border({ 
+                    width: 2, 
+                    color: this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorColor, 
+                    radius: 20 
+                  })
+                  .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
+                  .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
+                  .opacity(this.deleteButtonOpacity)
+                  .animation({
+                    duration: ThemeConfig.animationFast,
+                    curve: ThemeConfig.animationEaseInOut,
+                    iterations: 1,
+                    playMode: PlayMode.Normal
+                  })
+                  .onClick(() => this.deleteProject(meta.id))
+                  .onTouch((event: TouchEvent) => {
+                    if (event.type === TouchType.Down) {
+                      this.hoveredDeleteId = meta.id;
+                      this.startDeleteButtonPress();
+                    } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                      this.hoveredDeleteId = null;
+                      this.endDeleteButtonPress();
+                    }
+                  })
+                  .hitTestBehavior(HitTestMode.Block)
+                }
               }
               .width('100%')
               .padding(ThemeConfig.spacingXL)

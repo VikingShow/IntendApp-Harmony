@@ -1151,7 +1151,7 @@ struct HomePage {
         }
         .width('100%')
         .padding(12)
-        .backgroundColor('#F8FAFC')
+        .backgroundColor(ThemeConfig.backgroundCard)
         .border({ width: { bottom: 1 }, color: '#E2E8F0' })
       }
 
@@ -1305,7 +1305,7 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FAFBFC')
+    .backgroundColor(ThemeConfig.backgroundPage)
     .border({ width: { right: 1 }, color: '#E2E8F0' })
     .layoutWeight(1)
   }

@@ -221,11 +221,11 @@ export struct Sidebar {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('rgba(255, 255, 255, 0.7)')
+      .backgroundColor(ThemeConfig.transparentWhite70)
       .padding(ThemeConfig.spacingXXL)
       .shadow(ThemeConfig.shadowMedium)
       .border({ width: { right: 1 }, color: ThemeConfig.gray200 })
-      .backdropBlur(20)
+      .backdropBlur(ThemeConfig.backdropBlurXLarge)
 
       // 弹窗遮罩层
       // 只有首页才显示新建相关弹窗
@@ -252,7 +252,7 @@ export struct Sidebar {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0,0,0,0.25)')
+        .backgroundColor(ThemeConfig.transparentBlack25)
         .alignItems(HorizontalAlign.Center)
         .justifyContent(FlexAlign.Center)
         .zIndex(100)
@@ -273,7 +273,7 @@ export struct Sidebar {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0,0,0,0.25)')
+        .backgroundColor(ThemeConfig.transparentBlack25)
         .alignItems(HorizontalAlign.Center)
         .justifyContent(FlexAlign.Center)
         .zIndex(100)
@@ -405,7 +405,6 @@ export struct Sidebar {
             .padding(16)
             .backgroundColor('#00000000')
             .borderRadius(12)
-            .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
 
             Column() {
               Text(this.project.tasks.filter(t => t.isCritical).length.toString())
@@ -420,16 +419,15 @@ export struct Sidebar {
             .padding(16)
             .backgroundColor('#00000000')
             .borderRadius(12)
-            .shadow({ radius: 8, color: '#0000000A', offsetX: 0, offsetY: 2 })
           }
           .width('100%')
         }
         .padding(ThemeConfig.spacingXL)
-        .backgroundColor('rgba(255, 255, 255, 0.6)')
+        .backgroundColor(ThemeConfig.transparentWhite60)
         .borderRadius(ThemeConfig.radiusXLarge)
         .shadow(ThemeConfig.cardShadow)
-        .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
-        .backdropBlur(10)
+        .border({ width: 0, color: ThemeConfig.transparentNone, radius: ThemeConfig.radiusXLarge })
+        .backdropBlur(ThemeConfig.backdropBlurMedium)
 
         // 操作按钮区域
         Column({ space: 16 }) {
@@ -523,15 +521,15 @@ export struct Sidebar {
                   }
                   .width('100%')
                   .padding(ThemeConfig.spacingXL)
-                  .backgroundColor(this.selectedTask?.id === task.id ? 'rgba(0, 122, 255, 0.2)' : 'rgba(255, 255, 255, 0.5)')
+                  .backgroundColor(this.selectedTask?.id === task.id ? ThemeConfig.transparentPrimary25 : ThemeConfig.transparentWhite50)
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(this.selectedTask?.id === task.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
                   .border({ 
                     width: this.selectedTask?.id === task.id ? 2 : 0, 
-                    color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : 'transparent', 
+                    color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : ThemeConfig.transparentNone, 
                     radius: ThemeConfig.radiusMedium 
                   })
-                  .backdropBlur(5)
+                  .backdropBlur(ThemeConfig.backdropBlurSmall)
                   .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     this.selectedTask = task;

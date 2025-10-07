@@ -42,6 +42,7 @@ import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
 import { CommandHistory } from '../core/CommandHistory';
 import { ThemeConfig } from '../utils/ThemeConfig';
+import { AppState } from '../core/AppState';
 
 /**
  * 路由参数接口
@@ -76,6 +77,7 @@ struct Index {
   private commandHistory: CommandHistory = CommandHistory.getInstance();
   @State canUndo: boolean = false;
   @State canRedo: boolean = false;
+  private appState: AppState = AppState.getInstance();
 
   async aboutToAppear() {
     // 初始化权限服务
@@ -124,6 +126,9 @@ struct Index {
     // 初始化撤销/重做按钮状态
     this.updateUndoRedoState();
 
+    // 恢复画布位置
+    this.restoreCanvasPosition();
+
     // 从路由参数中获取projectId
     const params = this.uiContext.getRouter().getParams() as RouterParams;
     const projectId = params?.projectId;
@@ -139,6 +144,11 @@ struct Index {
       console.log("[EasyFlow] Creating new project with example data.");
       await this.createNewExampleProject();
     }
+  }
+
+  aboutToDisappear() {
+    // 页面离开时保存画布位置
+    this.saveCanvasPosition();
   }
 
   onPageHide() {
@@ -206,6 +216,23 @@ struct Index {
     // 直接赋值，依赖@State的响应式机制
     this.project = state.project;
     this.selectedTask = state.selectedTask;
+  }
+
+  // 保存画布位置
+  private saveCanvasPosition() {
+    const canvasState = this.canvasController.getState();
+    this.appState.setCanvasOffset(canvasState.canvasOffsetX, canvasState.canvasOffsetY);
+    console.log(`[EasyFlow] 保存画布位置: x=${canvasState.canvasOffsetX}, y=${canvasState.canvasOffsetY}`);
+  }
+
+  // 恢复画布位置
+  private restoreCanvasPosition() {
+    const savedOffsetX = this.appState.canvasOffsetX;
+    const savedOffsetY = this.appState.canvasOffsetY;
+    
+    // 设置到CanvasController
+    this.canvasController.setCanvasOffset(savedOffsetX, savedOffsetY);
+    console.log(`[EasyFlow] 恢复画布位置: x=${savedOffsetX}, y=${savedOffsetY}`);
   }
 
   // 创建示例项目
@@ -385,13 +412,13 @@ struct Index {
       }
       .width(32)
       .height(48)
-      .backgroundColor('rgba(255, 255, 255, 0.7)')
+      .backgroundColor(ThemeConfig.transparentWhite80)
       .borderRadius(8)
       .position({ x: 16, y: '50%' })
       .translate({ x: 0, y: -24 })
       .zIndex(200)
-      .backdropBlur(10)
-      .border({ width: 1, color: 'rgba(0, 0, 0, 0.1)', radius: 8 })
+      .backdropBlur(ThemeConfig.backdropBlurMedium)
+      .border({ width: 1, color: ThemeConfig.transparentBlack10, radius: 8 })
       .onClick(() => { this.sidebarVisible = !this.sidebarVisible })
 
       // 侧边栏

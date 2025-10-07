@@ -163,6 +163,11 @@ export class CanvasController {
   public getState(): CanvasState {
     return this.state;
   }
+
+  public setCanvasOffset(x: number, y: number): void {
+    this.state.canvasOffsetX = x;
+    this.state.canvasOffsetY = y;
+  }
   public getActions(): CanvasActions {
     return {
       handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => this.handleTouch(event, project, selectedTaskId),

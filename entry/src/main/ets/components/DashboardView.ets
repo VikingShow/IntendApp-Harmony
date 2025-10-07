@@ -369,7 +369,6 @@ export struct DashboardView {
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .shadow({ radius: 1, color: textColor + '20', offsetX: 0, offsetY: 1 })
     }
     .layoutWeight(1)
     .height(160)

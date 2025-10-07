@@ -256,7 +256,7 @@ export struct TaskEditor {
                 .fontWeight(ThemeConfig.fontWeightMedium)
                 .fontColor(ThemeConfig.gray500)
               TextInput({ text: this.localTask.name || '', placeholder: '请输入任务名称' })
-                .backgroundColor('#00000000')
+                .backgroundColor(ThemeConfig.transparentNone)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
@@ -317,7 +317,7 @@ export struct TaskEditor {
                    end: new Date('2030-12-31'),
                    selected: this.localTask.startDate || new Date()
                  })
-                   .backgroundColor('#00000000')
+                   .backgroundColor(ThemeConfig.transparentNone)
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -347,7 +347,7 @@ export struct TaskEditor {
                    end: new Date('2030-12-31'),
                    selected: this.localTask.endDate || new Date()
                  })
-                   .backgroundColor('#00000000')
+                   .backgroundColor(ThemeConfig.transparentNone)
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -378,7 +378,7 @@ export struct TaskEditor {
             .justifyContent(FlexAlign.End)
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor('#00000000')
+          .backgroundColor(ThemeConfig.transparentNone)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
@@ -402,7 +402,7 @@ export struct TaskEditor {
                 text: this.newChecklistItemText 
               })
                 .layoutWeight(1)
-                .backgroundColor('#00000000')
+                .backgroundColor(ThemeConfig.transparentNone)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
@@ -515,7 +515,7 @@ export struct TaskEditor {
                   }
                   .width('100%')
                   .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
-                  .backgroundColor(item.isCompleted ? ThemeConfig.gray100 : '#00000000')
+                  .backgroundColor(item.isCompleted ? ThemeConfig.gray100 : ThemeConfig.transparentNone)
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(item.isCompleted ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
                   .border({ 
@@ -530,7 +530,7 @@ export struct TaskEditor {
             }
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor('#00000000')
+          .backgroundColor(ThemeConfig.transparentNone)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })

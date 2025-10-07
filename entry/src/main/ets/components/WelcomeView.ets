@@ -24,7 +24,7 @@ export struct WelcomeView {
             .fontColor(ThemeConfig.gray600)
             .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
-            .shadow({ radius: 2, color: ThemeConfig.gray600 + '20', offsetX: 0, offsetY: 2 })
+            // .shadow({ radius: 2, color: ThemeConfig.gray600 + '20', offsetX: 0, offsetY: 2 })
             .margin({ top: ThemeConfig.spacingS })
           Text('让每个想法都不被遗漏，让每个项目都井然有序')
             .fontSize(ThemeConfig.fontSizeL)

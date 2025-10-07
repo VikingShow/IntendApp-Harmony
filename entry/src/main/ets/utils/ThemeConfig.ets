@@ -49,6 +49,55 @@ export class ThemeConfig {
   static readonly backgroundSecondary = '#F2F2F7';
   static readonly backgroundTertiary = '#E5E5EA';
   static readonly backgroundElevated = '#FFFFFF';
+  static readonly backgroundCard = '#F8FAFC';
+  static readonly backgroundPage = '#FAFBFC';
+  static readonly backgroundInput = '#F5F5F7';
+
+  // 透明背景色系统 - 增强版
+  // 白色透明系列
+  static readonly transparentWhite90 = 'rgba(255, 255, 255, 0.9)';
+  static readonly transparentWhite80 = 'rgba(255, 255, 255, 0.8)';
+  static readonly transparentWhite70 = 'rgba(255, 255, 255, 0.7)';
+  static readonly transparentWhite60 = 'rgba(255, 255, 255, 0.6)';
+  static readonly transparentWhite50 = 'rgba(255, 255, 255, 0.5)';
+  static readonly transparentWhite40 = 'rgba(255, 255, 255, 0.4)';
+  static readonly transparentWhite30 = 'rgba(255, 255, 255, 0.3)';
+  static readonly transparentWhite20 = 'rgba(255, 255, 255, 0.2)';
+  static readonly transparentWhite10 = 'rgba(255, 255, 255, 0.1)';
+  
+  // 黑色透明系列
+  static readonly transparentBlack50 = 'rgba(0, 0, 0, 0.5)';
+  static readonly transparentBlack40 = 'rgba(0, 0, 0, 0.4)';
+  static readonly transparentBlack30 = 'rgba(0, 0, 0, 0.3)';
+  static readonly transparentBlack25 = 'rgba(0, 0, 0, 0.25)';
+  static readonly transparentBlack20 = 'rgba(0, 0, 0, 0.2)';
+  static readonly transparentBlack15 = 'rgba(0, 0, 0, 0.15)';
+  static readonly transparentBlack10 = 'rgba(0, 0, 0, 0.1)';
+  static readonly transparentBlack05 = 'rgba(0, 0, 0, 0.05)';
+  
+  // 主色调透明系列
+  static readonly transparentPrimary30 = 'rgba(0, 122, 255, 0.3)';
+  static readonly transparentPrimary25 = 'rgba(0, 122, 255, 0.25)';
+  static readonly transparentPrimary20 = 'rgba(0, 122, 255, 0.2)';
+  static readonly transparentPrimary15 = 'rgba(0, 122, 255, 0.15)';
+  static readonly transparentPrimary10 = 'rgba(0, 122, 255, 0.1)';
+  static readonly transparentPrimary05 = 'rgba(0, 122, 255, 0.05)';
+  
+  // 功能色透明系列
+  static readonly transparentSuccess20 = 'rgba(52, 199, 89, 0.2)';
+  static readonly transparentSuccess10 = 'rgba(52, 199, 89, 0.1)';
+  static readonly transparentWarning20 = 'rgba(255, 149, 0, 0.2)';
+  static readonly transparentWarning10 = 'rgba(255, 149, 0, 0.1)';
+  static readonly transparentError20 = 'rgba(255, 59, 48, 0.2)';
+  static readonly transparentError10 = 'rgba(255, 59, 48, 0.1)';
+  
+  // 灰色透明系列
+  static readonly transparentGray20 = 'rgba(142, 142, 147, 0.2)';
+  static readonly transparentGray10 = 'rgba(142, 142, 147, 0.1)';
+  static readonly transparentGray05 = 'rgba(142, 142, 147, 0.05)';
+  
+  // 完全透明
+  static readonly transparentNone = '#00000000';
 
   // 阴影系统 - 现代阴影设计，增强层次感
   static readonly shadowSmall: ShadowConfig = {
@@ -111,6 +160,50 @@ export class ThemeConfig {
     offsetY: 2
   };
 
+  // 文字阴影系统
+  static readonly textShadowSmall: ShadowConfig = {
+    radius: 1,
+    color: '#00000010',
+    offsetX: 0,
+    offsetY: 1
+  };
+
+  static readonly textShadowMedium: ShadowConfig = {
+    radius: 1,
+    color: '#00000030',
+    offsetX: 0,
+    offsetY: 1
+  };
+
+  static readonly textShadowLarge: ShadowConfig = {
+    radius: 2,
+    color: '#00000030',
+    offsetX: 0,
+    offsetY: 1
+  };
+
+  // 组件阴影系统
+  static readonly componentShadowSmall: ShadowConfig = {
+    radius: 6,
+    color: '#00000012',
+    offsetX: 0,
+    offsetY: 2
+  };
+
+  static readonly componentShadowMedium: ShadowConfig = {
+    radius: 8,
+    color: '#0000000A',
+    offsetX: 0,
+    offsetY: 2
+  };
+
+  static readonly componentShadowLarge: ShadowConfig = {
+    radius: 16,
+    color: '#00000020',
+    offsetX: 0,
+    offsetY: 8
+  };
+
   // 圆角系统 - 现代圆角设计
   static readonly radiusSmall = 6;
   static readonly radiusMedium = 12;
@@ -148,6 +241,27 @@ export class ThemeConfig {
   static readonly fontWeightMedium = FontWeight.Medium;
   static readonly fontWeightSemiBold = FontWeight.Medium;
   static readonly fontWeightBold = FontWeight.Bold;
+
+  // 毛玻璃效果系统 - 增强版
+  static readonly backdropBlurNone = 0;
+  static readonly backdropBlurTiny = 2;
+  static readonly backdropBlurSmall = 5;
+  static readonly backdropBlurMedium = 10;
+  static readonly backdropBlurLarge = 15;
+  static readonly backdropBlurXLarge = 20;
+  static readonly backdropBlurXXLarge = 25;
+  static readonly backdropBlurXXXLarge = 30;
+
+  // 边框颜色系统
+  static readonly borderLight = '#E2E8F0';
+  static readonly borderGrid = '#E0E0E0';
+  static readonly borderGridFine = '#F0F0F0';
+
+  // 文字颜色系统
+  static readonly textSecondary = '#666666';
+  static readonly textPrimary = '#1D1D1F';
+  static readonly textDescription = '#86868B';
+  static readonly textSuccess = '#28A745';
 
   // 动画系统 - 现代动画时长
   static readonly animationFast = 150;

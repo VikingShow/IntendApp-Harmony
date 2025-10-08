@@ -5,7 +5,7 @@
   
   **融合备忘录时间维度与思维导图逻辑维度的专业项目管理应用**
   
-  [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-4.0+-blue.svg)](https://developer.harmonyos.com/)
+  [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-5.0+-blue.svg)](https://developer.harmonyos.com/)
   [![ArkTS](https://img.shields.io/badge/ArkTS-Latest-green.svg)](https://developer.harmonyos.com/cn/develop/arkts/)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 </div>

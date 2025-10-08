@@ -45,6 +45,7 @@ import { CanvasController } from '../core/CanvasController';
 import { CanvasRenderer } from '../core/CanvasRenderer';
 import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
+import router from '@ohos.router';
 import { ErrorHandler } from '../core/ErrorHandler';
 
 /**
@@ -62,6 +63,13 @@ interface ActionMenuButton {
 @Entry
 @Component
 struct HomePage {
+  // 页面转场动画配置
+  pageTransition() {
+    PageTransitionEnter({ duration: 300, curve: Curve.EaseInOut })
+      .opacity(0.0)
+    PageTransitionExit({ duration: 300, curve: Curve.EaseInOut })
+      .opacity(0.0)
+  }
   // @StorageProp('bottomRectHeight')
   // bottomRectHeight: number = 0;
   @StorageProp('topRectHeight')
@@ -526,13 +534,16 @@ struct HomePage {
             this.selectedProjectId = newProject.id;
             this.selectedProjectDetail = newProject;
             console.log(`[Home] 设置选中项目: ${newProject.id}`);
-
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
               this.getUIContext().getRouter().pushUrl({
                 url: 'pages/Index',
-                params: { projectId: newProject.id }
-              });
+                params: { projectId: newProject.id },
+                animation: {
+                  type: 'fade',
+                  duration: 300
+                }
+              } as router.RouterOptions);
             }, 500);
           } catch (error) {
             this.promptAction.showToast({
@@ -945,13 +956,16 @@ struct HomePage {
             this.selectedProjectId = newProject.id;
             this.selectedProjectDetail = newProject;
             console.log(`[Home] 设置选中项目: ${newProject.id}`);
-
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
               this.getUIContext().getRouter().pushUrl({
                 url: 'pages/Index',
-                params: { projectId: newProject.id }
-              });
+                params: { projectId: newProject.id },
+                animation: {
+                  type: 'fade',
+                  duration: 300
+                }
+              } as router.RouterOptions);
             }, 500);
           } catch (error) {
             this.promptAction.showToast({

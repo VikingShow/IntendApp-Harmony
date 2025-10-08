@@ -260,6 +260,10 @@ export struct DashboardView {
             this.getUIContext().getRouter().pushUrl({
               url: 'pages/Index',
               params: { projectId: this.project.id },
+              animation: {
+                type: 'fade',
+                duration: 300
+              }
             } as router.RouterOptions);
           })
           .onTouch((event: TouchEvent) => {

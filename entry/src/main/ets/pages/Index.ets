@@ -56,6 +56,13 @@ interface RouterParams {
 @Entry
 @Component
 struct Index {
+  // 页面转场动画配置
+  pageTransition() {
+    PageTransitionEnter({ duration: 300, curve: Curve.EaseInOut })
+      .opacity(0.0)
+    PageTransitionExit({ duration: 300, curve: Curve.EaseInOut })
+      .opacity(0.0)
+  }
   // @StorageProp('bottomRectHeight')
   // bottomRectHeight: number = 0;
   @StorageProp('topRectHeight')

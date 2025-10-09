@@ -311,7 +311,7 @@ export struct TaskEditor {
                  Text('开始日期')
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
-                   .fontColor('#86868B')
+                   .fontColor(ThemeConfig.textDescription)
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
@@ -341,7 +341,7 @@ export struct TaskEditor {
                  Text('结束日期')
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
-                   .fontColor('#86868B')
+                   .fontColor(ThemeConfig.textDescription)
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
@@ -371,7 +371,7 @@ export struct TaskEditor {
             Row({ space: 8 }) {
               Text(`工期: ${this.getDuration()} 天`)
                 .fontSize(13)
-                .fontColor('#86868B')
+                .fontColor(ThemeConfig.textDescription)
                 .fontWeight(FontWeight.Medium)
             }
             .width('100%')
@@ -390,7 +390,7 @@ export struct TaskEditor {
               Text('任务清单')
                  .fontSize(18)
                  .fontWeight(FontWeight.Medium)
-                 .fontColor('#1D1D1F')
+                 .fontColor(ThemeConfig.textPrimary)
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
@@ -432,7 +432,7 @@ export struct TaskEditor {
                   .fontSize(ThemeConfig.fontSizeXL)
                   .fontColor(Color.White)
                   .fontWeight(ThemeConfig.fontWeightBold)
-                  .shadow({ radius: 1, color: '#00000030', offsetX: 0, offsetY: 1 })
+                  .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ThemeConfig.textShadowMedium.color, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
               }
               .width(52)
               .height(52)
@@ -454,7 +454,7 @@ export struct TaskEditor {
                   .opacity(0.4)
                 Text('暂无子任务')
                   .fontSize(14)
-                  .fontColor('#86868B')
+                  .fontColor(ThemeConfig.textDescription)
               }
               .width('100%')
               .padding(24)
@@ -491,7 +491,7 @@ export struct TaskEditor {
                       })
                     Text(item.text)
                       .fontSize(15)
-                      .fontColor(item.isCompleted ? '#86868B' : '#1D1D1F')
+                      .fontColor(item.isCompleted ? ThemeConfig.textDescription : ThemeConfig.textPrimary)
                       .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)

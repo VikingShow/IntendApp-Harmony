@@ -202,7 +202,7 @@ export struct Sidebar {
                 .fontSize(ThemeConfig.fontSizeL)
                 .fontColor(ThemeConfig.gray800)
                 .fontWeight(ThemeConfig.fontWeightBold)
-                .shadow({ radius: 1, color: '#00000020', offsetX: 0, offsetY: 1 })
+                .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ThemeConfig.shadowSmall.color, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
               
               Text('请稍候')
                 .fontSize(ThemeConfig.fontSizeM)
@@ -264,7 +264,7 @@ export struct Sidebar {
                 .fontSize(ThemeConfig.fontSizeXL)
                 .fontColor(Color.White)
                 .fontWeight(ThemeConfig.fontWeightBold)
-                .shadow({ radius: 1, color: '#00000030', offsetX: 0, offsetY: 1 })
+                .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ThemeConfig.textShadowMedium.color, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
             }
             .width(52)
             .height(52)
@@ -304,7 +304,7 @@ export struct Sidebar {
                 .layoutWeight(1)
                 .fontSize(22)
                 .fontWeight(FontWeight.Medium)
-                .backgroundColor('#F5F5F7')
+                .backgroundColor(ThemeConfig.backgroundInput)
                 .borderRadius(12)
                 .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                 .onChange((value: string) => { this.tempProjectName = value; })
@@ -316,20 +316,20 @@ export struct Sidebar {
                 .layoutWeight(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .maxLines(1)
-                .fontColor('#1D1D1F')
+                .fontColor(ThemeConfig.textPrimary)
             }
             Button() {
               Image(this.isEditingProjectName ? $r('app.media.ic_confirm') : $r('app.media.ic_edit'))
                 .width(18)
                 .height(18)
-                .fillColor(this.isEditingProjectName ? '#28A745' : '#666666')
+                .fillColor(this.isEditingProjectName ? ThemeConfig.textSuccess : ThemeConfig.textSecondary)
             }
             .width(44)
             .height(44)
             .type(ButtonType.Circle)
             .backgroundColor($r('sys.color.comp_background_list_card'))
             .borderRadius(22)
-            .shadow({ radius: 6, color: '#00000012', offsetX: 0, offsetY: 2 })
+            .shadow({ radius: ThemeConfig.shadowMedium.radius, color: ThemeConfig.shadowMedium.color, offsetX: ThemeConfig.shadowMedium.offsetX, offsetY: ThemeConfig.shadowMedium.offsetY })
             .onClick(() => {
               if (this.isEditingProjectName) {
                 this.saveProjectName();
@@ -348,28 +348,28 @@ export struct Sidebar {
               Text(this.project.tasks.length.toString())
                 .fontSize(20)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#007AFF')
+                .fontColor(ThemeConfig.primaryColor)
               Text('总任务')
                 .fontSize(13)
-                .fontColor('#86868B')
+                .fontColor(ThemeConfig.textDescription)
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor('#00000000')
+            .backgroundColor(ThemeConfig.transparentNone)
             .borderRadius(12)
 
             Column() {
               Text(this.project.tasks.filter(t => t.isCritical).length.toString())
                 .fontSize(20)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#FF3B30')
+                .fontColor(ThemeConfig.errorColor)
               Text('关键任务')
                 .fontSize(13)
-                .fontColor('#86868B')
+                .fontColor(ThemeConfig.textDescription)
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor('#00000000')
+            .backgroundColor(ThemeConfig.transparentNone)
             .borderRadius(12)
           }
           .width('100%')
@@ -390,7 +390,7 @@ export struct Sidebar {
           Text('任务列表')
             .fontSize(18)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#1D1D1F')
+            .fontColor(ThemeConfig.textPrimary)
             .width('100%')
             .textAlign(TextAlign.Start)
 
@@ -402,10 +402,10 @@ export struct Sidebar {
                 .opacity(0.4)
               Text('暂无任务')
                 .fontSize(15)
-                .fontColor('#86868B')
+                .fontColor(ThemeConfig.textDescription)
               Text('点击上方按钮添加新任务')
                 .fontSize(13)
-                .fontColor('#86868B')
+                .fontColor(ThemeConfig.textDescription)
             }
             .width('100%')
             .padding(40)
@@ -420,7 +420,7 @@ export struct Sidebar {
                     Column()
                       .width(4)
                       .height(44)
-                      .backgroundColor(task.isCritical ? '#FF3B30' : '#007AFF')
+                      .backgroundColor(task.isCritical ? ThemeConfig.errorColor : ThemeConfig.primaryColor)
                       .borderRadius(2)
 
                     // 任务信息
@@ -428,19 +428,19 @@ export struct Sidebar {
                       Text(task.name)
                         .fontSize(15)
                         .fontWeight(FontWeight.Medium)
-                        .fontColor('#1D1D1F')
+                        .fontColor(ThemeConfig.textPrimary)
                         .maxLines(1)
                         .textOverflow({ overflow: TextOverflow.Ellipsis })
                       Text(`${task.startDate.toLocaleDateString()} - ${task.endDate.toLocaleDateString()}`)
                         .fontSize(13)
-                        .fontColor('#86868B')
+                        .fontColor(ThemeConfig.textDescription)
                       
                       // 子任务信息
                       if (task.checklist && task.checklist.length > 0) {
                         Row({ space: 8 }) {
                           Text(`${task.checklist.filter(item => item.isCompleted).length}/${task.checklist.length} 已完成`)
                             .fontSize(12)
-                            .fontColor('#86868B')
+                            .fontColor(ThemeConfig.textDescription)
                         }
                         .width('100%')
                         .alignItems(VerticalAlign.Center)

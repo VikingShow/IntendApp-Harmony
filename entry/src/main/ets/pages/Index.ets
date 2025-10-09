@@ -370,7 +370,7 @@ struct Index {
             Line()
               .startPoint([index * 200, 0])
               .endPoint([index * 200, '100%'])
-              .stroke('#E0E0E0')
+              .stroke(ThemeConfig.gridLine)
               .strokeWidth(1)
           })
 
@@ -379,7 +379,7 @@ struct Index {
             Line()
               .startPoint([0, index * 200])
               .endPoint(['100%', index * 200])
-              .stroke('#E0E0E0')
+              .stroke(ThemeConfig.gridLine)
               .strokeWidth(1)
           })
         }
@@ -393,7 +393,7 @@ struct Index {
             Line()
               .startPoint([index * 100, 0])
               .endPoint([index * 100, '100%'])
-              .stroke('#F0F0F0')
+              .stroke(ThemeConfig.gridLineFine)
               .strokeWidth(0.5)
           })
 
@@ -402,7 +402,7 @@ struct Index {
             Line()
               .startPoint([0, index * 100])
               .endPoint(['100%', index * 100])
-              .stroke('#F0F0F0')
+              .stroke(ThemeConfig.gridLineFine)
               .strokeWidth(0.5)
           })
         }
@@ -423,7 +423,7 @@ struct Index {
     })
     .shadow({
       radius: 8,
-      color: '#0000000A',
+      color: ThemeConfig.shadowSmall.color,
       offsetX: 0,
       offsetY: 2
     })

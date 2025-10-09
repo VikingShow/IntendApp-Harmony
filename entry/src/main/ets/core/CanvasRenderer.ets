@@ -33,6 +33,7 @@
  */
 
 import { Project, TaskNode } from '../model/ProjectData';
+import { ThemeConfig } from '../utils/ThemeConfig';
 
 /**
  * 渲染配置接口
@@ -108,7 +109,7 @@ export class CanvasRenderer {
     const height = 3000;
     
     // 设置网格样式
-    this.context.strokeStyle = '#E0E0E0';
+    this.context.strokeStyle = ThemeConfig.gridLine;
     this.context.lineWidth = 1;
     
     // 绘制主网格线
@@ -129,7 +130,7 @@ export class CanvasRenderer {
     this.context.stroke();
     
     // 绘制细网格线
-    this.context.strokeStyle = '#F0F0F0';
+    this.context.strokeStyle = ThemeConfig.gridLineFine;
     this.context.lineWidth = 0.5;
     this.context.beginPath();
     
@@ -163,7 +164,7 @@ export class CanvasRenderer {
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
-        this.context.strokeStyle = isCriticalDep ? '#D0021B' : '#666666';
+        this.context.strokeStyle = isCriticalDep ? ThemeConfig.taskCritical : ThemeConfig.textSecondary;
         this.context.lineWidth = isCriticalDep ? 3 : 2;
         this.context.stroke();
       }
@@ -179,17 +180,17 @@ export class CanvasRenderer {
       const drawY = task.y + config.canvasOffsetY;
 
       // 节点背景
-      this.context.fillStyle = '#FFFFFF';
+      this.context.fillStyle = ThemeConfig.white;
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 
       // 节点边框
-      this.context.strokeStyle = isSelected ? '#FF8C00' : (task.isCritical ? '#D0021B' : '#4A90E2');
+      this.context.strokeStyle = isSelected ? ThemeConfig.taskSelected : (task.isCritical ? ThemeConfig.taskCritical : ThemeConfig.taskNormal);
       this.context.lineWidth = isSelected ? 4 : 2;
       this.context.stroke();
 
       // 任务名称
-      this.context.fillStyle = '#000000';
+      this.context.fillStyle = ThemeConfig.gray900;
       this.context.font = `bold 28px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 25);
 
@@ -204,10 +205,10 @@ export class CanvasRenderer {
       
       this.context.font = `19px HarmonyOS Sans`;
       this.context.fillText(`⌛ 时间: ${timeProgress}%`, drawX + 15, drawY + 70);
-      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, '#4A90E2');
+      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal);
       
       this.context.fillText(`✓ 完成: ${completionProgress}%`, drawX + 15, drawY + 95);
-      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, '#2ECC71');
+      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress);
     });
   }
 
@@ -229,7 +230,7 @@ export class CanvasRenderer {
     const radius = height / 2;
     
     // 背景
-    this.context.fillStyle = '#E0E0E0';
+    this.context.fillStyle = ThemeConfig.gridLine;
     this.drawRoundRect(this.context, x, y, width, height, radius);
     this.context.fill();
     

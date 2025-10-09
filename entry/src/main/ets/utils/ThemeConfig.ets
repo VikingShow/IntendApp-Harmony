@@ -267,6 +267,41 @@ export class ThemeConfig {
   static readonly textPrimary = '#1D1D1F';
   static readonly textDescription = '#86868B';
   static readonly textSuccess = '#28A745';
+  
+  // 新增：从代码中提取的颜色
+  static readonly textMuted = '#64748B';
+  static readonly textLight = '#94A3B8';
+  static readonly textDark = '#1E293B';
+  
+  // 任务状态颜色
+  static readonly taskCritical = '#D0021B';
+  static readonly taskNormal = '#4A90E2';
+  static readonly taskSelected = '#FF8C00';
+  static readonly taskProgress = '#2ECC71';
+  
+  // 项目类型颜色
+  static readonly projectDevelopment = '#3B82F6';
+  static readonly projectDesign = '#8B5CF6';
+  static readonly projectMarketing = '#F59E0B';
+  static readonly projectResearch = '#10B981';
+  static readonly projectOther = '#6B7280';
+  
+  // 网格和边框颜色
+  static readonly gridLine = '#E0E0E0';
+  static readonly gridLineFine = '#F0F0F0';
+  static readonly borderBottom = '#E2E8F0';
+  
+  // 文化词汇背景色
+  static readonly culturalWord1 = '#E2E8F0';
+  static readonly culturalWord2 = '#CBD5E1';
+  static readonly culturalWord3 = '#D1D5DB';
+  static readonly culturalWord4 = '#E5E7EB';
+  static readonly culturalWord5 = '#F3F4F6';
+  static readonly culturalWord6 = '#F1F5F9';
+  static readonly culturalWord7 = '#F8FAFC';
+  static readonly culturalWord8 = '#F9FAFB';
+  static readonly culturalWord9 = '#FAFBFC';
+  static readonly culturalWord10 = '#FCFCFD';
 
   // 动画系统 - 现代动画时长
   static readonly animationFast = 150;

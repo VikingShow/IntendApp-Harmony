@@ -2,6 +2,7 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { ThemeConfig } from '../utils/ThemeConfig';
 
 const DOMAIN = 0x0000;
 
@@ -45,8 +46,8 @@ export default class EntryAbility extends UIAbility {
       }
     windowClass = data;
     let SystemBarProperties: window.SystemBarProperties = {
-      statusBarColor: '#00000000',     // 完全透明
-      navigationBarColor: '#00000000', // 完全透明
+      statusBarColor: ThemeConfig.transparentNone,     // 完全透明
+      navigationBarColor: ThemeConfig.transparentNone, // 完全透明
       //以下两个属性从API Version8开始支持
       // statusBarContentColor: '#ffffff',
       // navigationBarContentColor: '#00ffff'

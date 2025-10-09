@@ -1057,9 +1057,9 @@ struct HomePage {
         // --- 右侧内容区 ---
         Column() {
           if (this.isLoading) {
-            // 现代化毛玻璃加载状态设计
+            // 简约加载状态设计
             Column({ space: ThemeConfig.spacingXXL }) {
-              // 加载图标容器 - 毛玻璃效果
+              // 加载图标容器
               Stack() {
                 // 背景圆形
                 Circle()
@@ -1068,7 +1068,6 @@ struct HomePage {
                   .fill(ColorResource.overlaySubtle)
                   .backdropBlur(ThemeConfig.backdropBlurMedium)
                   .shadow(ThemeConfig.shadowLarge)
-                  .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 60 })
                 
                 // 加载进度
               LoadingProgress()
@@ -1078,28 +1077,6 @@ struct HomePage {
               }
               .width(120)
               .height(120)
-              
-              // 加载文本容器 - 毛玻璃效果
-              Column({ space: ThemeConfig.spacingM }) {
-                Text('加载项目中...')
-                  .fontSize(ThemeConfig.fontSizeXXL)
-                  .fontColor(ColorResource.surfaceDeep)
-                  .fontWeight(ThemeConfig.fontWeightBold)
-                  .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
-                
-                Text('请稍候，正在为您准备数据')
-                  .fontSize(ThemeConfig.fontSizeL)
-                  .fontColor(ColorResource.surfaceBold)
-                  .fontWeight(ThemeConfig.fontWeightMedium)
-                  .textAlign(TextAlign.Center)
-                  .lineHeight(24)
-              }
-              .padding(ThemeConfig.spacingXXL)
-              .backgroundColor(ColorResource.overlaySubtle)
-              .backdropBlur(ThemeConfig.backdropBlurSmall)
-              .borderRadius(ThemeConfig.radiusXLarge)
-              .shadow(ThemeConfig.shadowMedium)
-              .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
             }
             .width('100%')
             .height('100%')

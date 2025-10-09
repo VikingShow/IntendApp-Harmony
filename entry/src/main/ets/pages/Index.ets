@@ -304,7 +304,7 @@ struct Index {
   async createNewExampleProject(): Promise<void> {
     await this.projectManager.getActions().createNewProject('新移动应用开发计划');
 
-    const project = this.projectManager.getState().project;
+    const project: Project | null = this.projectManager.getState().project;
     if (!project) {
       return;
     }

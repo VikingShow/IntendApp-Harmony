@@ -452,10 +452,10 @@ export struct DashboardView {
     .layoutWeight(1)
     .height(this.isFloatingCard ? 70 : (this.isPhone ? 100 : 120))
     .padding(this.isFloatingCard ? 8 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.15)' : ColorResource.transparent)
+    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.6)' : ColorResource.transparent)
     .borderRadius(this.isFloatingCard ? 8 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.shadowMedium)
-    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.3)', radius: 8 } : { width: 2, color: bgColor, radius: ThemeConfig.radiusLarge })
+    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.7)', radius: 8 } : { width: 2, color: bgColor, radius: ThemeConfig.radiusLarge })
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
     .opacity(this.fadeOpacity)
@@ -508,9 +508,9 @@ export struct DashboardView {
     }
     .width('100%')
     .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.1)' : ColorResource.transparent)
+    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.5)' : ColorResource.transparent)
     .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
-    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.2)', radius: 6 } : { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
+    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.6)', radius: 6 } : { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
   }
 }

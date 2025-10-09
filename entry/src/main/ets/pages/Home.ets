@@ -132,6 +132,8 @@ struct HomePage {
   @State swipeOffset: number = 0; // 滑动偏移量
   @State showDashboardCard: boolean = false; // 是否显示Dashboard卡片
   @State arrowAnimationOffset: number = 0; // 箭头动画偏移量
+  @State pageTranslateY: number = 0; // 页面Y轴偏移（用于滑动动画）
+  @State pageOpacity: number = 1; // 页面透明度
   
   // 侧边栏抽屉动画状态
   @State drawerTranslateX: number = -100; // 抽屉位移百分比
@@ -1206,25 +1208,22 @@ struct HomePage {
   @Builder
   PhoneLayout() {
     Stack() {
-      // 画布背景层（当选中项目时显示）
-      if (this.showCanvasBackground && this.selectedProjectDetail) {
-        this.CanvasBackground()
-      }
-      
       // 主内容层
-      Column() {
+      Stack() {
+        // 欢迎页（始终存在，通过opacity控制显示）
         if (this.phoneViewMode === 'welcome') {
-          // 欢迎页
           this.PhoneWelcomePage()
-        } else if (this.phoneViewMode === 'list') {
-          // 项目列表
+        }
+        
+        // 项目列表（从下方滑入）
+        if (this.phoneViewMode === 'list') {
           this.PhoneProjectList()
         }
       }
       .width('100%')
       .height('100%')
       
-      // Dashboard卡片层（浮动在中间）
+      // Dashboard卡片层（浮动在中间，包含画布背景）
       if (this.showDashboardCard && this.selectedProjectDetail) {
         this.PhoneDashboardCard()
       }
@@ -2091,23 +2090,34 @@ struct HomePage {
       .position({ x: 0, y: '100%' })
       .translate({ x: 0, y: -100 })
       .alignItems(HorizontalAlign.Center)
+      .opacity(this.pageTranslateY < 0 ? 1 + this.pageTranslateY / 200 : 1) // 上滑时淡出
     }
     .width('100%')
     .height('100%')
+    .translate({ x: 0, y: this.pageTranslateY })
+    .animation({
+      duration: 350,
+      curve: Curve.Friction,
+      iterations: 1,
+      playMode: PlayMode.Normal
+    })
     .gesture(
       PanGesture({ direction: PanDirection.Vertical })
         .onActionStart((event: GestureEvent) => {
-          console.log('[Home] Swipe start');
+          console.log('[Home] Welcome page swipe start');
         })
         .onActionUpdate((event: GestureEvent) => {
-          // 向上滑动时offsetY为负数
-          if (event.offsetY < -50) {
-            this.swipeOffset = event.offsetY;
+          // 向上滑动时offsetY为负数，只允许向上滑动
+          // 添加阻尼效果，让拖动感觉更自然
+          if (event.offsetY < 0) {
+            const damping = 0.6; // 阻尼系数
+            this.pageTranslateY = event.offsetY * damping;
           }
         })
         .onActionEnd((event: GestureEvent) => {
-          // 向上滑动超过100，切换到项目列表
-          if (event.offsetY < -100) {
+          // 向上滑动超过阈值，切换到项目列表
+          // 因为有0.6的阻尼，所以用户需要滑动约-250才能达到-150的阈值
+          if (event.offsetY < -250) {
             // 触觉反馈
             try {
               vibrator.startVibration({
@@ -2121,9 +2131,16 @@ struct HomePage {
               console.log('[Home] Haptic feedback not available:', error);
             }
             
-            this.phoneViewMode = 'list';
+            // 动画过渡到项目列表
+            this.pageTranslateY = -1000; // 向上滑出
+            setTimeout(() => {
+              this.phoneViewMode = 'list';
+              this.pageTranslateY = 0; // 重置位置
+            }, 300);
+          } else {
+            // 回弹
+            this.pageTranslateY = 0;
           }
-          this.swipeOffset = 0;
         })
     )
   }
@@ -2132,6 +2149,27 @@ struct HomePage {
   @Builder
   PhoneProjectList() {
     Column() {
+      // 下滑返回提示（半透明顶部指示器）
+      if (this.pageTranslateY > 20) {
+        Row({ space: 8 }) {
+          Text('↓')
+            .fontSize(ThemeConfig.fontSizeL)
+            .fontColor(ColorResource.primaryColor)
+          Text('松开返回首页')
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontColor(ColorResource.surfaceEmphasized)
+        }
+        .width('100%')
+        .padding({ top: 8, bottom: 8 })
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor('rgba(255, 255, 255, 0.95)')
+        .backdropBlur(10)
+        .position({ x: 0, y: 0 })
+        .zIndex(1000)
+        .opacity(Math.min(this.pageTranslateY / 100, 1))
+        .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
+      }
+      
       // 顶部标题栏
       Row({ space: 16 }) {
         Text('我的项目')
@@ -2219,8 +2257,7 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor(this.showDashboardCard ? 'rgba(255, 255, 255, 0.7)' : ColorResource.surface)
-      .backdropBlur(this.showDashboardCard ? 20 : 0)
+      .backgroundColor(ColorResource.surface)
       .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
 
       // 项目列表内容区域
@@ -2294,20 +2331,13 @@ struct HomePage {
               }
               .width('100%')
               .backgroundColor(
-                this.showDashboardCard ?
-                (this.selectedProjectId === meta.id ? 
-                 'rgba(226, 240, 255, 0.8)' :
-                 this.hoveredProjectId === meta.id ? 
-                 'rgba(255, 255, 255, 0.6)' : 
-                 'rgba(255, 255, 255, 0.5)') :
-                (this.selectedProjectId === meta.id ? 
-                 ColorResource.primaryUltraLight :
-                 this.hoveredProjectId === meta.id ? 
-                 ColorResource.surfaceSubtle : 
-                 ColorResource.surface)
+                this.selectedProjectId === meta.id ? 
+                ColorResource.primaryUltraLight :
+                this.hoveredProjectId === meta.id ? 
+                ColorResource.surfaceSubtle : 
+                ColorResource.surface
               )
               .borderRadius(ThemeConfig.radiusLarge)
-              .backdropBlur(this.showDashboardCard ? 10 : 0)
               .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
                      this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
@@ -2338,6 +2368,11 @@ struct HomePage {
               this.onSelectProject(meta.id);
               this.showCanvasBackground = true;
               this.showDashboardCard = true;
+              
+              // 延迟渲染画布，确保卡片已显示
+              setTimeout(() => {
+                this.renderProjectCanvas();
+              }, 100);
             })
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
@@ -2368,8 +2403,56 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.showDashboardCard ? ColorResource.transparent : ColorResource.backgroundPage)
-    .backdropBlur(this.showDashboardCard ? ThemeConfig.backdropBlurXLarge : 0)
+    .backgroundColor(ColorResource.backgroundPage)
+    .translate({ x: 0, y: this.pageTranslateY })
+    .animation({
+      duration: 350,
+      curve: Curve.Friction,
+      iterations: 1,
+      playMode: PlayMode.Normal
+    })
+    .gesture(
+      PanGesture({ direction: PanDirection.Vertical })
+        .onActionStart((event: GestureEvent) => {
+          console.log('[Home] Project list swipe start');
+        })
+        .onActionUpdate((event: GestureEvent) => {
+          // 向下滑动时offsetY为正数，只允许向下滑动
+          // 添加阻尼效果，让拖动感觉更自然
+          if (event.offsetY > 0) {
+            const damping = 0.6; // 阻尼系数
+            this.pageTranslateY = event.offsetY * damping;
+          }
+        })
+        .onActionEnd((event: GestureEvent) => {
+          // 向下滑动超过阈值，返回首页
+          // 因为有0.6的阻尼，所以用户需要滑动约250才能达到150的阈值
+          if (event.offsetY > 250) {
+            // 触觉反馈
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 40
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
+            }
+            
+            // 动画过渡到首页
+            this.pageTranslateY = 1000; // 向下滑出
+            setTimeout(() => {
+              this.phoneViewMode = 'welcome';
+              this.pageTranslateY = 0; // 重置位置
+            }, 300);
+          } else {
+            // 回弹
+            this.pageTranslateY = 0;
+          }
+        })
+    )
   }
 
   // 手机端 - Dashboard浮动卡片
@@ -2387,103 +2470,127 @@ struct HomePage {
           this.showCanvasBackground = false;
         })
       
-      // Dashboard卡片
-      Column() {
-        // 顶部操作栏
-        Row() {
-          // 关闭按钮
-          Button() {
-            Text('×')
-              .fontSize(ThemeConfig.fontSizeXXL)
-              .fontColor(ColorResource.surfaceDeep)
-          }
-          .width(40)
-          .height(40)
-          .type(ButtonType.Circle)
-          .backgroundColor(ColorResource.transparent)
-          .onClick(() => {
-            try {
-              vibrator.startVibration({
-                type: 'time',
-                duration: 30
-              }, {
-                id: 0,
-                usage: 'alarm'
-              });
-            } catch (error) {
-              console.log('[Home] Haptic feedback not available:', error);
-            }
-            this.showDashboardCard = false;
-            this.showCanvasBackground = false;
-          })
-
-          Blank()
-
-          // 编辑按钮
-          Button() {
-            Text('✎')
-              .fontSize(ThemeConfig.fontSizeL)
-              .fontColor(Color.White)
-          }
-          .width(40)
-          .height(40)
-          .type(ButtonType.Circle)
-          .backgroundColor(ColorResource.primaryColor)
-          .onClick(() => {
-            try {
-              vibrator.startVibration({
-                type: 'time',
-                duration: 40
-              }, {
-                id: 0,
-                usage: 'alarm'
-              });
-            } catch (error) {
-              console.log('[Home] Haptic feedback not available:', error);
-            }
-            
-            if (this.selectedProjectId) {
-              this.getUIContext().getRouter().pushUrl({
-                url: 'pages/Index',
-                params: { projectId: this.selectedProjectId },
-                animation: {
-                  type: 'fade',
-                  duration: 300
-                }
-              } as router.RouterOptions);
-            }
-          })
+      // Dashboard卡片（包含画布背景）
+      Stack() {
+        // 画布背景层（只在卡片范围内显示）
+        if (this.selectedProjectDetail) {
+          Canvas(this.canvasController.getRenderer().getContext())
+            .width('100%')
+            .height('100%')
+            .backgroundColor(Color.Transparent)
+            .borderRadius(ThemeConfig.radiusXLarge)
         }
-        .width('100%')
-        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingS })
-
-        // Dashboard内容（可滚动）
-        Scroll() {
-          if (this.selectedProjectDetail) {
-            DashboardView({ 
-              project: this.selectedProjectDetail,
-              showCanvasBackground: true,
-              isFloatingCard: true
+        
+        // 半透明遮罩层（降低画布对比度，让Dashboard内容更清晰）
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('rgba(255, 255, 255, 0.65)')
+          .backdropBlur(40)
+          .borderRadius(ThemeConfig.radiusXLarge)
+        
+        // Dashboard内容层
+        Column() {
+          // 顶部操作栏
+          Row() {
+            // 关闭按钮
+            Button() {
+              Text('×')
+                .fontSize(ThemeConfig.fontSizeXXL)
+                .fontColor(ColorResource.surfaceDeep)
+            }
+            .width(40)
+            .height(40)
+            .type(ButtonType.Circle)
+            .backgroundColor('rgba(255, 255, 255, 0.9)')
+            .shadow(ThemeConfig.shadowSmall)
+            .onClick(() => {
+              try {
+                vibrator.startVibration({
+                  type: 'time',
+                  duration: 30
+                }, {
+                  id: 0,
+                  usage: 'alarm'
+                });
+              } catch (error) {
+                console.log('[Home] Haptic feedback not available:', error);
+              }
+              this.showDashboardCard = false;
+              this.showCanvasBackground = false;
             })
-              .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+
+            Blank()
+
+            // 编辑按钮
+            Button() {
+              Text('✎')
+                .fontSize(ThemeConfig.fontSizeL)
+                .fontColor(Color.White)
+            }
+            .width(40)
+            .height(40)
+            .type(ButtonType.Circle)
+            .backgroundColor(ColorResource.primaryColor)
+            .onClick(() => {
+              try {
+                vibrator.startVibration({
+                  type: 'time',
+                  duration: 40
+                }, {
+                  id: 0,
+                  usage: 'alarm'
+                });
+              } catch (error) {
+                console.log('[Home] Haptic feedback not available:', error);
+              }
+              
+              if (this.selectedProjectId) {
+                this.getUIContext().getRouter().pushUrl({
+                  url: 'pages/Index',
+                  params: { projectId: this.selectedProjectId },
+                  animation: {
+                    type: 'fade',
+                    duration: 300
+                  }
+                } as router.RouterOptions);
+              }
+            })
           }
+          .width('100%')
+          .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingS })
+
+          // Dashboard内容（可滚动）
+          Scroll() {
+            if (this.selectedProjectDetail) {
+              DashboardView({ 
+                project: this.selectedProjectDetail,
+                showCanvasBackground: false,
+                isFloatingCard: true
+              })
+                .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+            }
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Auto)
+          .backgroundColor(Color.Transparent)
         }
         .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Auto)
-        .backgroundColor(Color.Transparent)
+        .height('100%')
       }
       .width('90%')
       .height('75%')
-      .backgroundColor('rgba(255, 255, 255, 0.75)')
-      .backdropBlur(30)
+      .backgroundColor('rgba(255, 255, 255, 0.2)')
+      .backdropBlur(20)
       .borderRadius(ThemeConfig.radiusXLarge)
       .shadow({ radius: 40, color: 'rgba(0, 0, 0, 0.15)', offsetX: 0, offsetY: 8 })
       .border({
         width: 1.5,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(255, 255, 255, 0.6)',
         radius: ThemeConfig.radiusXLarge
       })
+      .clip(true)
       .scale({ x: this.contentScale, y: this.contentScale })
       .opacity(this.contentOpacity)
       .animation({

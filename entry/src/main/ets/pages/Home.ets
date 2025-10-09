@@ -36,7 +36,7 @@ import { LoadingService } from '../services/LoadingService';
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import common from '@ohos.app.ability.common';
 import { Project, TaskNode } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
@@ -498,7 +498,7 @@ struct HomePage {
       },
       secondaryButton: {
         value: '创建',
-        fontColor: ThemeConfig.primaryColor,
+        fontColor: ColorResource.primaryColor,
         action: async () => {
           try {
             console.log(`[Home] Creating project from template: ${templateId}`);
@@ -603,7 +603,7 @@ struct HomePage {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: ThemeConfig.errorColor,
+        fontColor: ColorResource.errorColor,
         action: async () => {
           if (this.storageService) {
             try {
@@ -633,11 +633,11 @@ struct HomePage {
       buttons: [
         {
           text: '空白项目',
-          color: ThemeConfig.primaryColor
+          color: ColorResource.primaryColor
         },
         {
           text: '选择模板',
-          color: ThemeConfig.primaryColor
+          color: ColorResource.primaryColor
         }
       ]
     }).then((result) => {
@@ -682,15 +682,15 @@ struct HomePage {
       buttons: [
         {
           text: '开发模板',
-          color: ThemeConfig.primaryColor
+          color: ColorResource.primaryColor
         },
         {
           text: '设计模板',
-          color: ThemeConfig.projectDesign
+          color: ColorResource.projectDesign
         },
         {
           text: '营销模板',
-          color: ThemeConfig.projectMarketing
+          color: ColorResource.projectMarketing
         }
       ]
     }).then((result) => {
@@ -728,7 +728,7 @@ struct HomePage {
       const template = templates[i];
       const button: ActionMenuButton = {
         text: `${template.name} (${template.tasks.length}个任务)`,
-        color: ThemeConfig.primaryColor
+        color: ColorResource.primaryColor
       };
       templateButtons.push(button);
     }
@@ -920,7 +920,7 @@ struct HomePage {
       },
       secondaryButton: {
         value: '创建',
-        fontColor: ThemeConfig.primaryColor,
+        fontColor: ColorResource.primaryColor,
         action: async () => {
           try {
             console.log(`[Home] Creating blank project`);
@@ -1005,17 +1005,17 @@ struct HomePage {
                 Circle()
                   .width(120)
                   .height(120)
-                  .fill(ThemeConfig.overlayFaint)
+                  .fill(ColorResource.overlaySubtle)
                   .backdropBlur(ThemeConfig.backdropBlurMedium)
                   .shadow(ThemeConfig.shadowLarge)
-                  .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: 60 })
+                  .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 60 })
                 
                 // 加载进度
                 LoadingProgress()
                   .width(80)
                   .height(80)
-                  .color(ThemeConfig.primaryColor)
-                  .shadow({ radius: 4, color: ThemeConfig.primaryColor + '40', offsetX: 0, offsetY: 2 })
+                  .color(ColorResource.primaryColor)
+                  .shadow({ radius: 4, color: ColorResource.hoverPrimaryLight, offsetX: 0, offsetY: 2 })
               }
               .width(120)
               .height(120)
@@ -1024,29 +1024,29 @@ struct HomePage {
               Column({ space: ThemeConfig.spacingM }) {
                 Text('加载项目中...')
                   .fontSize(ThemeConfig.fontSizeXXL)
-                  .fontColor(ThemeConfig.surfaceDeep)
+                  .fontColor(ColorResource.surfaceDeep)
                   .fontWeight(ThemeConfig.fontWeightBold)
-                  .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ThemeConfig.shadowSmall.color, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
+                  .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
                 
                 Text('请稍候，正在为您准备数据')
                   .fontSize(ThemeConfig.fontSizeL)
-                  .fontColor(ThemeConfig.surfaceBold)
+                  .fontColor(ColorResource.surfaceBold)
                   .fontWeight(ThemeConfig.fontWeightMedium)
                   .textAlign(TextAlign.Center)
                   .lineHeight(24)
               }
               .padding(ThemeConfig.spacingXXL)
-              .backgroundColor(ThemeConfig.overlaySubtle)
+              .backgroundColor(ColorResource.overlaySubtle)
               .backdropBlur(ThemeConfig.backdropBlurSmall)
               .borderRadius(ThemeConfig.radiusXLarge)
               .shadow(ThemeConfig.shadowMedium)
-              .border({ width: 1, color: ThemeConfig.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
+              .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
             }
             .width('100%')
             .height('100%')
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
-            .backgroundColor(ThemeConfig.transparent)
+            .backgroundColor(ColorResource.transparent)
           } else if (this.selectedProjectDetail) {
             // 使用条件渲染强制重新创建组件
             if (this.dashboardKey > 0) {
@@ -1061,7 +1061,7 @@ struct HomePage {
           }
         }
         .layoutWeight(2)
-        .backgroundColor(this.showCanvasBackground ? ThemeConfig.overlayMedium : ThemeConfig.backgroundSecondary)
+        .backgroundColor(this.showCanvasBackground ? ColorResource.overlayMedium : ColorResource.backgroundSecondary)
         .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .opacity(this.contentOpacity)
         .scale({ x: this.contentScale, y: this.contentScale })
@@ -1083,7 +1083,7 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ThemeConfig.transparent)
+    .backgroundColor(ColorResource.transparent)
     .padding({
       top: this.getUIContext().px2vp(this.topRectHeight),
       // bottom: this.getUIContext().px2vp(this.bottomRectHeight)
@@ -1100,10 +1100,10 @@ struct HomePage {
           Text('项目列表')
             .fontSize(ThemeConfig.fontSizeXXL)
             .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ThemeConfig.surfaceDeep)
+            .fontColor(ColorResource.surfaceDeep)
           Text(`(${this.projectList.length})`)
             .fontSize(ThemeConfig.fontSizeM)
-            .fontColor(ThemeConfig.surfaceEmphasized)
+            .fontColor(ColorResource.surfaceEmphasized)
             .fontWeight(ThemeConfig.fontWeightMedium)
         }
         .alignItems(HorizontalAlign.Start)
@@ -1116,7 +1116,7 @@ struct HomePage {
             Circle()
               .width(60)
               .height(60)
-              .stroke(ThemeConfig.primaryUltraLight)
+              .stroke(ColorResource.primaryUltraLight)
               .strokeWidth(4)
               .fill(Color.Transparent)
           }
@@ -1126,7 +1126,7 @@ struct HomePage {
             Circle()
               .width(60)
               .height(60)
-              .stroke(ThemeConfig.primaryColor)
+              .stroke(ColorResource.primaryColor)
               .strokeWidth(4)
               .fill(Color.Transparent)
               .strokeDashArray([this.progressAngle * 3.14 * 60 / 360, 3.14 * 60])
@@ -1146,18 +1146,18 @@ struct HomePage {
               .fontSize(ThemeConfig.fontSizeXXXXL)
               .fontColor(Color.White)
               .fontWeight(ThemeConfig.fontWeightBold)
-              .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ThemeConfig.textShadowMedium.color, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
+              .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
           }
           .accessibilityLevel('important')
           .width(60)
           .height(60)
           .type(ButtonType.Circle)
-          .backgroundColor(this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryColor)
+          .backgroundColor(this.isLongPressing ? ColorResource.primaryDark : ColorResource.primaryColor)
           .shadow(ThemeConfig.shadowMedium)
           // .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
           .border({ 
             width: 2, 
-            color: this.isLongPressing ? ThemeConfig.primaryDark : ThemeConfig.primaryUltraLight, 
+            color: this.isLongPressing ? ColorResource.primaryDark : ColorResource.primaryUltraLight, 
             radius: 30 
           })
           .scale({ x: this.buttonScale, y: this.buttonScale })
@@ -1199,9 +1199,9 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparent : $r('sys.color.comp_background_list_card'))
+      .backgroundColor(this.showCanvasBackground ? ColorResource.transparent : $r('sys.color.comp_background_list_card'))
       .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
-      .border({ width: { bottom: 1 }, color: ThemeConfig.borderDivider })
+      .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
 
       // 当前项目信息区域 - 简约设计
       if (this.selectedProjectDetail) {
@@ -1209,12 +1209,12 @@ struct HomePage {
           Column({ space: 2 }) {
             Text('当前项目')
               .fontSize(11)
-              .fontColor(ThemeConfig.textMuted)
+              .fontColor(ColorResource.textMuted)
               .fontWeight(FontWeight.Medium)
             Text(this.selectedProjectDetail.name)
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
-              .fontColor(ThemeConfig.textStrong)
+              .fontColor(ColorResource.textStrong)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
@@ -1223,9 +1223,9 @@ struct HomePage {
         }
         .width('100%')
         .padding(12)
-        .backgroundColor(ThemeConfig.transparent)
+        .backgroundColor(ColorResource.transparent)
         .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
-        .border({ width: { bottom: 1 }, color: ThemeConfig.borderDivider })
+        .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
       }
 
       // 项目列表内容区域
@@ -1236,11 +1236,11 @@ struct HomePage {
           Column({ space: 8 }) {
             Text('空空如也')
               .fontSize(18)
-              .fontColor(ThemeConfig.textMuted)
+              .fontColor(ColorResource.textMuted)
               .fontWeight(FontWeight.Bold)
             Text('点击右上角"+"按钮\n创建您的第一个项目')
               .fontSize(14)
-              .fontColor(ThemeConfig.textSubdued)
+              .fontColor(ColorResource.textSubdued)
               .textAlign(TextAlign.Center)
               .lineHeight(20)
           }
@@ -1248,7 +1248,7 @@ struct HomePage {
         .width('100%')
         .padding(32)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(ThemeConfig.transparent)
+        .backgroundColor(ColorResource.transparent)
         .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
         .borderRadius(ThemeConfig.radiusLarge)
         .margin(ThemeConfig.spacingM)
@@ -1265,13 +1265,13 @@ struct HomePage {
                   Text(meta.name)
                     .fontSize(ThemeConfig.fontSizeL)
                     .fontWeight(ThemeConfig.fontWeightBold)
-                    .fontColor(ThemeConfig.surfaceDeep)
+                    .fontColor(ColorResource.surfaceDeep)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .shadow({ radius: ThemeConfig.textShadowSmall.radius, color: ThemeConfig.textShadowSmall.color, offsetX: ThemeConfig.textShadowSmall.offsetX, offsetY: ThemeConfig.textShadowSmall.offsetY })
+                    .shadow({ radius: ThemeConfig.textShadowSmall.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.textShadowSmall.offsetX, offsetY: ThemeConfig.textShadowSmall.offsetY })
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
                     .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ThemeConfig.surfaceEmphasized)
+                    .fontColor(ColorResource.surfaceEmphasized)
                     .fontWeight(ThemeConfig.fontWeightMedium)
                 }
                 .alignItems(HorizontalAlign.Start)
@@ -1282,16 +1282,16 @@ struct HomePage {
                   Button() {
                     Text('×')
                       .fontSize(ThemeConfig.fontSizeL)
-                      .fontColor(ThemeConfig.errorColor)
+                      .fontColor(ColorResource.errorColor)
                       .fontWeight(ThemeConfig.fontWeightBold)
                   }
                   .width(40)
                   .height(40)
                   .type(ButtonType.Circle)
-                  .backgroundColor(this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorLight)
+                  .backgroundColor(this.hoveredDeleteId === meta.id ? ColorResource.errorColor : ColorResource.errorLight)
                   .border({ 
                     width: 2, 
-                    color: this.hoveredDeleteId === meta.id ? ThemeConfig.errorColor : ThemeConfig.errorColor, 
+                    color: this.hoveredDeleteId === meta.id ? ColorResource.errorColor : ColorResource.errorColor, 
                     radius: 20 
                   })
                   .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
@@ -1319,17 +1319,17 @@ struct HomePage {
               .width('100%')
               .padding(ThemeConfig.spacingXL)
               .backgroundColor(this.selectedProjectId === meta.id ? 
-                               (this.showCanvasBackground ? ThemeConfig.hoverPrimaryFaint : ThemeConfig.primaryUltraLight) :
+                               (this.showCanvasBackground ? ColorResource.hoverPrimaryLight : ColorResource.primaryUltraLight) :
                                this.hoveredProjectId === meta.id ? 
-                               (this.showCanvasBackground ? ThemeConfig.overlayRegular : ThemeConfig.surfaceSubtle) : 
-                               (this.showCanvasBackground ? ThemeConfig.overlayMedium : ThemeConfig.surface))
+                               (this.showCanvasBackground ? ColorResource.overlayRegular : ColorResource.surfaceSubtle) : 
+                               (this.showCanvasBackground ? ColorResource.overlayMedium : ColorResource.surface))
               .borderRadius(ThemeConfig.radiusXLarge)
               .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
               .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
                      this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
                 width: this.selectedProjectId === meta.id ? 3 : 1, 
-                color: this.selectedProjectId === meta.id ? ThemeConfig.primaryColor : ThemeConfig.surfaceNeutral, 
+                color: this.selectedProjectId === meta.id ? ColorResource.primaryColor : ColorResource.surfaceNeutral, 
                 radius: ThemeConfig.radiusXLarge 
               })
               .margin({ bottom: ThemeConfig.spacingM })
@@ -1388,9 +1388,9 @@ struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.showCanvasBackground ? ThemeConfig.transparent : ThemeConfig.backgroundPage)
+    .backgroundColor(this.showCanvasBackground ? ColorResource.transparent : ColorResource.backgroundPage)
     .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
-    .border({ width: { right: 1 }, color: ThemeConfig.borderDivider })
+    .border({ width: { right: 1 }, color: ColorResource.borderDivider })
     .layoutWeight(1)
   }
 

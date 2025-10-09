@@ -41,7 +41,7 @@ import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
 import { CommandHistory } from '../core/CommandHistory';
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { AppState } from '../core/AppState';
 
 /**
@@ -370,7 +370,7 @@ struct Index {
             Line()
               .startPoint([index * 200, 0])
               .endPoint([index * 200, '100%'])
-              .stroke(ThemeConfig.canvasGridLine)
+              .stroke(ColorResource.canvasGridLine)
               .strokeWidth(1)
           })
 
@@ -379,7 +379,7 @@ struct Index {
             Line()
               .startPoint([0, index * 200])
               .endPoint(['100%', index * 200])
-              .stroke(ThemeConfig.canvasGridLine)
+              .stroke(ColorResource.canvasGridLine)
               .strokeWidth(1)
           })
         }
@@ -393,7 +393,7 @@ struct Index {
             Line()
               .startPoint([index * 100, 0])
               .endPoint([index * 100, '100%'])
-              .stroke(ThemeConfig.canvasGridLineFine)
+              .stroke(ColorResource.canvasGridLineFine)
               .strokeWidth(0.5)
           })
 
@@ -402,7 +402,7 @@ struct Index {
             Line()
               .startPoint([0, index * 100])
               .endPoint(['100%', index * 100])
-              .stroke(ThemeConfig.canvasGridLineFine)
+              .stroke(ColorResource.canvasGridLineFine)
               .strokeWidth(0.5)
           })
         }
@@ -423,7 +423,7 @@ struct Index {
     })
     .shadow({
       radius: 8,
-      color: ThemeConfig.shadowSmall.color,
+      color: ColorResource.shadowColorSubtle,
       offsetX: 0,
       offsetY: 2
     })
@@ -436,17 +436,17 @@ struct Index {
         Text(this.sidebarVisible ? '<' : '>')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor(ThemeConfig.surfaceDark)
+          .fontColor(ColorResource.surfaceDark)
       }
       .width(32)
       .height(48)
-      .backgroundColor(ThemeConfig.overlayStrong)
+      .backgroundColor(ColorResource.overlayStrong)
       .borderRadius(8)
       .position({ x: 16, y: '50%' })
       .translate({ x: 0, y: -24 })
       .zIndex(200)
       .backdropBlur(ThemeConfig.backdropBlurMedium)
-      .border({ width: 1, color: ThemeConfig.shadowColorMinimal, radius: 8 })
+      .border({ width: 1, color: ColorResource.shadowColorSubtle, radius: 8 })
       .onClick(() => {
         this.sidebarVisible = !this.sidebarVisible
       })
@@ -539,16 +539,16 @@ struct Index {
             Button() {
               Text('↶ 撤销')
                 .fontSize(13)
-                .fontColor(this.canUndo ? ThemeConfig.errorColor : ThemeConfig.surfaceStrong)
+                .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(75)
             .height(36)
-            .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.surfaceLight)
+            .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({
               width: 2,
-              color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.surfaceNeutral,
+              color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral,
               radius: ThemeConfig.radiusMedium
             })
             .shadow(ThemeConfig.shadowMedium)
@@ -577,16 +577,16 @@ struct Index {
             Button() {
               Text('↷ 重做')
                 .fontSize(13)
-                .fontColor(this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.surfaceStrong)
+                .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(75)
             .height(36)
-            .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.surfaceLight)
+            .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({
               width: 2,
-              color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.surfaceNeutral,
+              color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
               radius: ThemeConfig.radiusMedium
             })
             .shadow(ThemeConfig.shadowMedium)
@@ -614,14 +614,14 @@ struct Index {
             Button() {
               Text(this.canvasLock ? '🔓 解锁' : '🔒 锁定')
                 .fontSize(13)
-                .fontColor(ThemeConfig.primaryColor)
+                .fontColor(ColorResource.primaryColor)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(75)
             .height(36)
-            .backgroundColor(ThemeConfig.primaryUltraLight)
+            .backgroundColor(ColorResource.primaryUltraLight)
             .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: ThemeConfig.primaryColor, radius: ThemeConfig.radiusMedium })
+            .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .onClick(() => {
@@ -633,14 +633,14 @@ struct Index {
             Button() {
               Text('🔄 复原')
                 .fontSize(13)
-                .fontColor(ThemeConfig.successColor)
+                .fontColor(ColorResource.successColor)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(70)
             .height(36)
-            .backgroundColor(ThemeConfig.successLight)
+            .backgroundColor(ColorResource.successLight)
             .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: ThemeConfig.successColor, radius: ThemeConfig.radiusMedium })
+            .border({ width: 2, color: ColorResource.successColor, radius: ThemeConfig.radiusMedium })
             .shadow(ThemeConfig.shadowMedium)
             .margin({ right: 12, top: 12 })
             .onClick(() => {

@@ -3,7 +3,342 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFFFF"
+    },
+    {
+      "name": "primary_color",
+      "value": "#007AFF"
+    },
+    {
+      "name": "primary_light",
+      "value": "#E3F2FD"
+    },
+    {
+      "name": "primary_dark",
+      "value": "#0056CC"
+    },
+    {
+      "name": "primary_ultra_light",
+      "value": "#F0F8FF"
+    },
+    {
+      "name": "secondary_color",
+      "value": "#8E8E93"
+    },
+    {
+      "name": "secondary_light",
+      "value": "#F2F2F7"
+    },
+    {
+      "name": "secondary_dark",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "success_color",
+      "value": "#34C759"
+    },
+    {
+      "name": "success_light",
+      "value": "#E8F5E8"
+    },
+    {
+      "name": "warning_color",
+      "value": "#FF9500"
+    },
+    {
+      "name": "warning_light",
+      "value": "#FFF4E6"
+    },
+    {
+      "name": "error_color",
+      "value": "#FF3B30"
+    },
+    {
+      "name": "error_light",
+      "value": "#FFEBEE"
+    },
+    {
+      "name": "info_color",
+      "value": "#5AC8FA"
+    },
+    {
+      "name": "info_light",
+      "value": "#E3F2FD"
+    },
+    {
+      "name": "surface",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "surface_subtle",
+      "value": "#F9FAFB"
+    },
+    {
+      "name": "surface_light",
+      "value": "#F2F2F7"
+    },
+    {
+      "name": "surface_neutral",
+      "value": "#E5E5EA"
+    },
+    {
+      "name": "surface_muted",
+      "value": "#D1D1D6"
+    },
+    {
+      "name": "surface_strong",
+      "value": "#C7C7CC"
+    },
+    {
+      "name": "surface_emphasized",
+      "value": "#8E8E93"
+    },
+    {
+      "name": "surface_bold",
+      "value": "#636366"
+    },
+    {
+      "name": "surface_dark",
+      "value": "#48484A"
+    },
+    {
+      "name": "surface_deep",
+      "value": "#3A3A3C"
+    },
+    {
+      "name": "surface_deepest",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "background_primary",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "background_secondary",
+      "value": "#F2F2F7"
+    },
+    {
+      "name": "background_tertiary",
+      "value": "#E5E5EA"
+    },
+    {
+      "name": "background_elevated",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "background_card",
+      "value": "#F8FAFC"
+    },
+    {
+      "name": "background_page",
+      "value": "#FAFBFC"
+    },
+    {
+      "name": "background_input",
+      "value": "#F5F5F7"
+    },
+    {
+      "name": "overlay_heavy",
+      "value": "#E6FFFFFF"
+    },
+    {
+      "name": "overlay_strong",
+      "value": "#CCFFFFFF"
+    },
+    {
+      "name": "overlay_medium",
+      "value": "#B3FFFFFF"
+    },
+    {
+      "name": "overlay_regular",
+      "value": "#99FFFFFF"
+    },
+    {
+      "name": "overlay_light",
+      "value": "#80FFFFFF"
+    },
+    {
+      "name": "overlay_subtle",
+      "value": "#66FFFFFF"
+    },
+    {
+      "name": "shadow_color_strong",
+      "value": "#80000000"
+    },
+    {
+      "name": "shadow_color_medium",
+      "value": "#66000000"
+    },
+    {
+      "name": "shadow_color_regular",
+      "value": "#4D000000"
+    },
+    {
+      "name": "shadow_color_light",
+      "value": "#40000000"
+    },
+    {
+      "name": "shadow_color_subtle",
+      "value": "#33000000"
+    },
+    {
+      "name": "shadow_color_faint",
+      "value": "#26000000"
+    },
+    {
+      "name": "hover_primary",
+      "value": "#4D007AFF"
+    },
+    {
+      "name": "hover_primary_light",
+      "value": "#40007AFF"
+    },
+    {
+      "name": "hover_success",
+      "value": "#3334C759"
+    },
+    {
+      "name": "hover_warning",
+      "value": "#33FF9500"
+    },
+    {
+      "name": "hover_error",
+      "value": "#33FF3B30"
+    },
+    {
+      "name": "hover_neutral",
+      "value": "#338E8E93"
+    },
+    {
+      "name": "transparent",
+      "value": "#00000000"
+    },
+    {
+      "name": "border_default",
+      "value": "#E2E8F0"
+    },
+    {
+      "name": "border_grid",
+      "value": "#E0E0E0"
+    },
+    {
+      "name": "border_grid_fine",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "border_divider",
+      "value": "#E2E8F0"
+    },
+    {
+      "name": "text_primary",
+      "value": "#1D1D1F"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#666666"
+    },
+    {
+      "name": "text_tertiary",
+      "value": "#86868B"
+    },
+    {
+      "name": "text_success",
+      "value": "#28A745"
+    },
+    {
+      "name": "text_muted",
+      "value": "#64748B"
+    },
+    {
+      "name": "text_subdued",
+      "value": "#94A3B8"
+    },
+    {
+      "name": "text_strong",
+      "value": "#1E293B"
+    },
+    {
+      "name": "task_critical",
+      "value": "#D0021B"
+    },
+    {
+      "name": "task_normal",
+      "value": "#4A90E2"
+    },
+    {
+      "name": "task_selected",
+      "value": "#FF8C00"
+    },
+    {
+      "name": "task_progress",
+      "value": "#2ECC71"
+    },
+    {
+      "name": "project_development",
+      "value": "#3B82F6"
+    },
+    {
+      "name": "project_design",
+      "value": "#8B5CF6"
+    },
+    {
+      "name": "project_marketing",
+      "value": "#F59E0B"
+    },
+    {
+      "name": "project_research",
+      "value": "#10B981"
+    },
+    {
+      "name": "project_other",
+      "value": "#6B7280"
+    },
+    {
+      "name": "canvas_grid_line",
+      "value": "#E0E0E0"
+    },
+    {
+      "name": "canvas_grid_line_fine",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "decorative_slate",
+      "value": "#E2E8F0"
+    },
+    {
+      "name": "decorative_slate_dark",
+      "value": "#CBD5E1"
+    },
+    {
+      "name": "decorative_stone",
+      "value": "#D1D5DB"
+    },
+    {
+      "name": "decorative_pearl",
+      "value": "#E5E7EB"
+    },
+    {
+      "name": "decorative_fog",
+      "value": "#F3F4F6"
+    },
+    {
+      "name": "decorative_cloud",
+      "value": "#F1F5F9"
+    },
+    {
+      "name": "decorative_mist",
+      "value": "#F8FAFC"
+    },
+    {
+      "name": "decorative_frost",
+      "value": "#F9FAFB"
+    },
+    {
+      "name": "decorative_snow",
+      "value": "#FAFBFC"
+    },
+    {
+      "name": "decorative_ice",
+      "value": "#FCFCFD"
     }
-
   ]
 }

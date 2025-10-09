@@ -8,8 +8,125 @@ interface ShadowConfig {
   offsetY: number;
 }
 
+// 颜色资源类 - 使用 Resource 类型从 color.json 读取
+export class ColorResource {
+  // 主色调
+  static readonly primaryColor = $r('app.color.primary_color');
+  static readonly primaryLight = $r('app.color.primary_light');
+  static readonly primaryDark = $r('app.color.primary_dark');
+  static readonly primaryUltraLight = $r('app.color.primary_ultra_light');
+
+  // 辅助色
+  static readonly secondaryColor = $r('app.color.secondary_color');
+  static readonly secondaryLight = $r('app.color.secondary_light');
+  static readonly secondaryDark = $r('app.color.secondary_dark');
+
+  // 功能色
+  static readonly successColor = $r('app.color.success_color');
+  static readonly successLight = $r('app.color.success_light');
+  static readonly warningColor = $r('app.color.warning_color');
+  static readonly warningLight = $r('app.color.warning_light');
+  static readonly errorColor = $r('app.color.error_color');
+  static readonly errorLight = $r('app.color.error_light');
+  static readonly infoColor = $r('app.color.info_color');
+  static readonly infoLight = $r('app.color.info_light');
+
+  // 表面色系统
+  static readonly surface = $r('app.color.surface');
+  static readonly surfaceSubtle = $r('app.color.surface_subtle');
+  static readonly surfaceLight = $r('app.color.surface_light');
+  static readonly surfaceNeutral = $r('app.color.surface_neutral');
+  static readonly surfaceMuted = $r('app.color.surface_muted');
+  static readonly surfaceStrong = $r('app.color.surface_strong');
+  static readonly surfaceEmphasized = $r('app.color.surface_emphasized');
+  static readonly surfaceBold = $r('app.color.surface_bold');
+  static readonly surfaceDark = $r('app.color.surface_dark');
+  static readonly surfaceDeep = $r('app.color.surface_deep');
+  static readonly surfaceDeepest = $r('app.color.surface_deepest');
+
+  // 背景色系统
+  static readonly backgroundPrimary = $r('app.color.background_primary');
+  static readonly backgroundSecondary = $r('app.color.background_secondary');
+  static readonly backgroundTertiary = $r('app.color.background_tertiary');
+  static readonly backgroundElevated = $r('app.color.background_elevated');
+  static readonly backgroundCard = $r('app.color.background_card');
+  static readonly backgroundPage = $r('app.color.background_page');
+  static readonly backgroundInput = $r('app.color.background_input');
+
+  // 覆盖层颜色
+  static readonly overlayHeavy = $r('app.color.overlay_heavy');
+  static readonly overlayStrong = $r('app.color.overlay_strong');
+  static readonly overlayMedium = $r('app.color.overlay_medium');
+  static readonly overlayRegular = $r('app.color.overlay_regular');
+  static readonly overlayLight = $r('app.color.overlay_light');
+  static readonly overlaySubtle = $r('app.color.overlay_subtle');
+
+  // 阴影颜色
+  static readonly shadowColorStrong = $r('app.color.shadow_color_strong');
+  static readonly shadowColorMedium = $r('app.color.shadow_color_medium');
+  static readonly shadowColorRegular = $r('app.color.shadow_color_regular');
+  static readonly shadowColorLight = $r('app.color.shadow_color_light');
+  static readonly shadowColorSubtle = $r('app.color.shadow_color_subtle');
+  static readonly shadowColorFaint = $r('app.color.shadow_color_faint');
+
+  // 悬停效果颜色
+  static readonly hoverPrimary = $r('app.color.hover_primary');
+  static readonly hoverPrimaryLight = $r('app.color.hover_primary_light');
+  static readonly hoverSuccess = $r('app.color.hover_success');
+  static readonly hoverWarning = $r('app.color.hover_warning');
+  static readonly hoverError = $r('app.color.hover_error');
+  static readonly hoverNeutral = $r('app.color.hover_neutral');
+
+  // 完全透明
+  static readonly transparent = $r('app.color.transparent');
+
+  // 边框颜色
+  static readonly borderDefault = $r('app.color.border_default');
+  static readonly borderGrid = $r('app.color.border_grid');
+  static readonly borderGridFine = $r('app.color.border_grid_fine');
+  static readonly borderDivider = $r('app.color.border_divider');
+
+  // 文字颜色
+  static readonly textPrimary = $r('app.color.text_primary');
+  static readonly textSecondary = $r('app.color.text_secondary');
+  static readonly textTertiary = $r('app.color.text_tertiary');
+  static readonly textSuccess = $r('app.color.text_success');
+  static readonly textMuted = $r('app.color.text_muted');
+  static readonly textSubdued = $r('app.color.text_subdued');
+  static readonly textStrong = $r('app.color.text_strong');
+
+  // 任务状态颜色
+  static readonly taskCritical = $r('app.color.task_critical');
+  static readonly taskNormal = $r('app.color.task_normal');
+  static readonly taskSelected = $r('app.color.task_selected');
+  static readonly taskProgress = $r('app.color.task_progress');
+
+  // 项目类型颜色
+  static readonly projectDevelopment = $r('app.color.project_development');
+  static readonly projectDesign = $r('app.color.project_design');
+  static readonly projectMarketing = $r('app.color.project_marketing');
+  static readonly projectResearch = $r('app.color.project_research');
+  static readonly projectOther = $r('app.color.project_other');
+
+  // 画布网格线颜色
+  static readonly canvasGridLine = $r('app.color.canvas_grid_line');
+  static readonly canvasGridLineFine = $r('app.color.canvas_grid_line_fine');
+
+  // 装饰性颜色
+  static readonly decorativeSlate = $r('app.color.decorative_slate');
+  static readonly decorativeSlateDark = $r('app.color.decorative_slate_dark');
+  static readonly decorativeStone = $r('app.color.decorative_stone');
+  static readonly decorativePearl = $r('app.color.decorative_pearl');
+  static readonly decorativeFog = $r('app.color.decorative_fog');
+  static readonly decorativeCloud = $r('app.color.decorative_cloud');
+  static readonly decorativeMist = $r('app.color.decorative_mist');
+  static readonly decorativeFrost = $r('app.color.decorative_frost');
+  static readonly decorativeSnow = $r('app.color.decorative_snow');
+  static readonly decorativeIce = $r('app.color.decorative_ice');
+}
+
 export class ThemeConfig {
-  // 主色调 - 现代蓝色系，增强视觉层次
+  // 主色调 - 现代蓝色系，增强视觉层次（保留用于需要字符串类型的场景）
   static readonly primaryColor = '#007AFF';
   static readonly primaryLight = '#E3F2FD';
   static readonly primaryDark = '#0056CC';

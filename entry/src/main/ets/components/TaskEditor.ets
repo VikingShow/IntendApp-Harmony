@@ -35,7 +35,7 @@
 import { TaskNode, ChecklistItem } from '../model/ProjectData';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { PromptAction } from '@kit.ArkUI';
 
 /**
@@ -244,7 +244,7 @@ export struct TaskEditor {
               Text('编辑任务')
                  .fontSize(ThemeConfig.fontSizeXXL)
                  .fontWeight(ThemeConfig.fontWeightMedium)
-                 .fontColor(ThemeConfig.surfaceDeep)
+                 .fontColor(ColorResource.surfaceDeep)
                  .layoutWeight(1)
             }
             .width('100%')
@@ -254,19 +254,19 @@ export struct TaskEditor {
               Text('任务名称')
                 .fontSize(ThemeConfig.fontSizeS)
                 .fontWeight(ThemeConfig.fontWeightMedium)
-                .fontColor(ThemeConfig.surfaceEmphasized)
+                .fontColor(ColorResource.surfaceEmphasized)
               TextInput({ text: this.localTask.name || '', placeholder: '请输入任务名称' })
-                .backgroundColor(ThemeConfig.transparent)
+                .backgroundColor(ColorResource.transparent)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
                 .width('100%')
-                .fontColor(ThemeConfig.surfaceDeep)
-                .placeholderColor(ThemeConfig.surfaceEmphasized)
+                .fontColor(ColorResource.surfaceDeep)
+                .placeholderColor(ColorResource.surfaceEmphasized)
                 .shadow(ThemeConfig.inputShadow)
                 .border({ 
                   width: 2, 
-                  color: ThemeConfig.surfaceNeutral, 
+                  color: ColorResource.surfaceNeutral, 
                   radius: ThemeConfig.radiusMedium 
                 })
                 .onFocus(() => {
@@ -311,13 +311,13 @@ export struct TaskEditor {
                  Text('开始日期')
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
-                   .fontColor(ThemeConfig.textTertiary)
+                   .fontColor(ColorResource.textTertiary)
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
                    selected: this.localTask.startDate || new Date()
                  })
-                   .backgroundColor(ThemeConfig.transparent)
+                   .backgroundColor(ColorResource.transparent)
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -341,13 +341,13 @@ export struct TaskEditor {
                  Text('结束日期')
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
-                   .fontColor(ThemeConfig.textTertiary)
+                   .fontColor(ColorResource.textTertiary)
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
                    selected: this.localTask.endDate || new Date()
                  })
-                   .backgroundColor(ThemeConfig.transparent)
+                   .backgroundColor(ColorResource.transparent)
                    .borderRadius(12)
                    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
                    .border({ width: 0, radius: 12 })
@@ -371,14 +371,14 @@ export struct TaskEditor {
             Row({ space: 8 }) {
               Text(`工期: ${this.getDuration()} 天`)
                 .fontSize(13)
-                .fontColor(ThemeConfig.textTertiary)
+                .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)
             }
             .width('100%')
             .justifyContent(FlexAlign.End)
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor(ThemeConfig.transparent)
+          .backgroundColor(ColorResource.transparent)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
@@ -390,7 +390,7 @@ export struct TaskEditor {
               Text('任务清单')
                  .fontSize(18)
                  .fontWeight(FontWeight.Medium)
-                 .fontColor(ThemeConfig.textPrimary)
+                 .fontColor(ColorResource.textPrimary)
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
@@ -402,16 +402,16 @@ export struct TaskEditor {
                 text: this.newChecklistItemText 
               })
                 .layoutWeight(1)
-                .backgroundColor(ThemeConfig.transparent)
+                .backgroundColor(ColorResource.transparent)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
                 .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(ThemeConfig.surfaceDeep)
-                .placeholderColor(ThemeConfig.surfaceEmphasized)
+                .fontColor(ColorResource.surfaceDeep)
+                .placeholderColor(ColorResource.surfaceEmphasized)
                 .shadow(ThemeConfig.inputShadow)
                 .border({ 
                   width: 2, 
-                  color: ThemeConfig.surfaceNeutral, 
+                  color: ColorResource.surfaceNeutral, 
                   radius: ThemeConfig.radiusMedium 
                 })
                 .enterKeyType(EnterKeyType.Go)
@@ -436,10 +436,10 @@ export struct TaskEditor {
               }
               .width(52)
               .height(52)
-              .backgroundColor(ThemeConfig.primaryColor)
+              .backgroundColor(ColorResource.primaryColor)
               .borderRadius(ThemeConfig.radiusMedium)
               .shadow(ThemeConfig.shadowMedium)
-              .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: ThemeConfig.radiusMedium })
+              .border({ width: 2, color: ColorResource.primaryUltraLight, radius: ThemeConfig.radiusMedium })
               .onClick(() => {
                 this.submitNewChecklistItem();
               })
@@ -454,7 +454,7 @@ export struct TaskEditor {
                   .opacity(0.4)
                 Text('暂无子任务')
                   .fontSize(14)
-                  .fontColor(ThemeConfig.textTertiary)
+                  .fontColor(ColorResource.textTertiary)
               }
               .width('100%')
               .padding(24)
@@ -491,7 +491,7 @@ export struct TaskEditor {
                       })
                     Text(item.text)
                       .fontSize(15)
-                      .fontColor(item.isCompleted ? ThemeConfig.textTertiary : ThemeConfig.textPrimary)
+                      .fontColor(item.isCompleted ? ColorResource.textTertiary : ColorResource.textPrimary)
                       .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)
@@ -500,14 +500,14 @@ export struct TaskEditor {
                     Button() {
                       Text('×')
                         .fontSize(16)
-                        .fontColor(ThemeConfig.errorColor)
+                        .fontColor(ColorResource.errorColor)
                         .fontWeight(ThemeConfig.fontWeightBold)
                     }
                     .width(40)
                     .height(40)
                     .type(ButtonType.Circle)
-                    .backgroundColor(ThemeConfig.errorLight)
-                    .border({ width: 2, color: ThemeConfig.errorColor, radius: 20 })
+                    .backgroundColor(ColorResource.errorLight)
+                    .border({ width: 2, color: ColorResource.errorColor, radius: 20 })
                     .shadow(ThemeConfig.shadowMedium)
                     .onClick(() => {
                       this.deleteChecklistItem(item.id);
@@ -515,7 +515,7 @@ export struct TaskEditor {
                   }
                   .width('100%')
                   .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
-                  .backgroundColor(item.isCompleted ? ThemeConfig.surfaceLight : ThemeConfig.transparent)
+                  .backgroundColor(item.isCompleted ? ColorResource.surfaceLight : ColorResource.transparent)
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(item.isCompleted ? ThemeConfig.shadowSmall : ThemeConfig.shadowSmall)
                   .border({ 
@@ -530,7 +530,7 @@ export struct TaskEditor {
             }
           }
           .padding(ThemeConfig.spacingXL)
-          .backgroundColor(ThemeConfig.transparent)
+          .backgroundColor(ColorResource.transparent)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })

@@ -1,6 +1,6 @@
 // File: entry/src/main/ets/components/CommonButton.ets
 
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 @Component
 export struct CommonButton {
@@ -58,25 +58,25 @@ export struct CommonButton {
 
   private getBackgroundColor(): ResourceColor {
     if (this.disabled) {
-      return ThemeConfig.surfaceNeutral;
+      return ColorResource.surfaceNeutral;
     }
     
     switch (this.type) {
-      case 'primary': return ThemeConfig.primaryColor;
-      case 'secondary': return ThemeConfig.secondaryLight;
-      case 'danger': return ThemeConfig.errorColor;
-      default: return ThemeConfig.primaryColor;
+      case 'primary': return ColorResource.primaryColor;
+      case 'secondary': return ColorResource.secondaryLight;
+      case 'danger': return ColorResource.errorColor;
+      default: return ColorResource.primaryColor;
     }
   }
 
   private getTextColor(): ResourceColor {
     if (this.disabled) {
-      return ThemeConfig.surfaceStrong;
+      return ColorResource.surfaceStrong;
     }
     
     switch (this.type) {
-      case 'secondary': return ThemeConfig.surfaceDark;
-      default: return ThemeConfig.surface;
+      case 'secondary': return ColorResource.surfaceDark;
+      default: return ColorResource.surface;
     }
   }
 

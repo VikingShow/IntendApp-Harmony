@@ -1,6 +1,6 @@
 // File: entry/src/main/ets/components/WelcomeView.ets
 
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 @Component
 export struct WelcomeView {
@@ -16,19 +16,19 @@ export struct WelcomeView {
           Text('一思不漏')
             .fontSize(ThemeConfig.fontSizeXXXXXXXL)
             .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ThemeConfig.primaryColor)
+            .fontColor(ColorResource.primaryColor)
             .textAlign(TextAlign.Center)
-            .shadow({ radius: 4, color: ThemeConfig.primaryColor + '30', offsetX: 0, offsetY: 4 })
+            .shadow({ radius: 4, color: ColorResource.hoverPrimaryLight, offsetX: 0, offsetY: 4 })
           Text('EazyFlow')
             .fontSize(ThemeConfig.fontSizeXXXL)
-            .fontColor(ThemeConfig.surfaceBold)
+            .fontColor(ColorResource.surfaceBold)
             .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
             // .shadow({ radius: 2, color: ThemeConfig.gray600 + '20', offsetX: 0, offsetY: 2 })
             .margin({ top: ThemeConfig.spacingS })
           Text('让每个想法都不被遗漏，让每个项目都井然有序')
             .fontSize(ThemeConfig.fontSizeL)
-            .fontColor(ThemeConfig.surfaceEmphasized)
+            .fontColor(ColorResource.surfaceEmphasized)
             .textAlign(TextAlign.Center)
             .lineHeight(28)
             .fontWeight(ThemeConfig.fontWeightMedium)
@@ -43,7 +43,7 @@ export struct WelcomeView {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ThemeConfig.backgroundPrimary)
+    .backgroundColor(ColorResource.backgroundPrimary)
   }
 
   // @Builder

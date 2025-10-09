@@ -109,7 +109,7 @@ export class CanvasRenderer {
     const height = 3000;
     
     // 设置网格样式
-    this.context.strokeStyle = ThemeConfig.canvasGridLine;
+    this.context.strokeStyle = ThemeConfig.canvasGridLine.toString();
     this.context.lineWidth = 1;
     
     // 绘制主网格线
@@ -130,7 +130,7 @@ export class CanvasRenderer {
     this.context.stroke();
     
     // 绘制细网格线
-    this.context.strokeStyle = ThemeConfig.canvasGridLineFine;
+    this.context.strokeStyle = ThemeConfig.canvasGridLineFine.toString();
     this.context.lineWidth = 0.5;
     this.context.beginPath();
     
@@ -164,7 +164,7 @@ export class CanvasRenderer {
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
-        this.context.strokeStyle = isCriticalDep ? ThemeConfig.taskCritical : ThemeConfig.textSecondary;
+        this.context.strokeStyle = isCriticalDep ? ThemeConfig.taskCritical.toString() : ThemeConfig.textSecondary.toString();
         this.context.lineWidth = isCriticalDep ? 3 : 2;
         this.context.stroke();
       }
@@ -180,17 +180,17 @@ export class CanvasRenderer {
       const drawY = task.y + config.canvasOffsetY;
 
       // 节点背景
-      this.context.fillStyle = ThemeConfig.surface;
+      this.context.fillStyle = ThemeConfig.surface.toString();
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 
       // 节点边框
-      this.context.strokeStyle = isSelected ? ThemeConfig.taskSelected : (task.isCritical ? ThemeConfig.taskCritical : ThemeConfig.taskNormal);
+      this.context.strokeStyle = isSelected ? ThemeConfig.taskSelected.toString() : (task.isCritical ? ThemeConfig.taskCritical.toString() : ThemeConfig.taskNormal.toString());
       this.context.lineWidth = isSelected ? 4 : 2;
       this.context.stroke();
 
       // 任务名称
-      this.context.fillStyle = ThemeConfig.surfaceDeepest;
+      this.context.fillStyle = ThemeConfig.surfaceDeepest.toString();
       this.context.font = `bold 32px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 28);
 
@@ -205,10 +205,10 @@ export class CanvasRenderer {
       
       this.context.font = `23px HarmonyOS Sans`;
       this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 70);
-      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal);
+      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
       
       this.context.fillText(`完成: ${completionProgress}%`, drawX + 15, drawY + 95);
-      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress);
+      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
     });
   }
 
@@ -230,7 +230,7 @@ export class CanvasRenderer {
     const radius = height / 2;
     
     // 背景
-    this.context.fillStyle = ThemeConfig.canvasGridLine;
+    this.context.fillStyle = ThemeConfig.canvasGridLine.toString();
     this.drawRoundRect(this.context, x, y, width, height, radius);
     this.context.fill();
     

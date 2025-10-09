@@ -55,48 +55,48 @@ export class ThemeConfig {
 
   // 覆盖层颜色系统 - 用于半透明遮罩和浮层
   // 亮色覆盖层系列
-  static readonly overlayHeavy = 'rgba(255, 255, 255, 0.9)';
-  static readonly overlayStrong = 'rgba(255, 255, 255, 0.8)';
-  static readonly overlayMedium = 'rgba(255, 255, 255, 0.7)';
-  static readonly overlayRegular = 'rgba(255, 255, 255, 0.6)';
-  static readonly overlayLight = 'rgba(255, 255, 255, 0.5)';
-  static readonly overlaySubtle = 'rgba(255, 255, 255, 0.4)';
-  static readonly overlayFaint = 'rgba(255, 255, 255, 0.3)';
-  static readonly overlayVeryFaint = 'rgba(255, 255, 255, 0.25)';
-  static readonly overlayMinimal = 'rgba(255, 255, 255, 0.2)';
-  static readonly overlayBare = 'rgba(255, 255, 255, 0.15)';
-  static readonly overlayBarely = 'rgba(255, 255, 255, 0.1)';
+  static readonly overlayHeavy = '#E6FFFFFF';
+  static readonly overlayStrong = '#CCFFFFFF';
+  static readonly overlayMedium = '#B3FFFFFF';
+  static readonly overlayRegular = '#99FFFFFF';
+  static readonly overlayLight = '#80FFFFFF';
+  static readonly overlaySubtle = '#66FFFFFF';
+  static readonly overlayFaint = '#4DFFFFFF';
+  static readonly overlayVeryFaint = '#40FFFFFF';
+  static readonly overlayMinimal = '#33FFFFFF';
+  static readonly overlayBare = '#26FFFFFF';
+  static readonly overlayBarely = '#1AFFFFFF';
   
   // 暗色阴影系列 - 用于阴影和暗色遮罩
-  static readonly shadowColorStrong = 'rgba(0, 0, 0, 0.5)';
-  static readonly shadowColorMedium = 'rgba(0, 0, 0, 0.4)';
-  static readonly shadowColorRegular = 'rgba(0, 0, 0, 0.3)';
-  static readonly shadowColorLight = 'rgba(0, 0, 0, 0.25)';
-  static readonly shadowColorSubtle = 'rgba(0, 0, 0, 0.2)';
-  static readonly shadowColorFaint = 'rgba(0, 0, 0, 0.15)';
-  static readonly shadowColorMinimal = 'rgba(0, 0, 0, 0.1)';
-  static readonly shadowColorBare = 'rgba(0, 0, 0, 0.05)';
+  static readonly shadowColorStrong = '#80000000';
+  static readonly shadowColorMedium = '#66000000';
+  static readonly shadowColorRegular = '#4D000000';
+  static readonly shadowColorLight = '#40000000';
+  static readonly shadowColorSubtle = '#33000000';
+  static readonly shadowColorFaint = '#26000000';
+  static readonly shadowColorMinimal = '#1A000000';
+  static readonly shadowColorBare = '#0D000000';
   
   // 悬停效果颜色 - 主色调系列
-  static readonly hoverPrimary = 'rgba(0, 122, 255, 0.3)';
-  static readonly hoverPrimaryLight = 'rgba(0, 122, 255, 0.25)';
-  static readonly hoverPrimarySubtle = 'rgba(0, 122, 255, 0.2)';
-  static readonly hoverPrimaryFaint = 'rgba(0, 122, 255, 0.15)';
-  static readonly hoverPrimaryMinimal = 'rgba(0, 122, 255, 0.1)';
-  static readonly hoverPrimaryBare = 'rgba(0, 122, 255, 0.05)';
+  static readonly hoverPrimary = '#4D007AFF';
+  static readonly hoverPrimaryLight = '#40007AFF';
+  static readonly hoverPrimarySubtle = '#33007AFF';
+  static readonly hoverPrimaryFaint = '#26007AFF';
+  static readonly hoverPrimaryMinimal = '#1A007AFF';
+  static readonly hoverPrimaryBare = '#0D007AFF';
   
   // 悬停效果颜色 - 功能色系列
-  static readonly hoverSuccess = 'rgba(52, 199, 89, 0.2)';
-  static readonly hoverSuccessLight = 'rgba(52, 199, 89, 0.1)';
-  static readonly hoverWarning = 'rgba(255, 149, 0, 0.2)';
-  static readonly hoverWarningLight = 'rgba(255, 149, 0, 0.1)';
-  static readonly hoverError = 'rgba(255, 59, 48, 0.2)';
-  static readonly hoverErrorLight = 'rgba(255, 59, 48, 0.1)';
+  static readonly hoverSuccess = '#3334C759';
+  static readonly hoverSuccessLight = '#1A34C759';
+  static readonly hoverWarning = '#33FF9500';
+  static readonly hoverWarningLight = '#1AFF9500';
+  static readonly hoverError = '#33FF3B30';
+  static readonly hoverErrorLight = '#1AFF3B30';
   
   // 悬停效果颜色 - 中性色系列
-  static readonly hoverNeutral = 'rgba(142, 142, 147, 0.2)';
-  static readonly hoverNeutralLight = 'rgba(142, 142, 147, 0.1)';
-  static readonly hoverNeutralFaint = 'rgba(142, 142, 147, 0.05)';
+  static readonly hoverNeutral = '#338E8E93';
+  static readonly hoverNeutralLight = '#1A8E8E93';
+  static readonly hoverNeutralFaint = '#0D8E8E93';
   
   // 完全透明
   static readonly transparent = '#00000000';

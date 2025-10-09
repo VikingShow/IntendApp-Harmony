@@ -191,23 +191,23 @@ export class CanvasRenderer {
 
       // 任务名称
       this.context.fillStyle = ThemeConfig.gray900;
-      this.context.font = `bold 28px HarmonyOS Sans`;
-      this.context.fillText(task.name, drawX + 15, drawY + 25);
+      this.context.font = `bold 32px HarmonyOS Sans`;
+      this.context.fillText(task.name, drawX + 15, drawY + 28);
 
       // 日期信息
-      this.context.font = `22px HarmonyOS Sans`;
+      this.context.font = `24px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
-      this.context.fillText(`📅 ${dateString}`, drawX + 15, drawY + 45);
+      this.context.fillText(`${dateString}`, drawX + 15, drawY + 50);
 
       // 进度信息
       const timeProgress = this.getTimeProgress(task);
       const completionProgress = this.getCompletionProgress(task);
       
-      this.context.font = `19px HarmonyOS Sans`;
-      this.context.fillText(`⌛ 时间: ${timeProgress}%`, drawX + 15, drawY + 70);
+      this.context.font = `23px HarmonyOS Sans`;
+      this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 70);
       this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal);
       
-      this.context.fillText(`✓ 完成: ${completionProgress}%`, drawX + 15, drawY + 95);
+      this.context.fillText(`完成: ${completionProgress}%`, drawX + 15, drawY + 95);
       this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress);
     });
   }

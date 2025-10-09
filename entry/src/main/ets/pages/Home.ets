@@ -1291,7 +1291,8 @@ struct HomePage {
         if (this.dashboardKey > 0) {
           DashboardView({ 
             project: this.selectedProjectDetail,
-            showCanvasBackground: this.showCanvasBackground
+            showCanvasBackground: this.showCanvasBackground,
+            isDarkMode: this.isDarkMode
           })
             .key(`dashboard-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
         }
@@ -2162,12 +2163,12 @@ struct HomePage {
         .width('100%')
         .padding({ top: 8, bottom: 8 })
         .justifyContent(FlexAlign.Center)
-        .backgroundColor('rgba(255, 255, 255, 0.95)')
+        .backgroundColor(this.isDarkMode ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)')
         .backdropBlur(10)
         .position({ x: 0, y: 0 })
         .zIndex(1000)
         .opacity(Math.min(this.pageTranslateY / 100, 1))
-        .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
+        .shadow({ radius: 8, color: this.isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
       }
       
       // 顶部标题栏
@@ -2485,7 +2486,7 @@ struct HomePage {
         Column()
           .width('100%')
           .height('100%')
-          .backgroundColor('rgba(255, 255, 255, 0.65)')
+          .backgroundColor(this.isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.4)')
           .backdropBlur(40)
           .borderRadius(ThemeConfig.radiusXLarge)
         
@@ -2502,7 +2503,7 @@ struct HomePage {
             .width(40)
             .height(40)
             .type(ButtonType.Circle)
-            .backgroundColor('rgba(255, 255, 255, 0.9)')
+            .backgroundColor(this.isDarkMode ? 'rgba(50, 50, 50, 0.9)' : 'rgba(255, 255, 255, 0.9)')
             .shadow(ThemeConfig.shadowSmall)
             .onClick(() => {
               try {
@@ -2566,7 +2567,8 @@ struct HomePage {
               DashboardView({ 
                 project: this.selectedProjectDetail,
                 showCanvasBackground: false,
-                isFloatingCard: true
+                isFloatingCard: true,
+                isDarkMode: this.isDarkMode
               })
                 .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
             }
@@ -2581,13 +2583,13 @@ struct HomePage {
       }
       .width('90%')
       .height('75%')
-      .backgroundColor('rgba(255, 255, 255, 0.2)')
+      .backgroundColor(this.isDarkMode ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.2)')
       .backdropBlur(20)
       .borderRadius(ThemeConfig.radiusXLarge)
-      .shadow({ radius: 40, color: 'rgba(0, 0, 0, 0.15)', offsetX: 0, offsetY: 8 })
+      .shadow({ radius: 40, color: this.isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.15)', offsetX: 0, offsetY: 8 })
       .border({
         width: 1.5,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: this.isDarkMode ? 'rgba(80, 80, 80, 0.6)' : 'rgba(255, 255, 255, 0.6)',
         radius: ThemeConfig.radiusXLarge
       })
       .clip(true)

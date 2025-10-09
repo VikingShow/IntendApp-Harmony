@@ -145,6 +145,14 @@ export class CanvasController {
     this.renderer = new CanvasRenderer();
   }
 
+  /**
+   * 获取渲染器实例
+   * @returns CanvasRenderer实例
+   */
+  public getRenderer(): CanvasRenderer {
+    return this.renderer;
+  }
+
   public setCallbacks(
     onTaskSelect: (task: TaskNode | null) => void,
     onDependencyCreate: (fromId: string, toId: string) => void,
@@ -157,9 +165,6 @@ export class CanvasController {
     this.onTaskMoveImmediate = onTaskMoveImmediate || null;
   }
 
-  public getRenderer(): CanvasRenderer {
-    return this.renderer;
-  }
   public getState(): CanvasState {
     return this.state;
   }

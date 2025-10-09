@@ -79,10 +79,19 @@ export interface RenderConfig {
 export class CanvasRenderer {
   private context: CanvasRenderingContext2D;
   private settings: RenderingContextSettings;
+  private isDarkMode: boolean = false;
 
   constructor() {
     this.settings = new RenderingContextSettings(true);
     this.context = new CanvasRenderingContext2D(this.settings);
+  }
+
+  /**
+   * 设置深色模式
+   * @param isDark 是否为深色模式
+   */
+  public setDarkMode(isDark: boolean): void {
+    this.isDarkMode = isDark;
   }
 
   public getContext(): CanvasRenderingContext2D {
@@ -164,7 +173,13 @@ export class CanvasRenderer {
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
-        this.context.strokeStyle = isCriticalDep ? ThemeConfig.taskCritical.toString() : ThemeConfig.textSecondary.toString();
+        
+        // 连线颜色根据深色模式调整
+        if (isCriticalDep) {
+          this.context.strokeStyle = ThemeConfig.taskCritical.toString();
+        } else {
+          this.context.strokeStyle = this.isDarkMode ? '#8E8E93' : '#AEAEB2';
+        }
         this.context.lineWidth = isCriticalDep ? 3 : 2;
         this.context.stroke();
       }
@@ -179,23 +194,32 @@ export class CanvasRenderer {
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
 
-      // 节点背景（固定白色，确保在任何背景下都清晰可见）
-      this.context.fillStyle = '#FFFFFF';
+      // 节点背景（根据深色模式切换）
+      this.context.fillStyle = this.isDarkMode ? '#2C2C2E' : '#FFFFFF';
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 
-      // 节点边框
-      this.context.strokeStyle = isSelected ? ThemeConfig.taskSelected.toString() : (task.isCritical ? ThemeConfig.taskCritical.toString() : ThemeConfig.taskNormal.toString());
-      this.context.lineWidth = isSelected ? 4 : 2;
+      // 节点边框（根据深色模式调整颜色）
+      if (isSelected) {
+        this.context.strokeStyle = ThemeConfig.taskSelected.toString();
+        this.context.lineWidth = 4;
+      } else if (task.isCritical) {
+        this.context.strokeStyle = ThemeConfig.taskCritical.toString();
+        this.context.lineWidth = 2;
+      } else {
+        // 普通节点边框在深色模式下使用更亮的颜色
+        this.context.strokeStyle = this.isDarkMode ? '#636366' : '#409EFF';
+        this.context.lineWidth = 2;
+      }
       this.context.stroke();
 
-      // 任务名称（深色文字）
-      this.context.fillStyle = '#1C1C1E';
+      // 任务名称（根据深色模式切换文字颜色）
+      this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
       this.context.font = `bold 32px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 28);
 
       // 日期信息
-      this.context.fillStyle = '#666666';  // 次要文字
+      this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
       this.context.font = `24px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
       this.context.fillText(`${dateString}`, drawX + 15, drawY + 50);
@@ -204,7 +228,7 @@ export class CanvasRenderer {
       const timeProgress = this.getTimeProgress(task);
       const completionProgress = this.getCompletionProgress(task);
       
-      this.context.fillStyle = '#666666';  // 次要文字
+      this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
       this.context.font = `23px HarmonyOS Sans`;
       this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 70);
       this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
@@ -231,8 +255,8 @@ export class CanvasRenderer {
   private drawProgressBar(x: number, y: number, width: number, height: number, progress: number, color: string): void {
     const radius = height / 2;
     
-    // 背景
-    this.context.fillStyle = ThemeConfig.canvasGridLine.toString();
+    // 背景（根据深色模式调整）
+    this.context.fillStyle = this.isDarkMode ? '#48484A' : '#E5E5EA';
     this.drawRoundRect(this.context, x, y, width, height, radius);
     this.context.fill();
     

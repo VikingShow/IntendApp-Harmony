@@ -43,6 +43,7 @@ import { PromptAction } from '@kit.ArkUI';
 import { CommandHistory } from '../core/CommandHistory';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { AppState } from '../core/AppState';
+import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 
 /**
  * 路由参数接口
@@ -63,6 +64,7 @@ struct Index {
     PageTransitionExit({ duration: 300, curve: Curve.EaseInOut })
       .opacity(0.0)
   }
+
   // @StorageProp('bottomRectHeight')
   // bottomRectHeight: number = 0;
   @StorageProp('topRectHeight')
@@ -82,6 +84,8 @@ struct Index {
   @State canUndo: boolean = false;
   @State canRedo: boolean = false;
   private appState: AppState = AppState.getInstance();
+  private configCallbackId: number = -1;
+  @State isDarkMode: boolean = false;
 
   async aboutToAppear() {
     // 初始化权限服务
@@ -124,6 +128,9 @@ struct Index {
     // 注入uiContext
     this.canvasController.setContext(this.uiContext);
 
+    // 初始化主题监听器
+    this.setupThemeListener();
+
     // 监听ProjectManager状态变化
     this.setupEventListeners();
     this.updateStateFromManager();
@@ -154,6 +161,17 @@ struct Index {
   aboutToDisappear() {
     // 页面离开时保存画布位置
     this.saveCanvasPosition();
+
+    // 取消主题监听
+    if (this.configCallbackId !== -1) {
+      try {
+        const context = this.uiContext.getHostContext() as common.UIAbilityContext;
+        const appContext = context.getApplicationContext();
+        appContext.off('environment', this.configCallbackId);
+      } catch (error) {
+        console.error('[EasyFlow] Failed to unregister theme listener:', error);
+      }
+    }
   }
 
   onPageHide() {
@@ -162,6 +180,46 @@ struct Index {
       console.log(`[EasyFlow] Index.ets onPageHide - 确保项目数据已保存: ${this.project.name}`);
       this.projectManager.getActions().saveProject();
     }
+  }
+
+  // 设置主题监听器
+  private setupThemeListener() {
+    try {
+      const context = this.uiContext.getHostContext() as common.UIAbilityContext;
+      const appContext = context.getApplicationContext();
+
+      // 初始获取当前模式 - 从UIAbilityContext获取配置
+      const currentConfig: Configuration = context.config;
+      this.updateColorMode(currentConfig);
+
+      // 监听环境变化（包括主题变化）- 使用正确的回调接口
+      this.configCallbackId = appContext.on('environment', {
+        onConfigurationUpdated: (config: Configuration) => {
+          this.updateColorMode(config);
+        },
+        onMemoryLevel: () => {
+          // 内存级别变化的处理，可以为空实现
+        }
+      });
+    } catch (error) {
+      console.error('[EasyFlow] Failed to setup theme listener:', error);
+    }
+  }
+
+  // 更新颜色模式
+  private updateColorMode(config: Configuration) {
+    const wasDarkMode = this.isDarkMode;
+    this.isDarkMode = (config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
+
+    // 更新CanvasRenderer的深色模式状态
+    this.canvasController.getRenderer().setDarkMode(this.isDarkMode);
+
+    // 如果模式发生变化，触发画布重绘
+    if (wasDarkMode !== this.isDarkMode && this.project) {
+      this.drawGraph();
+    }
+
+    console.log(`[EasyFlow] Color mode updated: ${this.isDarkMode ? 'Dark' : 'Light'}`);
   }
 
   // 设置事件监听器

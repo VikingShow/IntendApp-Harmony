@@ -47,6 +47,7 @@ import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
 import { ErrorHandler } from '../core/ErrorHandler';
+import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 
 /**
  * ActionMenu按钮接口
@@ -112,6 +113,10 @@ struct HomePage {
   private canvasController: CanvasController = new CanvasController();
   @State showCanvasBackground: boolean = false;
 
+  // 主题相关状态
+  private configCallbackId: number = -1;
+  @State isDarkMode: boolean = false;
+
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
   private templateService: TemplateService = TemplateService.getInstance();
@@ -172,6 +177,9 @@ struct HomePage {
     // 初始化画布控制器
     this.canvasController.setContext(this.uiContext);
 
+    // 初始化主题监听器
+    this.setupThemeListener();
+
     // 清理损坏的项目文件（在加载项目之前）
     await this.cleanupCorruptedFiles();
     
@@ -184,6 +192,59 @@ struct HomePage {
     if (this.selectedProjectId) {
       this.onSelectProject(this.selectedProjectId);
     }
+  }
+
+  aboutToDisappear() {
+    // 取消主题监听
+    if (this.configCallbackId !== -1) {
+      try {
+        const context = this.uiContext.getHostContext() as common.UIAbilityContext;
+        const appContext = context.getApplicationContext();
+        appContext.off('environment', this.configCallbackId);
+      } catch (error) {
+        console.error('[Home] Failed to unregister theme listener:', error);
+      }
+    }
+  }
+
+  // 设置主题监听器
+  private setupThemeListener() {
+    try {
+      const context = this.uiContext.getHostContext() as common.UIAbilityContext;
+      const appContext = context.getApplicationContext();
+
+      // 初始获取当前模式 - 从UIAbilityContext获取配置
+      const currentConfig: Configuration = context.config;
+      this.updateColorMode(currentConfig);
+
+      // 监听环境变化（包括主题变化）- 使用正确的回调接口
+      this.configCallbackId = appContext.on('environment', {
+        onConfigurationUpdated: (config: Configuration) => {
+          this.updateColorMode(config);
+        },
+        onMemoryLevel: () => {
+          // 内存级别变化的处理，可以为空实现
+        }
+      });
+    } catch (error) {
+      console.error('[Home] Failed to setup theme listener:', error);
+    }
+  }
+
+  // 更新颜色模式
+  private updateColorMode(config: Configuration) {
+    const wasDarkMode = this.isDarkMode;
+    this.isDarkMode = (config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
+
+    // 更新CanvasRenderer的深色模式状态
+    this.canvasController.getRenderer().setDarkMode(this.isDarkMode);
+
+    // 如果模式发生变化且显示画布背景，触发画布重绘
+    if (wasDarkMode !== this.isDarkMode && this.showCanvasBackground && this.selectedProjectDetail) {
+      this.renderProjectCanvas();
+    }
+
+    console.log(`[Home] Color mode updated: ${this.isDarkMode ? 'Dark' : 'Light'}`);
   }
 
   // 检查并执行数据迁移

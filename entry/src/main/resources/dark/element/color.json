@@ -18,7 +18,7 @@
     },
     {
       "name": "primary_ultra_light",
-      "value": "#161D28"
+      "value": "#2C3A4D"
     },
     {
       "name": "secondary_color",
@@ -38,7 +38,7 @@
     },
     {
       "name": "success_light",
-      "value": "#1A2E1C"
+      "value": "#2D4A30"
     },
     {
       "name": "warning_color",
@@ -66,7 +66,7 @@
     },
     {
       "name": "surface",
-      "value": "#1C1C1E"
+      "value": "#000000"
     },
     {
       "name": "surface_subtle",
@@ -78,7 +78,7 @@
     },
     {
       "name": "surface_neutral",
-      "value": "#38383A"
+      "value": "#48484A"
     },
     {
       "name": "surface_muted",
@@ -294,11 +294,11 @@
     },
     {
       "name": "canvas_grid_line",
-      "value": "#4A4A4A"
+      "value": "#1A1A1C"
     },
     {
       "name": "canvas_grid_line_fine",
-      "value": "#343434"
+      "value": "#101012"
     },
     {
       "name": "decorative_slate",

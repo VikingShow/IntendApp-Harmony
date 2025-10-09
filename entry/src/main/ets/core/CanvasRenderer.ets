@@ -117,8 +117,12 @@ export class CanvasRenderer {
     const width = 3000;
     const height = 3000;
     
+    // 根据深色模式设置网格样式
+    const gridLineColor = this.isDarkMode ? '#1A1A1C' : '#E0E0E0';
+    const gridLineFineColor = this.isDarkMode ? '#101012' : '#F0F0F0';
+    
     // 设置网格样式
-    this.context.strokeStyle = ThemeConfig.canvasGridLine.toString();
+    this.context.strokeStyle = gridLineColor;
     this.context.lineWidth = 1;
     
     // 绘制主网格线
@@ -139,7 +143,7 @@ export class CanvasRenderer {
     this.context.stroke();
     
     // 绘制细网格线
-    this.context.strokeStyle = ThemeConfig.canvasGridLineFine.toString();
+    this.context.strokeStyle = gridLineFineColor;
     this.context.lineWidth = 0.5;
     this.context.beginPath();
     
@@ -195,7 +199,7 @@ export class CanvasRenderer {
       const drawY = task.y + config.canvasOffsetY;
 
       // 节点背景（根据深色模式切换）
-      this.context.fillStyle = this.isDarkMode ? '#2C2C2E' : '#FFFFFF';
+      this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 

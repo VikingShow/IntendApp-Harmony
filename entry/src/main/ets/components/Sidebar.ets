@@ -181,7 +181,7 @@ export struct Sidebar {
               Circle()
                 .width(80)
                 .height(80)
-                .fill(ThemeConfig.transparentWhite30)
+                .fill(ThemeConfig.overlayFaint)
                 .backdropBlur(ThemeConfig.backdropBlurMedium)
                 .shadow(ThemeConfig.shadowMedium)
                 .border({ width: 2, color: ThemeConfig.primaryUltraLight, radius: 40 })
@@ -200,22 +200,22 @@ export struct Sidebar {
             Column({ space: ThemeConfig.spacingS }) {
               Text('正在加载项目...')
                 .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(ThemeConfig.gray800)
+                .fontColor(ThemeConfig.surfaceDeep)
                 .fontWeight(ThemeConfig.fontWeightBold)
                 .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ThemeConfig.shadowSmall.color, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
               
               Text('请稍候')
                 .fontSize(ThemeConfig.fontSizeM)
-                .fontColor(ThemeConfig.gray600)
+                .fontColor(ThemeConfig.surfaceBold)
                 .fontWeight(ThemeConfig.fontWeightMedium)
                 .textAlign(TextAlign.Center)
             }
             .padding(ThemeConfig.spacingL)
-            .backgroundColor(ThemeConfig.transparentWhite40)
+            .backgroundColor(ThemeConfig.overlaySubtle)
             .backdropBlur(ThemeConfig.backdropBlurSmall)
             .borderRadius(ThemeConfig.radiusLarge)
             .shadow(ThemeConfig.shadowSmall)
-            .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusLarge })
+            .border({ width: 1, color: ThemeConfig.surfaceNeutral, radius: ThemeConfig.radiusLarge })
           }
           .width('100%')
           .height('100%')
@@ -225,10 +225,10 @@ export struct Sidebar {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(ThemeConfig.transparentWhite70)
+      .backgroundColor(ThemeConfig.overlayMedium)
       .padding(ThemeConfig.spacingXXL)
       .shadow(ThemeConfig.shadowMedium)
-      .border({ width: { right: 1 }, color: ThemeConfig.gray200 })
+      .border({ width: { right: 1 }, color: ThemeConfig.surfaceNeutral })
       .backdropBlur(ThemeConfig.backdropBlurXLarge)
     }
     .width('100%')
@@ -245,16 +245,16 @@ export struct Sidebar {
           Button() {
             Text('←')
               .fontSize(ThemeConfig.fontSizeXL)
-              .fontColor(ThemeConfig.gray600)
+              .fontColor(ThemeConfig.surfaceBold)
               .fontWeight(ThemeConfig.fontWeightBold)
           }
           .width(52)
           .height(52)
           .type(ButtonType.Circle)
-          .backgroundColor(ThemeConfig.gray100)
+          .backgroundColor(ThemeConfig.surfaceLight)
           .borderRadius(26)
           .shadow(ThemeConfig.shadowMedium)
-          .border({ width: 2, color: ThemeConfig.gray200, radius: 26 })
+          .border({ width: 2, color: ThemeConfig.surfaceNeutral, radius: 26 })
           .onClick(() => { this.onBack() })
 
           // 新建任务按钮（仅编辑页显示）- 现代化设计
@@ -351,11 +351,11 @@ export struct Sidebar {
                 .fontColor(ThemeConfig.primaryColor)
               Text('总任务')
                 .fontSize(13)
-                .fontColor(ThemeConfig.textDescription)
+                .fontColor(ThemeConfig.textTertiary)
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor(ThemeConfig.transparentNone)
+            .backgroundColor(ThemeConfig.transparent)
             .borderRadius(12)
 
             Column() {
@@ -365,20 +365,20 @@ export struct Sidebar {
                 .fontColor(ThemeConfig.errorColor)
               Text('关键任务')
                 .fontSize(13)
-                .fontColor(ThemeConfig.textDescription)
+                .fontColor(ThemeConfig.textTertiary)
             }
             .layoutWeight(1)
             .padding(16)
-            .backgroundColor(ThemeConfig.transparentNone)
+            .backgroundColor(ThemeConfig.transparent)
             .borderRadius(12)
           }
           .width('100%')
         }
         .padding(ThemeConfig.spacingXL)
-        .backgroundColor(ThemeConfig.transparentWhite60)
+        .backgroundColor(ThemeConfig.overlayRegular)
         .borderRadius(ThemeConfig.radiusXLarge)
         .shadow(ThemeConfig.cardShadow)
-        .border({ width: 0, color: ThemeConfig.transparentNone, radius: ThemeConfig.radiusXLarge })
+        .border({ width: 0, color: ThemeConfig.transparent, radius: ThemeConfig.radiusXLarge })
         .backdropBlur(ThemeConfig.backdropBlurMedium)
 
         // 操作按钮区域
@@ -402,10 +402,10 @@ export struct Sidebar {
                 .opacity(0.4)
               Text('暂无任务')
                 .fontSize(15)
-                .fontColor(ThemeConfig.textDescription)
+                .fontColor(ThemeConfig.textTertiary)
               Text('点击上方按钮添加新任务')
                 .fontSize(13)
-                .fontColor(ThemeConfig.textDescription)
+                .fontColor(ThemeConfig.textTertiary)
             }
             .width('100%')
             .padding(40)
@@ -433,14 +433,14 @@ export struct Sidebar {
                         .textOverflow({ overflow: TextOverflow.Ellipsis })
                       Text(`${task.startDate.toLocaleDateString()} - ${task.endDate.toLocaleDateString()}`)
                         .fontSize(13)
-                        .fontColor(ThemeConfig.textDescription)
+                        .fontColor(ThemeConfig.textTertiary)
                       
                       // 子任务信息
                       if (task.checklist && task.checklist.length > 0) {
                         Row({ space: 8 }) {
                           Text(`${task.checklist.filter(item => item.isCompleted).length}/${task.checklist.length} 已完成`)
                             .fontSize(12)
-                            .fontColor(ThemeConfig.textDescription)
+                            .fontColor(ThemeConfig.textTertiary)
                         }
                         .width('100%')
                         .alignItems(VerticalAlign.Center)
@@ -475,12 +475,12 @@ export struct Sidebar {
                   }
                   .width('100%')
                   .padding(ThemeConfig.spacingXL)
-                  .backgroundColor(this.selectedTask?.id === task.id ? ThemeConfig.transparentPrimary25 : ThemeConfig.transparentWhite50)
+                  .backgroundColor(this.selectedTask?.id === task.id ? ThemeConfig.hoverPrimaryLight : ThemeConfig.overlayLight)
                   .borderRadius(ThemeConfig.radiusMedium)
                   .shadow(this.selectedTask?.id === task.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
                   .border({ 
                     width: this.selectedTask?.id === task.id ? 2 : 0, 
-                    color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : ThemeConfig.transparentNone, 
+                    color: this.selectedTask?.id === task.id ? ThemeConfig.primaryColor : ThemeConfig.transparent, 
                     radius: ThemeConfig.radiusMedium 
                   })
                   .backdropBlur(ThemeConfig.backdropBlurSmall)

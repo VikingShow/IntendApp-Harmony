@@ -109,7 +109,7 @@ export class CanvasRenderer {
     const height = 3000;
     
     // 设置网格样式
-    this.context.strokeStyle = ThemeConfig.gridLine;
+    this.context.strokeStyle = ThemeConfig.canvasGridLine;
     this.context.lineWidth = 1;
     
     // 绘制主网格线
@@ -130,7 +130,7 @@ export class CanvasRenderer {
     this.context.stroke();
     
     // 绘制细网格线
-    this.context.strokeStyle = ThemeConfig.gridLineFine;
+    this.context.strokeStyle = ThemeConfig.canvasGridLineFine;
     this.context.lineWidth = 0.5;
     this.context.beginPath();
     
@@ -180,7 +180,7 @@ export class CanvasRenderer {
       const drawY = task.y + config.canvasOffsetY;
 
       // 节点背景
-      this.context.fillStyle = ThemeConfig.white;
+      this.context.fillStyle = ThemeConfig.surface;
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 
@@ -190,7 +190,7 @@ export class CanvasRenderer {
       this.context.stroke();
 
       // 任务名称
-      this.context.fillStyle = ThemeConfig.gray900;
+      this.context.fillStyle = ThemeConfig.surfaceDeepest;
       this.context.font = `bold 32px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 28);
 
@@ -230,7 +230,7 @@ export class CanvasRenderer {
     const radius = height / 2;
     
     // 背景
-    this.context.fillStyle = ThemeConfig.gridLine;
+    this.context.fillStyle = ThemeConfig.canvasGridLine;
     this.drawRoundRect(this.context, x, y, width, height, radius);
     this.context.fill();
     

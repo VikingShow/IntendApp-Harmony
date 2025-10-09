@@ -58,7 +58,7 @@ export struct CommonButton {
 
   private getBackgroundColor(): ResourceColor {
     if (this.disabled) {
-      return ThemeConfig.gray200;
+      return ThemeConfig.surfaceNeutral;
     }
     
     switch (this.type) {
@@ -71,12 +71,12 @@ export struct CommonButton {
 
   private getTextColor(): ResourceColor {
     if (this.disabled) {
-      return ThemeConfig.gray400;
+      return ThemeConfig.surfaceStrong;
     }
     
     switch (this.type) {
-      case 'secondary': return ThemeConfig.gray700;
-      default: return ThemeConfig.white;
+      case 'secondary': return ThemeConfig.surfaceDark;
+      default: return ThemeConfig.surface;
     }
   }
 

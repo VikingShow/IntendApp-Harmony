@@ -203,10 +203,10 @@ export struct DashboardView {
               .fontWeight(ThemeConfig.fontWeightBold)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
-              .fontColor(ThemeConfig.gray800)
+              .fontColor(ThemeConfig.surfaceDeep)
             Text(`项目ID: ${this.project.id}`)
               .fontSize(ThemeConfig.fontSizeL)
-              .fontColor(ThemeConfig.gray500)
+              .fontColor(ThemeConfig.surfaceEmphasized)
               .fontWeight(ThemeConfig.fontWeightMedium)
           }
           .alignItems(HorizontalAlign.Start)
@@ -279,10 +279,10 @@ export struct DashboardView {
       }
       .width('100%')
       .padding(ThemeConfig.spacingXXL)
-      .backgroundColor(ThemeConfig.transparentNone)
+      .backgroundColor(ThemeConfig.transparent)
       .borderRadius(ThemeConfig.radiusXXLarge)
       .shadow(ThemeConfig.cardShadow)
-      .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXXLarge })
+      .border({ width: 1, color: ThemeConfig.surfaceNeutral, radius: ThemeConfig.radiusXXLarge })
 
       // 2. 核心指标统计 - 等高布局
       Row({ space: 16 }) {
@@ -301,10 +301,10 @@ export struct DashboardView {
           Text('即将到期的任务')
             .fontSize(ThemeConfig.fontSizeXXL)
             .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ThemeConfig.gray800)
+            .fontColor(ThemeConfig.surfaceDeep)
           Text('(未来7天)')
             .fontSize(ThemeConfig.fontSizeL)
-            .fontColor(ThemeConfig.gray500)
+            .fontColor(ThemeConfig.surfaceEmphasized)
             .fontWeight(ThemeConfig.fontWeightMedium)
         }
         .width('100%')
@@ -327,11 +327,11 @@ export struct DashboardView {
             Column({ space: ThemeConfig.spacingM }) {
               Text('暂无即将到期的任务')
                 .fontSize(ThemeConfig.fontSizeXXL)
-                .fontColor(ThemeConfig.gray800)
+                .fontColor(ThemeConfig.surfaceDeep)
                 .fontWeight(ThemeConfig.fontWeightBold)
               Text('一切尽在掌握之中！')
                 .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(ThemeConfig.gray500)
+                .fontColor(ThemeConfig.surfaceEmphasized)
                 .textAlign(TextAlign.Center)
                 .lineHeight(24)
             }
@@ -340,7 +340,7 @@ export struct DashboardView {
           .padding(ThemeConfig.spacingXXXXL)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
-          .backgroundColor(ThemeConfig.transparentNone)
+          .backgroundColor(ThemeConfig.transparent)
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
@@ -352,7 +352,7 @@ export struct DashboardView {
     .width('100%')
     .height('100%')
     .padding(ThemeConfig.spacingXXXL)
-    .backgroundColor(ThemeConfig.transparentNone)
+    .backgroundColor(ThemeConfig.transparent)
     .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
@@ -367,7 +367,7 @@ export struct DashboardView {
 
   // 构建器：统计卡片 - 现代化设计，增强视觉吸引力
   @Builder
-  StatCard(title: string, value: string, bgColor: string, textColor: string, icon?: string) {
+  StatCard(title: string, value: string, bgColor: string | Resource, textColor: string | Resource, icon?: string) {
     Column({ space: ThemeConfig.spacingM }) {
       // 图标 - 增强视觉效果
       if (icon) {
@@ -380,7 +380,7 @@ export struct DashboardView {
       
       Text(title)
         .fontSize(ThemeConfig.fontSizeM)
-        .fontColor(ThemeConfig.gray500)
+        .fontColor(ThemeConfig.surfaceEmphasized)
         .fontWeight(ThemeConfig.fontWeightMedium)
         .textAlign(TextAlign.Center)
         .maxLines(1)
@@ -396,7 +396,7 @@ export struct DashboardView {
     .layoutWeight(1)
     .height(160)
     .padding(ThemeConfig.spacingXXL)
-    .backgroundColor(ThemeConfig.transparentNone)
+    .backgroundColor(ThemeConfig.transparent)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.shadowMedium)
     .border({ width: 2, color: bgColor, radius: ThemeConfig.radiusXLarge })
@@ -422,20 +422,20 @@ export struct DashboardView {
         Text(task.name)
           .fontSize(ThemeConfig.fontSizeXL)
           .fontWeight(ThemeConfig.fontWeightBold)
-          .fontColor(ThemeConfig.gray800)
+          .fontColor(ThemeConfig.surfaceDeep)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Row({ space: ThemeConfig.spacingM }) {
           Text(`截止于: ${task.endDate.toLocaleDateString()}`)
             .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ThemeConfig.gray500)
+            .fontColor(ThemeConfig.surfaceEmphasized)
           if (task.isCritical) {
             Text('关键任务')
               .fontSize(ThemeConfig.fontSizeXS)
               .fontColor(ThemeConfig.errorColor)
               .fontWeight(ThemeConfig.fontWeightMedium)
               .padding({ left: ThemeConfig.spacingS, right: ThemeConfig.spacingS, top: ThemeConfig.spacingXS, bottom: ThemeConfig.spacingXS })
-              .backgroundColor(ThemeConfig.transparentError20)
+              .backgroundColor(ThemeConfig.hoverError)
               .borderRadius(ThemeConfig.radiusSmall)
               .border({ width: 1, color: ThemeConfig.errorColor, radius: ThemeConfig.radiusSmall })
           }
@@ -447,9 +447,9 @@ export struct DashboardView {
     }
     .width('100%')
     .padding(ThemeConfig.spacingXXL)
-    .backgroundColor(ThemeConfig.transparentNone)
+    .backgroundColor(ThemeConfig.transparent)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.cardShadow)
-    .border({ width: 1, color: ThemeConfig.gray200, radius: ThemeConfig.radiusXLarge })
+    .border({ width: 1, color: ThemeConfig.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
   }
 }

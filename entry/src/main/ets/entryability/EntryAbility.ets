@@ -46,8 +46,8 @@ export default class EntryAbility extends UIAbility {
       }
     windowClass = data;
     let SystemBarProperties: window.SystemBarProperties = {
-      statusBarColor: ThemeConfig.transparentNone,     // 完全透明
-      navigationBarColor: ThemeConfig.transparentNone, // 完全透明
+      statusBarColor: ThemeConfig.transparent,     // 完全透明
+      navigationBarColor: ThemeConfig.transparent, // 完全透明
       //以下两个属性从API Version8开始支持
       // statusBarContentColor: '#ffffff',
       // navigationBarContentColor: '#00ffff'

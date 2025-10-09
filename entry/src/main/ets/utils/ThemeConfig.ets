@@ -31,18 +31,18 @@ export class ThemeConfig {
   static readonly infoColor = '#5AC8FA';
   static readonly infoLight = '#E3F2FD';
 
-  // 中性色 - 现代灰色系统
-  static readonly white = '#FFFFFF';
-  static readonly gray50 = '#F9FAFB';
-  static readonly gray100 = '#F2F2F7';
-  static readonly gray200 = '#E5E5EA';
-  static readonly gray300 = '#D1D1D6';
-  static readonly gray400 = '#C7C7CC';
-  static readonly gray500 = '#8E8E93';
-  static readonly gray600 = '#636366';
-  static readonly gray700 = '#48484A';
-  static readonly gray800 = '#3A3A3C';
-  static readonly gray900 = '#1C1C1E';
+  // 表面色系统 - 现代灰度系统
+  static readonly surface = '#FFFFFF';
+  static readonly surfaceSubtle = '#F9FAFB';
+  static readonly surfaceLight = '#F2F2F7';
+  static readonly surfaceNeutral = '#E5E5EA';
+  static readonly surfaceMuted = '#D1D1D6';
+  static readonly surfaceStrong = '#C7C7CC';
+  static readonly surfaceEmphasized = '#8E8E93';
+  static readonly surfaceBold = '#636366';
+  static readonly surfaceDark = '#48484A';
+  static readonly surfaceDeep = '#3A3A3C';
+  static readonly surfaceDeepest = '#1C1C1E';
 
   // 背景色系统
   static readonly backgroundPrimary = '#FFFFFF';
@@ -53,53 +53,53 @@ export class ThemeConfig {
   static readonly backgroundPage = '#FAFBFC';
   static readonly backgroundInput = '#F5F5F7';
 
-  // 透明背景色系统 - 增强版
-  // 白色透明系列
-  static readonly transparentWhite90 = 'rgba(255, 255, 255, 0.9)';
-  static readonly transparentWhite80 = 'rgba(255, 255, 255, 0.8)';
-  static readonly transparentWhite70 = 'rgba(255, 255, 255, 0.7)';
-  static readonly transparentWhite60 = 'rgba(255, 255, 255, 0.6)';
-  static readonly transparentWhite50 = 'rgba(255, 255, 255, 0.5)';
-  static readonly transparentWhite40 = 'rgba(255, 255, 255, 0.4)';
-  static readonly transparentWhite30 = 'rgba(255, 255, 255, 0.3)';
-  static readonly transparentWhite25 = 'rgba(255, 255, 255, 0.25)';
-  static readonly transparentWhite20 = 'rgba(255, 255, 255, 0.2)';
-  static readonly transparentWhite15 = 'rgba(255, 255, 255, 0.15)';
-  static readonly transparentWhite10 = 'rgba(255, 255, 255, 0.1)';
+  // 覆盖层颜色系统 - 用于半透明遮罩和浮层
+  // 亮色覆盖层系列
+  static readonly overlayHeavy = 'rgba(255, 255, 255, 0.9)';
+  static readonly overlayStrong = 'rgba(255, 255, 255, 0.8)';
+  static readonly overlayMedium = 'rgba(255, 255, 255, 0.7)';
+  static readonly overlayRegular = 'rgba(255, 255, 255, 0.6)';
+  static readonly overlayLight = 'rgba(255, 255, 255, 0.5)';
+  static readonly overlaySubtle = 'rgba(255, 255, 255, 0.4)';
+  static readonly overlayFaint = 'rgba(255, 255, 255, 0.3)';
+  static readonly overlayVeryFaint = 'rgba(255, 255, 255, 0.25)';
+  static readonly overlayMinimal = 'rgba(255, 255, 255, 0.2)';
+  static readonly overlayBare = 'rgba(255, 255, 255, 0.15)';
+  static readonly overlayBarely = 'rgba(255, 255, 255, 0.1)';
   
-  // 黑色透明系列
-  static readonly transparentBlack50 = 'rgba(0, 0, 0, 0.5)';
-  static readonly transparentBlack40 = 'rgba(0, 0, 0, 0.4)';
-  static readonly transparentBlack30 = 'rgba(0, 0, 0, 0.3)';
-  static readonly transparentBlack25 = 'rgba(0, 0, 0, 0.25)';
-  static readonly transparentBlack20 = 'rgba(0, 0, 0, 0.2)';
-  static readonly transparentBlack15 = 'rgba(0, 0, 0, 0.15)';
-  static readonly transparentBlack10 = 'rgba(0, 0, 0, 0.1)';
-  static readonly transparentBlack05 = 'rgba(0, 0, 0, 0.05)';
+  // 暗色阴影系列 - 用于阴影和暗色遮罩
+  static readonly shadowColorStrong = 'rgba(0, 0, 0, 0.5)';
+  static readonly shadowColorMedium = 'rgba(0, 0, 0, 0.4)';
+  static readonly shadowColorRegular = 'rgba(0, 0, 0, 0.3)';
+  static readonly shadowColorLight = 'rgba(0, 0, 0, 0.25)';
+  static readonly shadowColorSubtle = 'rgba(0, 0, 0, 0.2)';
+  static readonly shadowColorFaint = 'rgba(0, 0, 0, 0.15)';
+  static readonly shadowColorMinimal = 'rgba(0, 0, 0, 0.1)';
+  static readonly shadowColorBare = 'rgba(0, 0, 0, 0.05)';
   
-  // 主色调透明系列
-  static readonly transparentPrimary30 = 'rgba(0, 122, 255, 0.3)';
-  static readonly transparentPrimary25 = 'rgba(0, 122, 255, 0.25)';
-  static readonly transparentPrimary20 = 'rgba(0, 122, 255, 0.2)';
-  static readonly transparentPrimary15 = 'rgba(0, 122, 255, 0.15)';
-  static readonly transparentPrimary10 = 'rgba(0, 122, 255, 0.1)';
-  static readonly transparentPrimary05 = 'rgba(0, 122, 255, 0.05)';
+  // 悬停效果颜色 - 主色调系列
+  static readonly hoverPrimary = 'rgba(0, 122, 255, 0.3)';
+  static readonly hoverPrimaryLight = 'rgba(0, 122, 255, 0.25)';
+  static readonly hoverPrimarySubtle = 'rgba(0, 122, 255, 0.2)';
+  static readonly hoverPrimaryFaint = 'rgba(0, 122, 255, 0.15)';
+  static readonly hoverPrimaryMinimal = 'rgba(0, 122, 255, 0.1)';
+  static readonly hoverPrimaryBare = 'rgba(0, 122, 255, 0.05)';
   
-  // 功能色透明系列
-  static readonly transparentSuccess20 = 'rgba(52, 199, 89, 0.2)';
-  static readonly transparentSuccess10 = 'rgba(52, 199, 89, 0.1)';
-  static readonly transparentWarning20 = 'rgba(255, 149, 0, 0.2)';
-  static readonly transparentWarning10 = 'rgba(255, 149, 0, 0.1)';
-  static readonly transparentError20 = 'rgba(255, 59, 48, 0.2)';
-  static readonly transparentError10 = 'rgba(255, 59, 48, 0.1)';
+  // 悬停效果颜色 - 功能色系列
+  static readonly hoverSuccess = 'rgba(52, 199, 89, 0.2)';
+  static readonly hoverSuccessLight = 'rgba(52, 199, 89, 0.1)';
+  static readonly hoverWarning = 'rgba(255, 149, 0, 0.2)';
+  static readonly hoverWarningLight = 'rgba(255, 149, 0, 0.1)';
+  static readonly hoverError = 'rgba(255, 59, 48, 0.2)';
+  static readonly hoverErrorLight = 'rgba(255, 59, 48, 0.1)';
   
-  // 灰色透明系列
-  static readonly transparentGray20 = 'rgba(142, 142, 147, 0.2)';
-  static readonly transparentGray10 = 'rgba(142, 142, 147, 0.1)';
-  static readonly transparentGray05 = 'rgba(142, 142, 147, 0.05)';
+  // 悬停效果颜色 - 中性色系列
+  static readonly hoverNeutral = 'rgba(142, 142, 147, 0.2)';
+  static readonly hoverNeutralLight = 'rgba(142, 142, 147, 0.1)';
+  static readonly hoverNeutralFaint = 'rgba(142, 142, 147, 0.05)';
   
   // 完全透明
-  static readonly transparentNone = '#00000000';
+  static readonly transparent = '#00000000';
 
   // 阴影系统 - 现代阴影设计，增强层次感
   static readonly shadowSmall: ShadowConfig = {
@@ -258,20 +258,19 @@ export class ThemeConfig {
   static readonly backdropBlurXXXLarge = 30;
 
   // 边框颜色系统
-  static readonly borderLight = '#E2E8F0';
+  static readonly borderDefault = '#E2E8F0';
   static readonly borderGrid = '#E0E0E0';
   static readonly borderGridFine = '#F0F0F0';
+  static readonly borderDivider = '#E2E8F0';
 
   // 文字颜色系统
-  static readonly textSecondary = '#666666';
   static readonly textPrimary = '#1D1D1F';
-  static readonly textDescription = '#86868B';
+  static readonly textSecondary = '#666666';
+  static readonly textTertiary = '#86868B';
   static readonly textSuccess = '#28A745';
-  
-  // 新增：从代码中提取的颜色
   static readonly textMuted = '#64748B';
-  static readonly textLight = '#94A3B8';
-  static readonly textDark = '#1E293B';
+  static readonly textSubdued = '#94A3B8';
+  static readonly textStrong = '#1E293B';
   
   // 任务状态颜色
   static readonly taskCritical = '#D0021B';
@@ -286,22 +285,21 @@ export class ThemeConfig {
   static readonly projectResearch = '#10B981';
   static readonly projectOther = '#6B7280';
   
-  // 网格和边框颜色
-  static readonly gridLine = '#E0E0E0';
-  static readonly gridLineFine = '#F0F0F0';
-  static readonly borderBottom = '#E2E8F0';
+  // 画布网格线颜色
+  static readonly canvasGridLine = '#E0E0E0';
+  static readonly canvasGridLineFine = '#F0F0F0';
   
-  // 文化词汇背景色
-  static readonly culturalWord1 = '#E2E8F0';
-  static readonly culturalWord2 = '#CBD5E1';
-  static readonly culturalWord3 = '#D1D5DB';
-  static readonly culturalWord4 = '#E5E7EB';
-  static readonly culturalWord5 = '#F3F4F6';
-  static readonly culturalWord6 = '#F1F5F9';
-  static readonly culturalWord7 = '#F8FAFC';
-  static readonly culturalWord8 = '#F9FAFB';
-  static readonly culturalWord9 = '#FAFBFC';
-  static readonly culturalWord10 = '#FCFCFD';
+  // 装饰性颜色 - 用于背景装饰元素
+  static readonly decorativeSlate = '#E2E8F0';
+  static readonly decorativeSlateDark = '#CBD5E1';
+  static readonly decorativeStone = '#D1D5DB';
+  static readonly decorativePearl = '#E5E7EB';
+  static readonly decorativeFog = '#F3F4F6';
+  static readonly decorativeCloud = '#F1F5F9';
+  static readonly decorativeMist = '#F8FAFC';
+  static readonly decorativeFrost = '#F9FAFB';
+  static readonly decorativeSnow = '#FAFBFC';
+  static readonly decorativeIce = '#FCFCFD';
 
   // 动画系统 - 现代动画时长
   static readonly animationFast = 150;

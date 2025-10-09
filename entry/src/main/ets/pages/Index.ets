@@ -370,7 +370,7 @@ struct Index {
             Line()
               .startPoint([index * 200, 0])
               .endPoint([index * 200, '100%'])
-              .stroke(ThemeConfig.gridLine)
+              .stroke(ThemeConfig.canvasGridLine)
               .strokeWidth(1)
           })
 
@@ -379,7 +379,7 @@ struct Index {
             Line()
               .startPoint([0, index * 200])
               .endPoint(['100%', index * 200])
-              .stroke(ThemeConfig.gridLine)
+              .stroke(ThemeConfig.canvasGridLine)
               .strokeWidth(1)
           })
         }
@@ -393,7 +393,7 @@ struct Index {
             Line()
               .startPoint([index * 100, 0])
               .endPoint([index * 100, '100%'])
-              .stroke(ThemeConfig.gridLineFine)
+              .stroke(ThemeConfig.canvasGridLineFine)
               .strokeWidth(0.5)
           })
 
@@ -402,7 +402,7 @@ struct Index {
             Line()
               .startPoint([0, index * 100])
               .endPoint(['100%', index * 100])
-              .stroke(ThemeConfig.gridLineFine)
+              .stroke(ThemeConfig.canvasGridLineFine)
               .strokeWidth(0.5)
           })
         }
@@ -436,17 +436,17 @@ struct Index {
         Text(this.sidebarVisible ? '<' : '>')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor(ThemeConfig.gray700)
+          .fontColor(ThemeConfig.surfaceDark)
       }
       .width(32)
       .height(48)
-      .backgroundColor(ThemeConfig.transparentWhite80)
+      .backgroundColor(ThemeConfig.overlayStrong)
       .borderRadius(8)
       .position({ x: 16, y: '50%' })
       .translate({ x: 0, y: -24 })
       .zIndex(200)
       .backdropBlur(ThemeConfig.backdropBlurMedium)
-      .border({ width: 1, color: ThemeConfig.transparentBlack10, radius: 8 })
+      .border({ width: 1, color: ThemeConfig.shadowColorMinimal, radius: 8 })
       .onClick(() => {
         this.sidebarVisible = !this.sidebarVisible
       })
@@ -539,16 +539,16 @@ struct Index {
             Button() {
               Text('↶ 撤销')
                 .fontSize(13)
-                .fontColor(this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray400)
+                .fontColor(this.canUndo ? ThemeConfig.errorColor : ThemeConfig.surfaceStrong)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(75)
             .height(36)
-            .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.gray100)
+            .backgroundColor(this.canUndo ? ThemeConfig.errorLight : ThemeConfig.surfaceLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({
               width: 2,
-              color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.gray200,
+              color: this.canUndo ? ThemeConfig.errorColor : ThemeConfig.surfaceNeutral,
               radius: ThemeConfig.radiusMedium
             })
             .shadow(ThemeConfig.shadowMedium)
@@ -577,16 +577,16 @@ struct Index {
             Button() {
               Text('↷ 重做')
                 .fontSize(13)
-                .fontColor(this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray400)
+                .fontColor(this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.surfaceStrong)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width(75)
             .height(36)
-            .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.gray100)
+            .backgroundColor(this.canRedo ? ThemeConfig.primaryUltraLight : ThemeConfig.surfaceLight)
             .borderRadius(ThemeConfig.radiusMedium)
             .border({
               width: 2,
-              color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.gray200,
+              color: this.canRedo ? ThemeConfig.primaryColor : ThemeConfig.surfaceNeutral,
               radius: ThemeConfig.radiusMedium
             })
             .shadow(ThemeConfig.shadowMedium)

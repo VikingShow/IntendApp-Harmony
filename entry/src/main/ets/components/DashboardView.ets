@@ -77,6 +77,8 @@ export struct DashboardView {
   @State private screenWidth: number = 0;
   @State private currentBreakpoint: BreakpointConfig = BreakpointSystem.getCurrentBreakpoint(0);
   @State private isPhone: boolean = false;
+  /** 是否为浮动卡片模式（手机端） */
+  @Prop isFloatingCard: boolean = false;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
@@ -217,107 +219,119 @@ export struct DashboardView {
 
   build() {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
-    Column({ space: BreakpointSystem.getResponsiveSpacing(20, this.screenWidth) }) {
-      // 1. 项目标题和进入编辑按钮 - 简约设计
-      Column({ space: BreakpointSystem.getResponsiveSpacing(24, this.screenWidth) }) {
-        Row() {
-          Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
-            Text(this.project.name)
-              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXXXXL, this.screenWidth))
-              .fontWeight(ThemeConfig.fontWeightBold)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .maxLines(1)
-              .fontColor(ColorResource.surfaceDeep)
-            Text(`项目ID: ${this.project.id}`)
-              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeL, this.screenWidth))
+    Column({ space: BreakpointSystem.getResponsiveSpacing(16, this.screenWidth) }) {
+      // 1. 项目标题和进入编辑按钮 - 优化布局
+      Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
+        // 项目名称单独一行，确保不被遮挡
+        Text(this.project.name)
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
+          .fontWeight(ThemeConfig.fontWeightBold)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .maxLines(2)
+          .fontColor(ColorResource.surfaceDeep)
+          .width('100%')
+          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)) * 1.3)
+        
+        // 项目ID和编辑按钮在一行（浮动卡片模式不显示编辑按钮）
+        if (!this.isFloatingCard) {
+          Row({ space: ThemeConfig.spacingM }) {
+            Text(`ID: ${this.project.id}`)
+              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
               .fontColor(ColorResource.surfaceEmphasized)
               .fontWeight(ThemeConfig.fontWeightMedium)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+              .layoutWeight(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .maxLines(1)
 
-          Button() {
-            Row({ space: ThemeConfig.spacingS }) {
-              Text('编辑项目')
-                .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXL, this.screenWidth))
-                .fontColor(Color.White)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-          }
-          .accessibilityLevel('important')
-          .height(this.isPhone ? 44 : ThemeConfig.buttonHeightLarge)
-          .padding({ 
-            left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth), 
-            right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth) 
-          })
-          .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
-          .borderRadius(this.isPhone ? 22 : 26)
-          .shadow(ThemeConfig.shadowMedium)
-          // .backdropBlur(ThemeConfig.backdropBlurMedium)
-          .border({ 
-            width: 2, 
-            color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
-            radius: this.isPhone ? 22 : 26
-          })
-          .scale({ x: this.editButtonScale, y: this.editButtonScale })
-          .opacity(this.editButtonOpacity)
-          .animation({
-            duration: ThemeConfig.animationFast,
-            curve: ThemeConfig.animationEaseInOut,
-            iterations: 1,
-            playMode: PlayMode.Normal
-          })
-          .onClick(() => {
-            // 添加触觉反馈
-            try {
-              vibrator.startVibration({
-                type: 'time',
-                duration: 50
-              }, {
-                id: 0,
-                usage: 'alarm'
-              });
-            } catch (error) {
-              console.log('[DashboardView] Haptic feedback not available:', error);
-            }
-            
-            this.getUIContext().getRouter().pushUrl({
-              url: 'pages/Index',
-              params: { projectId: this.project.id },
-              animation: {
-                type: 'fade',
-                duration: 300
+            Button() {
+              Row({ space: ThemeConfig.spacingS }) {
+                Text('编辑项目')
+                  .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
+                  .fontColor(Color.White)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
               }
-            } as router.RouterOptions);
-          })
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Down) {
-              this.startEditButtonPress();
-            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.endEditButtonPress();
             }
-          })
+            .accessibilityLevel('important')
+            .height(this.isPhone ? 36 : 40)
+            .padding({ 
+              left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth), 
+              right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth) 
+            })
+            .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
+            .borderRadius(this.isPhone ? 18 : 20)
+            .shadow(ThemeConfig.shadowMedium)
+            .border({ 
+              width: 2, 
+              color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
+              radius: this.isPhone ? 18 : 20
+            })
+            .scale({ x: this.editButtonScale, y: this.editButtonScale })
+            .opacity(this.editButtonOpacity)
+            .animation({
+              duration: ThemeConfig.animationFast,
+              curve: ThemeConfig.animationEaseInOut,
+              iterations: 1,
+              playMode: PlayMode.Normal
+            })
+            .onClick(() => {
+              // 添加触觉反馈
+              try {
+                vibrator.startVibration({
+                  type: 'time',
+                  duration: 50
+                }, {
+                  id: 0,
+                  usage: 'alarm'
+                });
+              } catch (error) {
+                console.log('[DashboardView] Haptic feedback not available:', error);
+              }
+              
+              this.getUIContext().getRouter().pushUrl({
+                url: 'pages/Index',
+                params: { projectId: this.project.id },
+                animation: {
+                  type: 'fade',
+                  duration: 300
+                }
+              } as router.RouterOptions);
+            })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.startEditButtonPress();
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.endEditButtonPress();
+              }
+            })
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+        } else {
+          // 浮动卡片模式：只显示ID
+          Text(`ID: ${this.project.id}`)
+            .fontSize(ThemeConfig.fontSizeXS)
+            .fontColor(ColorResource.surfaceEmphasized)
+            .fontWeight(ThemeConfig.fontWeightMedium)
+            .opacity(0.8)
         }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
-      .backgroundColor(ColorResource.transparent)
-      .borderRadius(ThemeConfig.radiusXXLarge)
-      .shadow(ThemeConfig.cardShadow)
-      .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXXLarge })
+      .padding(this.isFloatingCard ? { left: 16, right: 16, top: 12, bottom: 12 } : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+      .backgroundColor(this.isFloatingCard ? Color.Transparent : ColorResource.transparent)
+      .borderRadius(this.isFloatingCard ? 0 : ThemeConfig.radiusLarge)
+      .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
+      .border(this.isFloatingCard ? { width: 0 } : { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
 
       // 2. 核心指标统计 - 响应式布局
       if (this.isPhone) {
         // 手机端：2x2 网格布局
-        Column({ space: 16 }) {
-          Row({ space: 16 }) {
+        Column({ space: 12 }) {
+          Row({ space: 12 }) {
             this.StatCard('总任务数', `${this.project.tasks.length}个`, ColorResource.primaryLight, ColorResource.primaryColor)
             this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ColorResource.successLight, ColorResource.successColor)
           }
           .width('100%')
-          Row({ space: 16 }) {
+          Row({ space: 12 }) {
             this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
             this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, ColorResource.errorLight, ColorResource.errorColor)
           }
@@ -327,7 +341,7 @@ export struct DashboardView {
         .key(`stats-${this.updateKey}`)
       } else {
         // 平板/大屏：单行布局
-        Row({ space: 16 }) {
+        Row({ space: 12 }) {
           this.StatCard('总任务数', `${this.project.tasks.length}个`, ColorResource.primaryLight, ColorResource.primaryColor)
           this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ColorResource.successLight, ColorResource.successColor)
           this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
@@ -338,15 +352,15 @@ export struct DashboardView {
         .key(`stats-${this.updateKey}`)
       }
 
-      // 3. 即将到期的任务列表 - 简约设计
-      Column({ space: 20 }) {
-        Row({ space: ThemeConfig.spacingL }) {
-          Text('即将到期的任务')
-            .fontSize(ThemeConfig.fontSizeXXL)
+      // 3. 即将到期的任务列表 - 紧凑设计
+      Column({ space: 12 }) {
+        Row({ space: ThemeConfig.spacingM }) {
+          Text('即将到期')
+            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL)
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ColorResource.surfaceDeep)
           Text('(未来7天)')
-            .fontSize(ThemeConfig.fontSizeL)
+            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
             .fontColor(ColorResource.surfaceEmphasized)
             .fontWeight(ThemeConfig.fontWeightMedium)
         }
@@ -365,28 +379,28 @@ export struct DashboardView {
           .height('100%')
           .width('100%')
         } else {
-          // 没有即将到期的任务 - 更友好的空状态设计
-          Column({ space: ThemeConfig.spacingXXL }) {
-            Column({ space: ThemeConfig.spacingM }) {
+          // 没有即将到期的任务 - 紧凑的空状态设计
+          Column({ space: ThemeConfig.spacingM }) {
+            Column({ space: ThemeConfig.spacingS }) {
               Text('暂无即将到期的任务')
-                .fontSize(ThemeConfig.fontSizeXXL)
+                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
                 .fontColor(ColorResource.surfaceDeep)
                 .fontWeight(ThemeConfig.fontWeightBold)
               Text('一切尽在掌握之中！')
-                .fontSize(ThemeConfig.fontSizeL)
+                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
                 .fontColor(ColorResource.surfaceEmphasized)
                 .textAlign(TextAlign.Center)
-                .lineHeight(24)
+                .lineHeight(20)
             }
           }
           .width('100%')
-          .padding(ThemeConfig.spacingXXXXL)
+          .padding(ThemeConfig.spacingXL)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
           .backgroundColor(ColorResource.transparent)
-          .borderRadius(ThemeConfig.radiusXLarge)
+          .borderRadius(ThemeConfig.radiusLarge)
           .shadow(ThemeConfig.cardShadow)
-          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
+          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusLarge })
         }
       }
       .alignItems(HorizontalAlign.Start)
@@ -394,7 +408,7 @@ export struct DashboardView {
     }
     .width('100%')
     .height('100%')
-    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
+    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
     .backgroundColor(ColorResource.transparent)
     .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .opacity(this.fadeOpacity)
@@ -408,27 +422,27 @@ export struct DashboardView {
     })
   }
 
-  // 构建器：统计卡片 - 现代化设计，增强视觉吸引力
+  // 构建器：统计卡片 - 紧凑设计
   @Builder
   StatCard(title: string, value: string, bgColor: string | Resource, textColor: string | Resource, icon?: string) {
-    Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
+    Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
       // 图标 - 增强视觉效果
       if (icon) {
         Text(icon)
-          .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXL, this.screenWidth))
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth))
           .fontColor(textColor)
-          .margin({ bottom: ThemeConfig.spacingS })
+          .margin({ bottom: ThemeConfig.spacingXS })
       }
       
       Text(title)
-        .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
+        .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
         .fontColor(ColorResource.surfaceEmphasized)
         .fontWeight(ThemeConfig.fontWeightMedium)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(value)
-        .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXL, this.screenWidth))
+        .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
         .fontWeight(ThemeConfig.fontWeightBold)
         .fontColor(textColor)
         .textAlign(TextAlign.Center)
@@ -436,12 +450,12 @@ export struct DashboardView {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .height(this.isPhone ? 140 : 160)
-    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
-    .backgroundColor(ColorResource.transparent)
-    .borderRadius(ThemeConfig.radiusXLarge)
-    .shadow(ThemeConfig.shadowMedium)
-    .border({ width: 2, color: bgColor, radius: ThemeConfig.radiusXLarge })
+    .height(this.isFloatingCard ? 70 : (this.isPhone ? 100 : 120))
+    .padding(this.isFloatingCard ? 8 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.15)' : ColorResource.transparent)
+    .borderRadius(this.isFloatingCard ? 8 : ThemeConfig.radiusLarge)
+    .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.shadowMedium)
+    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.3)', radius: 8 } : { width: 2, color: bgColor, radius: ThemeConfig.radiusLarge })
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
     .opacity(this.fadeOpacity)
@@ -455,32 +469,32 @@ export struct DashboardView {
     })
   }
 
-  // 构建器：即将到期的任务卡片 - 简约设计
+  // 构建器：即将到期的任务卡片 - 紧凑设计
   @Builder
   UpcomingTaskCard(task: TaskNode) {
-    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXL, this.screenWidth) }) {
-      // 任务信息 - 简约设计
-      Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
+    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
+      // 任务信息 - 紧凑设计
+      Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth) }) {
         Text(task.name)
-          .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXL, this.screenWidth))
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.surfaceDeep)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
-          Text(`截止于: ${task.endDate.toLocaleDateString()}`)
-            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
+        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
+          Text(`截止: ${task.endDate.toLocaleDateString()}`)
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
           if (task.isCritical) {
-            Text('关键任务')
-              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            Text('关键')
+              .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
               .fontColor(ColorResource.errorColor)
               .fontWeight(ThemeConfig.fontWeightMedium)
               .padding({ 
-                left: ThemeConfig.spacingS, 
-                right: ThemeConfig.spacingS, 
-                top: ThemeConfig.spacingXS, 
-                bottom: ThemeConfig.spacingXS 
+                left: ThemeConfig.spacingXS, 
+                right: ThemeConfig.spacingXS, 
+                top: 2, 
+                bottom: 2 
               })
               .backgroundColor(ColorResource.hoverError)
               .borderRadius(ThemeConfig.radiusSmall)
@@ -493,10 +507,10 @@ export struct DashboardView {
       .layoutWeight(1)
     }
     .width('100%')
-    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
-    .backgroundColor(ColorResource.transparent)
-    .borderRadius(ThemeConfig.radiusXLarge)
-    .shadow(ThemeConfig.cardShadow)
-    .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
+    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+    .backgroundColor(this.isFloatingCard ? 'rgba(255, 255, 255, 0.1)' : ColorResource.transparent)
+    .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
+    .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
+    .border(this.isFloatingCard ? { width: 1, color: 'rgba(255, 255, 255, 0.2)', radius: 6 } : { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
   }
 }

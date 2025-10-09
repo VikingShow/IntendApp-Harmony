@@ -127,6 +127,12 @@ struct HomePage {
   @State isPhone: boolean = false;
   @State isTablet: boolean = false;
   
+  // 手机端视图模式
+  @State phoneViewMode: 'welcome' | 'list' | 'detail' = 'welcome'; // welcome=欢迎页, list=项目列表, detail=项目详情
+  @State swipeOffset: number = 0; // 滑动偏移量
+  @State showDashboardCard: boolean = false; // 是否显示Dashboard卡片
+  @State arrowAnimationOffset: number = 0; // 箭头动画偏移量
+  
   // 侧边栏抽屉动画状态
   @State drawerTranslateX: number = -100; // 抽屉位移百分比
   @State drawerOpacity: number = 0; // 遮罩透明度
@@ -1185,15 +1191,7 @@ struct HomePage {
         this.TabletLayout()
       }
 
-      // 手机端：侧边栏抽屉
-      if (this.isPhone && this.showSidebarDrawer) {
-        this.SidebarDrawer()
-      }
-
-      // 手机端：菜单按钮（左上角）
-      if (this.isPhone && !this.showSidebarDrawer) {
-        this.MenuButton()
-      }
+      // 手机端不再需要侧边栏抽屉和菜单按钮（改用底部导航）
     }
     .width('100%')
     .height('100%')
@@ -1207,9 +1205,29 @@ struct HomePage {
   // 手机端布局
   @Builder
   PhoneLayout() {
-    Column() {
-      // 内容区域（全屏）
-      this.ContentArea()
+    Stack() {
+      // 画布背景层（当选中项目时显示）
+      if (this.showCanvasBackground && this.selectedProjectDetail) {
+        this.CanvasBackground()
+      }
+      
+      // 主内容层
+      Column() {
+        if (this.phoneViewMode === 'welcome') {
+          // 欢迎页
+          this.PhoneWelcomePage()
+        } else if (this.phoneViewMode === 'list') {
+          // 项目列表
+          this.PhoneProjectList()
+        }
+      }
+      .width('100%')
+      .height('100%')
+      
+      // Dashboard卡片层（浮动在中间）
+      if (this.showDashboardCard && this.selectedProjectDetail) {
+        this.PhoneDashboardCard()
+      }
     }
     .width('100%')
     .height('100%')
@@ -1485,34 +1503,38 @@ struct HomePage {
             List({ space: ThemeConfig.spacingS }) {
               ForEach(this.projectList, (meta: ProjectMeta) => {
                 ListItem() {
-                  Row({ space: 16 }) {
-                    Column({ space: ThemeConfig.spacingS }) {
-                      Text(meta.name)
-                        .fontSize(ThemeConfig.fontSizeL)
-                        .fontWeight(ThemeConfig.fontWeightBold)
-                        .fontColor(ColorResource.surfaceDeep)
-                        .maxLines(1)
-                        .textOverflow({ overflow: TextOverflow.Ellipsis })
-                      Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
-                        .fontSize(ThemeConfig.fontSizeS)
-                        .fontColor(ColorResource.surfaceEmphasized)
-                        .fontWeight(ThemeConfig.fontWeightMedium)
-                    }
-                    .alignItems(HorizontalAlign.Start)
-                    .layoutWeight(1)
+                  Column({ space: ThemeConfig.spacingS }) {
+                    Text(meta.name)
+                      .fontSize(ThemeConfig.fontSizeM)
+                      .fontWeight(ThemeConfig.fontWeightBold)
+                      .fontColor(ColorResource.surfaceDeep)
+                      .maxLines(2)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .width('100%')
+                      .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                    Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .fontColor(ColorResource.surfaceEmphasized)
+                      .fontWeight(ThemeConfig.fontWeightMedium)
                   }
+                  .alignItems(HorizontalAlign.Start)
                   .width('100%')
-                  .padding(ThemeConfig.spacingXL)
+                  .padding({ 
+                    top: ThemeConfig.spacingM,
+                    bottom: ThemeConfig.spacingM,
+                    left: ThemeConfig.spacingL,
+                    right: ThemeConfig.spacingL
+                  })
                   .backgroundColor(this.selectedProjectId === meta.id ? 
                                  ColorResource.primaryUltraLight : ColorResource.surface)
-                  .borderRadius(ThemeConfig.radiusXLarge)
+                  .borderRadius(ThemeConfig.radiusLarge)
                   .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : ThemeConfig.cardShadow)
                   .border({ 
-                    width: this.selectedProjectId === meta.id ? 3 : 1, 
+                    width: this.selectedProjectId === meta.id ? 2 : 1, 
                     color: this.selectedProjectId === meta.id ? ColorResource.primaryColor : ColorResource.surfaceNeutral, 
-                    radius: ThemeConfig.radiusXLarge 
+                    radius: ThemeConfig.radiusLarge 
                   })
-                  .margin({ bottom: ThemeConfig.spacingM })
+                  .margin({ bottom: ThemeConfig.spacingS })
                 }
                 .onClick(() => {
                   // 添加触觉反馈
@@ -1773,39 +1795,47 @@ struct HomePage {
           List({ space: ThemeConfig.spacingS }) {
             ForEach(this.projectList, (meta: ProjectMeta) => {
               ListItem() {
-              Row({ space: 16 }) {
-                // 项目信息 - 增强视觉层次
+              Stack() {
+                // 主要内容区域
                 Column({ space: ThemeConfig.spacingS }) {
                   Text(meta.name)
-                    .fontSize(ThemeConfig.fontSizeL)
+                    .fontSize(ThemeConfig.fontSizeM)
                     .fontWeight(ThemeConfig.fontWeightBold)
                     .fontColor(ColorResource.surfaceDeep)
-                    .maxLines(1)
+                    .maxLines(2)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .width('100%')
+                    .lineHeight(ThemeConfig.fontSizeM * 1.4)
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
-                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontSize(ThemeConfig.fontSizeXS)
                     .fontColor(ColorResource.surfaceEmphasized)
                     .fontWeight(ThemeConfig.fontWeightMedium)
                 }
                 .alignItems(HorizontalAlign.Start)
-                .layoutWeight(1)
+                .width('100%')
+                .padding({ 
+                  top: ThemeConfig.spacingM,
+                  bottom: ThemeConfig.spacingM,
+                  left: ThemeConfig.spacingL,
+                  right: this.selectedProjectId === meta.id ? 52 : ThemeConfig.spacingL
+                })
 
-                // 删除按钮 - 只在项目被选中时显示
+                // 删除按钮 - 只在项目被选中时显示，浮动在右上角
                 if (this.selectedProjectId === meta.id) {
                   Button() {
                     Text('×')
-                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXL : ThemeConfig.fontSizeL)
-                      .fontColor(ColorResource.errorColor)
+                      .fontSize(ThemeConfig.fontSizeL)
+                      .fontColor(Color.White)
                       .fontWeight(ThemeConfig.fontWeightBold)
                   }
-                  .width(this.isPhone ? 44 : 40)
-                  .height(this.isPhone ? 44 : 40)
+                  .width(36)
+                  .height(36)
                   .type(ButtonType.Circle)
                   .backgroundColor(this.hoveredDeleteId === meta.id ? ColorResource.errorColor : ColorResource.errorLight)
                   .border({ 
                     width: 2, 
-                    color: this.hoveredDeleteId === meta.id ? ColorResource.errorColor : ColorResource.errorColor, 
-                    radius: 20 
+                    color: ColorResource.errorColor, 
+                    radius: 18 
                   })
                   .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
                   .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
@@ -1816,6 +1846,8 @@ struct HomePage {
                     iterations: 1,
                     playMode: PlayMode.Normal
                   })
+                  .position({ x: '100%', y: 8 })
+                  .translate({ x: -44, y: 0 })
                   .onClick(() => this.deleteProject(meta.id))
                   .onTouch((event: TouchEvent) => {
                     if (event.type === TouchType.Down) {
@@ -1829,23 +1861,23 @@ struct HomePage {
                   .hitTestBehavior(HitTestMode.Block)
                 }
               }
+              .alignContent(Alignment.TopStart)
               .width('100%')
-              .padding(ThemeConfig.spacingXL)
               .backgroundColor(this.selectedProjectId === meta.id ? 
                                (this.showCanvasBackground ? ColorResource.hoverPrimaryLight : ColorResource.primaryUltraLight) :
                                this.hoveredProjectId === meta.id ? 
                                (this.showCanvasBackground ? ColorResource.overlayRegular : ColorResource.surfaceSubtle) : 
                                (this.showCanvasBackground ? ColorResource.overlayMedium : ColorResource.surface))
-              .borderRadius(ThemeConfig.radiusXLarge)
+              .borderRadius(ThemeConfig.radiusLarge)
               .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
               .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
                      this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
               .border({ 
-                width: this.selectedProjectId === meta.id ? 3 : 1, 
+                width: this.selectedProjectId === meta.id ? 2 : 1, 
                 color: this.selectedProjectId === meta.id ? ColorResource.primaryColor : ColorResource.surfaceNeutral, 
-                radius: ThemeConfig.radiusXLarge 
+                radius: ThemeConfig.radiusLarge 
               })
-              .margin({ bottom: ThemeConfig.spacingM })
+              .margin({ bottom: ThemeConfig.spacingS })
             }
             .accessibilityLevel('important')
             .onClick(() => {
@@ -1927,5 +1959,542 @@ struct HomePage {
     
     // 渲染画布内容
     renderer.render(this.selectedProjectDetail, config);
+  }
+
+  // 计算项目总任务数
+  private getProjectTotalTasks(project: Project | null): number {
+    if (!project) return 0;
+    return project.tasks.length;
+  }
+
+  // 计算项目已完成任务数
+  private getProjectCompletedTasks(project: Project | null): number {
+    if (!project) return 0;
+    return project.tasks.filter(task => 
+      task.checklist.length > 0 && task.checklist.every(item => item.isCompleted)
+    ).length;
+  }
+
+  // 计算项目关键任务数
+  private getProjectCriticalTasks(project: Project | null): number {
+    if (!project) return 0;
+    return project.tasks.filter(task => task.isCritical).length;
+  }
+
+  // 显示项目菜单
+  private showProjectMenu(projectId: string) {
+    const project = this.projectList.find(p => p.id === projectId);
+    if (!project) return;
+
+    // 触觉反馈
+    try {
+      vibrator.startVibration({
+        type: 'time',
+        duration: 30
+      }, {
+        id: 0,
+        usage: 'alarm'
+      });
+    } catch (error) {
+      console.log('[Home] Haptic feedback not available:', error);
+    }
+
+    // 显示操作菜单
+    this.promptAction.showDialog({
+      title: project.name,
+      message: '选择操作',
+      buttons: [
+        {
+          text: '编辑名称',
+          color: ColorResource.primaryColor
+        },
+        {
+          text: '删除项目',
+          color: ColorResource.errorColor
+        },
+        {
+          text: '取消',
+          color: ColorResource.surfaceEmphasized
+        }
+      ]
+    }, (error, data) => {
+      if (error) {
+        console.error('[Home] Show menu error:', error);
+        return;
+      }
+      
+      if (data.index === 0) {
+        // 编辑名称
+        this.showRenameProjectDialog(projectId);
+      } else if (data.index === 1) {
+        // 删除项目
+        this.deleteProject(projectId);
+      }
+    });
+  }
+
+  // 显示重命名对话框
+  private showRenameProjectDialog(projectId: string) {
+    const project = this.projectList.find(p => p.id === projectId);
+    if (!project) return;
+
+    this.promptAction.showDialog({
+      title: '编辑项目名称',
+      message: '请输入新的项目名称',
+      buttons: [
+        { text: '取消', color: ColorResource.surfaceEmphasized },
+        { text: '确定', color: ColorResource.primaryColor }
+      ]
+    }, async (error, data) => {
+      if (error || data.index === 0) return;
+      
+      // TODO: 实现重命名功能
+      this.promptAction.showToast({
+        message: '重命名功能即将上线',
+        duration: 2000
+      });
+    });
+  }
+
+  // 手机端 - 欢迎页
+  @Builder
+  PhoneWelcomePage() {
+    Stack() {
+      // 欢迎内容
+      WelcomeView()
+      
+      // 上滑提示
+      Column({ space: ThemeConfig.spacingS }) {
+        // 向上箭头动画
+        Text('↑')
+          .fontSize(ThemeConfig.fontSizeXXL)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(ThemeConfig.fontWeightBold)
+          .translate({ x: 0, y: this.arrowAnimationOffset })
+          .animation({
+            duration: 1000,
+            curve: Curve.EaseInOut,
+            iterations: -1, // 无限循环
+            playMode: PlayMode.Alternate
+          })
+          .onAppear(() => {
+            // 启动动画
+            this.arrowAnimationOffset = -10;
+          })
+        
+        Text('上滑查看项目列表')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontColor(ColorResource.surfaceEmphasized)
+          .fontWeight(ThemeConfig.fontWeightMedium)
+      }
+      .width('100%')
+      .position({ x: 0, y: '100%' })
+      .translate({ x: 0, y: -100 })
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width('100%')
+    .height('100%')
+    .gesture(
+      PanGesture({ direction: PanDirection.Vertical })
+        .onActionStart((event: GestureEvent) => {
+          console.log('[Home] Swipe start');
+        })
+        .onActionUpdate((event: GestureEvent) => {
+          // 向上滑动时offsetY为负数
+          if (event.offsetY < -50) {
+            this.swipeOffset = event.offsetY;
+          }
+        })
+        .onActionEnd((event: GestureEvent) => {
+          // 向上滑动超过100，切换到项目列表
+          if (event.offsetY < -100) {
+            // 触觉反馈
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 40
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
+            }
+            
+            this.phoneViewMode = 'list';
+          }
+          this.swipeOffset = 0;
+        })
+    )
+  }
+
+  // 手机端 - 项目列表视图
+  @Builder
+  PhoneProjectList() {
+    Column() {
+      // 顶部标题栏
+      Row({ space: 16 }) {
+        Text('我的项目')
+          .fontSize(ThemeConfig.fontSizeXXL)
+          .fontWeight(ThemeConfig.fontWeightBold)
+          .fontColor(ColorResource.surfaceDeep)
+          .layoutWeight(1)
+        
+        // 添加按钮
+        Stack() {
+          // 进度环背景
+          if (this.isLongPressing) {
+            Circle()
+              .width(52)
+              .height(52)
+              .stroke(ColorResource.primaryUltraLight)
+              .strokeWidth(4)
+              .fill(Color.Transparent)
+          }
+          
+          // 进度环
+          if (this.isLongPressing && this.progressAngle > 0) {
+            Circle()
+              .width(52)
+              .height(52)
+              .stroke(ColorResource.primaryColor)
+              .strokeWidth(4)
+              .fill(Color.Transparent)
+              .strokeDashArray([this.progressAngle * 3.14 * 52 / 360, 3.14 * 52])
+              .strokeDashOffset(0)
+              .rotate({ angle: -90 })
+              .animation({
+                duration: 50,
+                curve: Curve.Linear,
+                iterations: 1,
+                playMode: PlayMode.Normal
+              })
+          }
+          
+          // 按钮主体
+          Button() {
+            Text('+')
+              .fontSize(ThemeConfig.fontSizeXXXXXL)
+              .fontColor(Color.White)
+              .fontWeight(ThemeConfig.fontWeightBold)
+          }
+          .accessibilityLevel('important')
+          .width(52)
+          .height(52)
+          .type(ButtonType.Circle)
+          .backgroundColor(this.isLongPressing ? ColorResource.primaryDark : ColorResource.primaryColor)
+          .shadow(ThemeConfig.shadowMedium)
+          .border({ 
+            width: 2, 
+            color: this.isLongPressing ? ColorResource.primaryDark : ColorResource.primaryUltraLight, 
+            radius: 26
+          })
+          .scale({ x: this.buttonScale, y: this.buttonScale })
+          .opacity(this.buttonOpacity)
+          .animation({
+            duration: ThemeConfig.animationFast,
+            curve: ThemeConfig.animationEaseInOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
+          .onClick(() => {
+            this.showCreateProjectOptions();
+          })
+          .gesture(
+            LongPressGesture({ repeat: false })
+              .onAction(() => {
+                // 长按快速创建空白项目
+              })
+          )
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.startLongPressEffect();
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.endLongPressEffect();
+            }
+          })
+        }
+        .width(52)
+        .height(52)
+      }
+      .width('100%')
+      .padding({ top: 20, bottom: 16, left: 20, right: 20 })
+      .backgroundColor(this.showDashboardCard ? 'rgba(255, 255, 255, 0.7)' : ColorResource.surface)
+      .backdropBlur(this.showDashboardCard ? 20 : 0)
+      .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
+
+      // 项目列表内容区域
+      if (this.projectList.length === 0) {
+        // 空状态
+        Column({ space: 20 }) {
+          Column({ space: 8 }) {
+            Text('空空如也')
+              .fontSize(16)
+              .fontColor(ColorResource.textMuted)
+              .fontWeight(ThemeConfig.fontWeightBold)
+            Text('点击右上角"+"按钮\n创建您的第一个项目')
+              .fontSize(13)
+              .fontColor(ColorResource.textSubdued)
+              .textAlign(TextAlign.Center)
+              .lineHeight(18)
+          }
+        }
+        .width('100%')
+        .padding(24)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(ColorResource.backgroundPage)
+        .borderRadius(ThemeConfig.radiusLarge)
+        .margin(ThemeConfig.spacingM)
+        .layoutWeight(1)
+      } else {
+        // 项目卡片列表
+        List({ space: ThemeConfig.spacingS }) {
+          ForEach(this.projectList, (meta: ProjectMeta) => {
+            ListItem() {
+              Row() {
+                // 主要内容区域
+                Column({ space: ThemeConfig.spacingS }) {
+                  Text(meta.name)
+                    .fontSize(ThemeConfig.fontSizeM)
+                    .fontWeight(ThemeConfig.fontWeightBold)
+                    .fontColor(ColorResource.surfaceDeep)
+                    .maxLines(2)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .width('100%')
+                    .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                  Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.surfaceEmphasized)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+                .padding({ 
+                  top: ThemeConfig.spacingM,
+                  bottom: ThemeConfig.spacingM,
+                  left: ThemeConfig.spacingL
+                })
+
+                // 三点菜单按钮
+                Button() {
+                  Text('⋯')
+                    .fontSize(ThemeConfig.fontSizeXL)
+                    .fontColor(ColorResource.surfaceEmphasized)
+                    .rotate({ angle: 90 })
+                }
+                .width(40)
+                .height(40)
+                .type(ButtonType.Circle)
+                .backgroundColor(Color.Transparent)
+                .onClick(() => {
+                  // 显示菜单（编辑、删除）
+                  this.showProjectMenu(meta.id);
+                })
+                .hitTestBehavior(HitTestMode.Block)
+              }
+              .width('100%')
+              .backgroundColor(
+                this.showDashboardCard ?
+                (this.selectedProjectId === meta.id ? 
+                 'rgba(226, 240, 255, 0.8)' :
+                 this.hoveredProjectId === meta.id ? 
+                 'rgba(255, 255, 255, 0.6)' : 
+                 'rgba(255, 255, 255, 0.5)') :
+                (this.selectedProjectId === meta.id ? 
+                 ColorResource.primaryUltraLight :
+                 this.hoveredProjectId === meta.id ? 
+                 ColorResource.surfaceSubtle : 
+                 ColorResource.surface)
+              )
+              .borderRadius(ThemeConfig.radiusLarge)
+              .backdropBlur(this.showDashboardCard ? 10 : 0)
+              .shadow(this.selectedProjectId === meta.id ? ThemeConfig.shadowHover : 
+                     this.hoveredProjectId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.cardShadow)
+              .border({ 
+                width: this.selectedProjectId === meta.id ? 2 : 1, 
+                color: this.selectedProjectId === meta.id ? ColorResource.primaryColor : ColorResource.surfaceNeutral, 
+                radius: ThemeConfig.radiusLarge
+              })
+              .margin({ bottom: ThemeConfig.spacingS })
+            }
+            .accessibilityLevel('important')
+            .onClick(() => {
+              console.log(`[Home] Phone project card clicked: ${meta.id}`);
+              
+              // 触觉反馈
+              try {
+                vibrator.startVibration({
+                  type: 'time',
+                  duration: 40
+                }, {
+                  id: 0,
+                  usage: 'alarm'
+                });
+              } catch (error) {
+                console.log('[Home] Haptic feedback not available:', error);
+              }
+              
+              // 选中项目并显示Dashboard卡片
+              this.onSelectProject(meta.id);
+              this.showCanvasBackground = true;
+              this.showDashboardCard = true;
+            })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.hoveredProjectId = meta.id;
+                this.pressedProjectId = meta.id;
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.hoveredProjectId = null;
+                this.pressedProjectId = null;
+              }
+            })
+            .scale({ 
+              x: this.pressedProjectId === meta.id ? 0.97 : 1,
+              y: this.pressedProjectId === meta.id ? 0.97 : 1
+            })
+            .animation({
+              duration: ThemeConfig.animationFast,
+              curve: Curve.Sharp,
+              iterations: 1,
+              playMode: PlayMode.Normal
+            })
+          })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingS })
+        .scrollBar(BarState.Auto)
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.showDashboardCard ? ColorResource.transparent : ColorResource.backgroundPage)
+    .backdropBlur(this.showDashboardCard ? ThemeConfig.backdropBlurXLarge : 0)
+  }
+
+  // 手机端 - Dashboard浮动卡片
+  @Builder
+  PhoneDashboardCard() {
+    Stack() {
+      // 遮罩层（可点击关闭）
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0, 0, 0, 0.3)')
+        .onClick(() => {
+          // 关闭Dashboard卡片
+          this.showDashboardCard = false;
+          this.showCanvasBackground = false;
+        })
+      
+      // Dashboard卡片
+      Column() {
+        // 顶部操作栏
+        Row() {
+          // 关闭按钮
+          Button() {
+            Text('×')
+              .fontSize(ThemeConfig.fontSizeXXL)
+              .fontColor(ColorResource.surfaceDeep)
+          }
+          .width(40)
+          .height(40)
+          .type(ButtonType.Circle)
+          .backgroundColor(ColorResource.transparent)
+          .onClick(() => {
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 30
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
+            }
+            this.showDashboardCard = false;
+            this.showCanvasBackground = false;
+          })
+
+          Blank()
+
+          // 编辑按钮
+          Button() {
+            Text('✎')
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontColor(Color.White)
+          }
+          .width(40)
+          .height(40)
+          .type(ButtonType.Circle)
+          .backgroundColor(ColorResource.primaryColor)
+          .onClick(() => {
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 40
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
+            }
+            
+            if (this.selectedProjectId) {
+              this.getUIContext().getRouter().pushUrl({
+                url: 'pages/Index',
+                params: { projectId: this.selectedProjectId },
+                animation: {
+                  type: 'fade',
+                  duration: 300
+                }
+              } as router.RouterOptions);
+            }
+          })
+        }
+        .width('100%')
+        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingS })
+
+        // Dashboard内容（可滚动）
+        Scroll() {
+          if (this.selectedProjectDetail) {
+            DashboardView({ 
+              project: this.selectedProjectDetail,
+              showCanvasBackground: true,
+              isFloatingCard: true
+            })
+              .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+          }
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .scrollBar(BarState.Auto)
+        .backgroundColor(Color.Transparent)
+      }
+      .width('90%')
+      .height('75%')
+      .backgroundColor('rgba(255, 255, 255, 0.75)')
+      .backdropBlur(30)
+      .borderRadius(ThemeConfig.radiusXLarge)
+      .shadow({ radius: 40, color: 'rgba(0, 0, 0, 0.15)', offsetX: 0, offsetY: 8 })
+      .border({
+        width: 1.5,
+        color: 'rgba(255, 255, 255, 0.4)',
+        radius: ThemeConfig.radiusXLarge
+      })
+      .scale({ x: this.contentScale, y: this.contentScale })
+      .opacity(this.contentOpacity)
+      .animation({
+        duration: ThemeConfig.animationNormal,
+        curve: Curve.Friction,
+        iterations: 1,
+        playMode: PlayMode.Normal
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
   }
 }

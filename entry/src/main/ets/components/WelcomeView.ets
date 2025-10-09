@@ -27,28 +27,28 @@ export struct WelcomeView {
       // this.CulturalWordsBackground()
       
       // 主要内容层 - 铺满整个区域
-      Column({ space: BreakpointSystem.getResponsiveSpacing(32, this.screenWidth) }) {
-        // 中心标题 - 增强视觉层次
-        Column({ space: BreakpointSystem.getResponsiveSpacing(20, this.screenWidth) }) {
+      Column({ space: BreakpointSystem.getResponsiveSpacing(24, this.screenWidth) }) {
+        // 中心标题 - 紧凑视觉层次
+        Column({ space: BreakpointSystem.getResponsiveSpacing(16, this.screenWidth) }) {
           Text('一思不漏')
-            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXXXXL, this.screenWidth))
+            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXL, this.screenWidth))
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ColorResource.primaryColor)
             .textAlign(TextAlign.Center)
           Text('EazyFlow')
-            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
+            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth))
             .fontColor(ColorResource.surfaceBold)
             .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
             // .shadow({ radius: 2, color: ThemeConfig.gray600 + '20', offsetX: 0, offsetY: 2 })
-            .margin({ top: ThemeConfig.spacingS })
+            .margin({ top: ThemeConfig.spacingXS })
           Text('让每个想法都不被遗漏，让每个项目都井然有序')
-            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeL, this.screenWidth))
+            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
             .textAlign(TextAlign.Center)
-            .lineHeight(BreakpointSystem.getResponsiveSpacing(28, this.screenWidth))
+            .lineHeight(BreakpointSystem.getResponsiveSpacing(22, this.screenWidth))
             .fontWeight(ThemeConfig.fontWeightMedium)
-            .margin({ top: ThemeConfig.spacingL })
+            .margin({ top: ThemeConfig.spacingM })
         }
         .alignItems(HorizontalAlign.Center)
       }
@@ -58,8 +58,8 @@ export struct WelcomeView {
       .padding({ 
         left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXL, this.screenWidth), 
         right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXL, this.screenWidth), 
-        top: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXXXL, this.screenWidth), 
-        bottom: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXXXL, this.screenWidth) 
+        top: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth), 
+        bottom: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth) 
       })
     }
     .width('100%')

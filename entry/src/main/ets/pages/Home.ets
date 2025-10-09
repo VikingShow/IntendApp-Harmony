@@ -60,6 +60,72 @@ interface ActionMenuButton {
   color: string | Resource;
 }
 
+/**
+ * 重命名项目对话框
+ */
+@CustomDialog
+struct RenameProjectDialog {
+  controller: CustomDialogController;
+  projectName: string = '';
+  onConfirm: (newName: string) => void = () => {};
+  @State inputValue: string = '';
+
+  aboutToAppear() {
+    this.inputValue = this.projectName;
+  }
+
+  build() {
+    Column({ space: 20 }) {
+      Text('编辑项目名称')
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(ColorResource.textPrimary)
+      
+      TextInput({ text: this.inputValue, placeholder: '请输入项目名称' })
+        .width('100%')
+        .height(48)
+        .fontSize(16)
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(8)
+        .onChange((value: string) => {
+          this.inputValue = value;
+        })
+      
+      Row({ space: 12 }) {
+        Button('取消')
+          .width('45%')
+          .height(44)
+          .fontSize(16)
+          .backgroundColor(ColorResource.surface)
+          .fontColor(ColorResource.textSecondary)
+          .onClick(() => {
+            this.controller.close();
+          })
+        
+        Button('确定')
+          .width('45%')
+          .height(44)
+          .fontSize(16)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor('#FFFFFF')
+          .enabled(this.inputValue.trim().length > 0)
+          .onClick(() => {
+            if (this.inputValue.trim().length > 0) {
+              this.onConfirm(this.inputValue.trim());
+              this.controller.close();
+            }
+          })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+    }
+    .padding(24)
+    .width('85%')
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(16)
+  }
+}
+
 
 @Entry
 @Component
@@ -139,6 +205,11 @@ struct HomePage {
   @State drawerTranslateX: number = -100; // 抽屉位移百分比
   @State drawerOpacity: number = 0; // 遮罩透明度
   @State menuButtonScale: number = 1; // 菜单按钮缩放
+  
+  // 重命名对话框
+  private renameDialogController: CustomDialogController | null = null;
+  @State renameProjectId: string = '';
+  @State renameProjectName: string = '';
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
@@ -2038,22 +2109,81 @@ struct HomePage {
     const project = this.projectList.find(p => p.id === projectId);
     if (!project) return;
 
-    this.promptAction.showDialog({
-      title: '编辑项目名称',
-      message: '请输入新的项目名称',
-      buttons: [
-        { text: '取消', color: ColorResource.surfaceEmphasized },
-        { text: '确定', color: ColorResource.primaryColor }
-      ]
-    }, async (error, data) => {
-      if (error || data.index === 0) return;
-      
-      // TODO: 实现重命名功能
+    // 先关闭之前的对话框（如果存在）
+    if (this.renameDialogController) {
+      this.renameDialogController.close();
+      this.renameDialogController = null;
+    }
+
+    this.renameProjectId = projectId;
+    this.renameProjectName = project.name;
+
+    // 创建并打开对话框
+    this.renameDialogController = new CustomDialogController({
+      builder: RenameProjectDialog({
+        projectName: this.renameProjectName,
+        onConfirm: (newName: string) => {
+          this.handleRenameProject(this.renameProjectId, newName);
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.renameDialogController.open();
+  }
+
+  // 处理项目重命名
+  private async handleRenameProject(projectId: string, newName: string) {
+    try {
+      if (!this.storageService) return;
+
+      // 获取完整的项目数据
+      const project = await this.storageService.getProject(projectId);
+      if (!project) {
+        this.promptAction.showToast({
+          message: '项目不存在',
+          duration: 2000
+        });
+        return;
+      }
+
+      // 更新项目名称和时间戳
+      project.name = newName;
+      project.lastModified = Date.now();
+
+      // 保存到存储
+      await this.storageService.saveProject(project);
+
+      // 更新本地项目列表
+      const projectIndex = this.projectList.findIndex(p => p.id === projectId);
+      if (projectIndex !== -1) {
+        this.projectList[projectIndex].name = newName;
+        this.projectList[projectIndex].lastModified = Date.now();
+      }
+
+      // 如果是当前选中的项目，也更新详情数据
+      if (this.selectedProjectDetail && this.selectedProjectDetail.id === projectId) {
+        this.selectedProjectDetail.name = newName;
+        this.selectedProjectDetail.lastModified = Date.now();
+      }
+
+      // 显示成功提示
       this.promptAction.showToast({
-        message: '重命名功能即将上线',
+        message: `项目已重命名为"${newName}"`,
         duration: 2000
       });
-    });
+
+      // 强制刷新UI
+      this.componentKey++;
+    } catch (error) {
+      console.error('[Home] Rename project error:', error);
+      this.promptAction.showToast({
+        message: '重命名失败，请重试',
+        duration: 2000
+      });
+    }
   }
 
   // 手机端 - 欢迎页
@@ -2163,11 +2293,11 @@ struct HomePage {
         .width('100%')
         .padding({ top: 8, bottom: 8 })
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(this.isDarkMode ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)')
+        .backgroundColor(ColorResource.surface)
         .backdropBlur(10)
         .position({ x: 0, y: 0 })
         .zIndex(1000)
-        .opacity(Math.min(this.pageTranslateY / 100, 1))
+        .opacity(Math.min(this.pageTranslateY / 100, 0.98))
         .shadow({ radius: 8, color: this.isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
       }
       

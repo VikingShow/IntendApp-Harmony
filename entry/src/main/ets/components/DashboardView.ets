@@ -214,9 +214,6 @@ export struct DashboardView {
 
           Button() {
             Row({ space: ThemeConfig.spacingS }) {
-              Text('✏️')
-                .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(Color.White)
               Text('编辑项目')
                 .fontSize(ThemeConfig.fontSizeXL)
                 .fontColor(Color.White)

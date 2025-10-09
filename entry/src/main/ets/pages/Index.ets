@@ -504,7 +504,7 @@ struct Index {
       .translate({ x: 0, y: -24 })
       .zIndex(200)
       .backdropBlur(ThemeConfig.backdropBlurMedium)
-      .border({ width: 1, color: ColorResource.shadowColorSubtle, radius: 8 })
+      .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 8 })
       .onClick(() => {
         this.sidebarVisible = !this.sidebarVisible
       })

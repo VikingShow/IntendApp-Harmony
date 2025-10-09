@@ -42,7 +42,6 @@ import { Project, TaskNode } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
 import { CanvasController } from '../core/CanvasController';
-import { CanvasRenderer } from '../core/CanvasRenderer';
 import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
@@ -1258,7 +1257,7 @@ struct HomePage {
       }
       .width('100%')
       .padding({ top: 20, bottom: 16, left: 20, right: 20 })
-      .backgroundColor(this.showCanvasBackground ? ColorResource.transparent : $r('sys.color.comp_background_list_card'))
+      .backgroundColor(ColorResource.transparent)
       .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
       .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
 

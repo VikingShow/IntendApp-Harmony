@@ -202,7 +202,7 @@ export struct Sidebar {
                 .fontColor(ColorResource.surfaceDeep)
                 .fontWeight(ThemeConfig.fontWeightBold)
                 .shadow({ radius: ThemeConfig.shadowSmall.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.shadowSmall.offsetX, offsetY: ThemeConfig.shadowSmall.offsetY })
-              
+
               Text('请稍候')
                 .fontSize(ThemeConfig.fontSizeM)
                 .fontColor(ColorResource.surfaceBold)

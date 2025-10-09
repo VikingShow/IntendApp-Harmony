@@ -294,11 +294,11 @@
     },
     {
       "name": "canvas_grid_line",
-      "value": "#2C2C2E"
+      "value": "#4A4A4A"
     },
     {
       "name": "canvas_grid_line_fine",
-      "value": "#232325"
+      "value": "#343434"
     },
     {
       "name": "decorative_slate",

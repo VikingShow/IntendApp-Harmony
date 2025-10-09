@@ -33,7 +33,7 @@
  */
 
 import { Project, TaskNode } from '../model/ProjectData';
-import { ThemeConfig } from '../utils/ThemeConfig';
+import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 /**
  * 渲染配置接口
@@ -179,8 +179,8 @@ export class CanvasRenderer {
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
 
-      // 节点背景
-      this.context.fillStyle = ThemeConfig.surface.toString();
+      // 节点背景（固定白色，确保在任何背景下都清晰可见）
+      this.context.fillStyle = '#FFFFFF';
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
       this.context.fill();
 
@@ -189,12 +189,13 @@ export class CanvasRenderer {
       this.context.lineWidth = isSelected ? 4 : 2;
       this.context.stroke();
 
-      // 任务名称
-      this.context.fillStyle = ThemeConfig.surfaceDeepest.toString();
+      // 任务名称（深色文字）
+      this.context.fillStyle = '#1C1C1E';
       this.context.font = `bold 32px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 28);
 
       // 日期信息
+      this.context.fillStyle = '#666666';  // 次要文字
       this.context.font = `24px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
       this.context.fillText(`${dateString}`, drawX + 15, drawY + 50);
@@ -203,6 +204,7 @@ export class CanvasRenderer {
       const timeProgress = this.getTimeProgress(task);
       const completionProgress = this.getCompletionProgress(task);
       
+      this.context.fillStyle = '#666666';  // 次要文字
       this.context.font = `23px HarmonyOS Sans`;
       this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 70);
       this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());

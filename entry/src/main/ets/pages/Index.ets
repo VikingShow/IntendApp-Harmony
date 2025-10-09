@@ -351,15 +351,15 @@ struct Index {
     this.canRedo = this.commandHistory.canRedo();
   }
 
-  // 画布背景构建器 - 白色背景灰色网格
+  // 画布背景构建器 - 自适应背景灰色网格
   @Builder
   CanvasBackground() {
     Stack() {
-      // 白色背景
+      // 背景色（支持深色模式）
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(Color.White)
+        .backgroundColor(ColorResource.surface)
 
       // 网格线层
       Column() {

@@ -6,19 +6,19 @@
     },
     {
       "name": "primary_color",
-      "value": "#0A84FF"
+      "value": "#409EFF"
     },
     {
       "name": "primary_light",
-      "value": "#1C2938"
+      "value": "#1A2332"
     },
     {
       "name": "primary_dark",
-      "value": "#0066CC"
+      "value": "#1E7ED9"
     },
     {
       "name": "primary_ultra_light",
-      "value": "#1A1F2E"
+      "value": "#161D28"
     },
     {
       "name": "secondary_color",
@@ -34,35 +34,35 @@
     },
     {
       "name": "success_color",
-      "value": "#30D158"
+      "value": "#67C23A"
     },
     {
       "name": "success_light",
-      "value": "#1C3A27"
+      "value": "#1A2E1C"
     },
     {
       "name": "warning_color",
-      "value": "#FF9F0A"
+      "value": "#E6A23C"
     },
     {
       "name": "warning_light",
-      "value": "#3A2F1C"
+      "value": "#2E2619"
     },
     {
       "name": "error_color",
-      "value": "#FF453A"
+      "value": "#F56C6C"
     },
     {
       "name": "error_light",
-      "value": "#3A1F1E"
+      "value": "#2E1C1C"
     },
     {
       "name": "info_color",
-      "value": "#64D2FF"
+      "value": "#909399"
     },
     {
       "name": "info_light",
-      "value": "#1C2938"
+      "value": "#232325"
     },
     {
       "name": "surface",
@@ -186,23 +186,23 @@
     },
     {
       "name": "hover_primary",
-      "value": "#4D0A84FF"
+      "value": "#4D409EFF"
     },
     {
       "name": "hover_primary_light",
-      "value": "#400A84FF"
+      "value": "#40409EFF"
     },
     {
       "name": "hover_success",
-      "value": "#3330D158"
+      "value": "#3367C23A"
     },
     {
       "name": "hover_warning",
-      "value": "#33FF9F0A"
+      "value": "#33E6A23C"
     },
     {
       "name": "hover_error",
-      "value": "#33FF453A"
+      "value": "#33F56C6C"
     },
     {
       "name": "hover_neutral",
@@ -242,7 +242,7 @@
     },
     {
       "name": "text_success",
-      "value": "#30D158"
+      "value": "#67C23A"
     },
     {
       "name": "text_muted",
@@ -258,35 +258,35 @@
     },
     {
       "name": "task_critical",
-      "value": "#FF453A"
+      "value": "#F56C6C"
     },
     {
       "name": "task_normal",
-      "value": "#64D2FF"
+      "value": "#409EFF"
     },
     {
       "name": "task_selected",
-      "value": "#FF9F0A"
+      "value": "#E6A23C"
     },
     {
       "name": "task_progress",
-      "value": "#32D74B"
+      "value": "#67C23A"
     },
     {
       "name": "project_development",
-      "value": "#0A84FF"
+      "value": "#409EFF"
     },
     {
       "name": "project_design",
-      "value": "#BF5AF2"
+      "value": "#C77DFF"
     },
     {
       "name": "project_marketing",
-      "value": "#FF9F0A"
+      "value": "#E6A23C"
     },
     {
       "name": "project_research",
-      "value": "#30D158"
+      "value": "#67C23A"
     },
     {
       "name": "project_other",

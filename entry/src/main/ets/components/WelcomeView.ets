@@ -18,7 +18,6 @@ export struct WelcomeView {
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ColorResource.primaryColor)
             .textAlign(TextAlign.Center)
-            .shadow({ radius: 4, color: ColorResource.hoverPrimaryLight, offsetX: 0, offsetY: 4 })
           Text('EazyFlow')
             .fontSize(ThemeConfig.fontSizeXXXL)
             .fontColor(ColorResource.surfaceBold)

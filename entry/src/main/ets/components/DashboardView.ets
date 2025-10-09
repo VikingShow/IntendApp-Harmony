@@ -375,7 +375,6 @@ export struct DashboardView {
           .fontSize(ThemeConfig.fontSizeXXXXL)
           .fontColor(textColor)
           .margin({ bottom: ThemeConfig.spacingS })
-          .shadow({ radius: 2, color: textColor + '30', offsetX: 0, offsetY: 2 })
       }
       
       Text(title)

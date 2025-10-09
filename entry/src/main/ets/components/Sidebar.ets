@@ -187,11 +187,10 @@ export struct Sidebar {
                 .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 40 })
               
               // 加载进度
-              LoadingProgress()
-                .width(50)
-                .height(50)
-                .color(ColorResource.primaryColor)
-                .shadow({ radius: 3, color: ColorResource.hoverPrimaryLight, offsetX: 0, offsetY: 1 })
+            LoadingProgress()
+              .width(50)
+              .height(50)
+              .color(ColorResource.primaryColor)
             }
             .width(80)
             .height(80)
@@ -264,7 +263,6 @@ export struct Sidebar {
                 .fontSize(ThemeConfig.fontSizeXL)
                 .fontColor(Color.White)
                 .fontWeight(ThemeConfig.fontWeightBold)
-                .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ColorResource.shadowColorSubtle, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
             }
             .width(52)
             .height(52)

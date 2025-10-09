@@ -432,7 +432,6 @@ export struct TaskEditor {
                   .fontSize(ThemeConfig.fontSizeXL)
                   .fontColor(Color.White)
                   .fontWeight(ThemeConfig.fontWeightBold)
-                  .shadow({ radius: ThemeConfig.textShadowMedium.radius, color: ThemeConfig.textShadowMedium.color, offsetX: ThemeConfig.textShadowMedium.offsetX, offsetY: ThemeConfig.textShadowMedium.offsetY })
               }
               .width(52)
               .height(52)

@@ -38,10 +38,11 @@ import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import common from '@ohos.app.ability.common';
-import { Project, TaskNode } from '../model/ProjectData';
+import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
 import { WelcomeView } from '../components/WelcomeView';
-import { CanvasController } from '../core/CanvasController';
+import { CanvasController } from '../core/canvas/CanvasController';
+import { RenderMode } from '../core/canvas/CanvasRenderer';
 import vibrator from '@ohos.vibrator';
 import { PromptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
@@ -58,6 +59,237 @@ interface ActionMenuButton {
   text: string;
   /** 按钮颜色 */
   color: string | Resource;
+}
+
+/**
+ * 节点详情对话框
+ */
+@CustomDialog
+struct TaskNodeDetailDialog {
+  controller: CustomDialogController;
+  task: TaskNode | null = null;
+  isDarkMode: boolean = false;
+  onEdit: () => void = () => {};
+  onDelete: () => void = () => {};
+
+  build() {
+    Column({ space: 0 }) {
+      // 顶部标题栏
+      Row({ space: 12 }) {
+        Text(this.task?.name || '任务详情')
+          .fontSize(20)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary)
+          .layoutWeight(1)
+        
+        // 关闭按钮
+        Button({ type: ButtonType.Circle }) {
+          Text('×')
+            .fontSize(24)
+            .fontColor(ColorResource.textSecondary)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(ColorResource.surface)
+        .onClick(() => {
+          this.controller.close();
+        })
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+      .borderRadius({ topLeft: 16, topRight: 16 })
+      .backgroundColor(ColorResource.surface)
+
+      // 内容区域
+      Column({ space: 16 }) {
+        if (this.task) {
+          // 关键路径标签
+          if (this.task.isCritical) {
+            Row({ space: 6 }) {
+              Circle({ width: 8, height: 8 })
+                .fill(ThemeConfig.taskCritical)
+              Text('关键路径')
+                .fontSize(14)
+                .fontColor(ThemeConfig.taskCritical)
+            }
+            .padding({ left: 4, right: 12, top: 4, bottom: 4 })
+            .backgroundColor(this.isDarkMode ? 'rgba(255, 107, 107, 0.15)' : 'rgba(255, 69, 58, 0.1)')
+            .borderRadius(12)
+          }
+
+          // 时间信息
+          Column({ space: 8 }) {
+            Row({ space: 8 }) {
+              Text('📅')
+                .fontSize(16)
+              Text('时间范围')
+                .fontSize(14)
+                .fontColor(ColorResource.textSecondary)
+            }
+            
+            Text(`${this.task.startDate.toLocaleDateString()} - ${this.task.endDate.toLocaleDateString()}`)
+              .fontSize(15)
+              .fontColor(ColorResource.textPrimary)
+              .margin({ left: 24 })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+
+          // 进度信息
+          Column({ space: 12 }) {
+            // 时间进度
+            Row({ space: 8 }) {
+              Text('⏱️')
+                .fontSize(16)
+              Text('时间进度')
+                .fontSize(14)
+                .fontColor(ColorResource.textSecondary)
+              
+              Text(`${this.getTimeProgress()}%`)
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorResource.primaryColor)
+            }
+            .width('100%')
+            
+            Progress({ value: this.getTimeProgress(), total: 100, type: ProgressType.Linear })
+              .width('100%')
+              .color(ColorResource.primaryColor)
+              .style({ strokeWidth: 6 })
+            
+            // 完成进度
+            Row({ space: 8 }) {
+              Text('✅')
+                .fontSize(16)
+              Text('完成进度')
+                .fontSize(14)
+                .fontColor(ColorResource.textSecondary)
+              
+              Text(`${this.getCompletionProgress()}%`)
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ThemeConfig.taskProgress)
+            }
+            .width('100%')
+            
+            Progress({ value: this.getCompletionProgress(), total: 100, type: ProgressType.Linear })
+              .width('100%')
+              .color(ThemeConfig.taskProgress)
+              .style({ strokeWidth: 6 })
+          }
+          .width('100%')
+
+          // 检查清单
+          if (this.task.checklist && this.task.checklist.length > 0) {
+            Column({ space: 8 }) {
+              Row({ space: 8 }) {
+                Text('📋')
+                  .fontSize(16)
+                Text(`检查清单 (${this.getCompletedCount()}/${this.task.checklist.length})`)
+                  .fontSize(14)
+                  .fontColor(ColorResource.textSecondary)
+              }
+              
+              List({ space: 6 }) {
+                ForEach(this.task.checklist.slice(0, 3), (item: ChecklistItem) => {
+                  ListItem() {
+                    Row({ space: 8 }) {
+                      Text(item.isCompleted ? '☑' : '☐')
+                        .fontSize(16)
+                        .fontColor(item.isCompleted ? ThemeConfig.taskProgress : ColorResource.textTertiary)
+                      Text(item.text)
+                        .fontSize(14)
+                        .fontColor(item.isCompleted ? ColorResource.textSecondary : ColorResource.textPrimary)
+                        .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    }
+                  }
+                })
+                
+                if (this.task.checklist.length > 3) {
+                  ListItem() {
+                    Text(`+${this.task.checklist.length - 3} 项...`)
+                      .fontSize(13)
+                      .fontColor(ColorResource.textTertiary)
+                      .margin({ left: 24 })
+                  }
+                }
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+      }
+      .width('100%')
+      .padding(20)
+      .layoutWeight(1)
+
+      // 底部操作按钮
+      Row({ space: 12 }) {
+        Button('编辑任务')
+          .fontSize(16)
+          .fontColor('#FFFFFF')
+          .backgroundColor(ColorResource.primaryColor)
+          .layoutWeight(1)
+          .height(48)
+          .borderRadius(12)
+          .onClick(() => {
+            this.controller.close();
+            this.onEdit();
+          })
+        
+        Button('删除')
+          .fontSize(16)
+          .fontColor(this.isDarkMode ? '#FF6B6B' : '#FF453A')
+          .backgroundColor(ColorResource.surface)
+          .layoutWeight(1)
+          .height(48)
+          .borderRadius(12)
+          .onClick(() => {
+            this.controller.close();
+            this.onDelete();
+          })
+      }
+      .width('100%')
+      .padding(20)
+      .backgroundColor(ColorResource.surface)
+      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
+    }
+    .width('90%')
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(16)
+  }
+
+  // 计算时间进度
+  private getTimeProgress(): number {
+    if (!this.task) return 0;
+    const now = new Date().getTime();
+    const start = this.task.startDate.getTime();
+    const end = this.task.endDate.getTime();
+    if (now < start) return 0;
+    if (now > end) return 100;
+    const totalDuration = end - start;
+    if (totalDuration <= 0) return 100;
+    const elapsed = now - start;
+    return Math.round((elapsed / totalDuration) * 100);
+  }
+
+  // 计算完成进度
+  private getCompletionProgress(): number {
+    if (!this.task || !this.task.checklist) return 0;
+    if (this.task.checklist.length === 0) return 0;
+    const completedCount = this.task.checklist.filter(item => item.isCompleted).length;
+    return Math.round((completedCount / this.task.checklist.length) * 100);
+  }
+
+  // 获取已完成数量
+  private getCompletedCount(): number {
+    if (!this.task || !this.task.checklist) return 0;
+    return this.task.checklist.filter(item => item.isCompleted).length;
+  }
 }
 
 /**
@@ -210,6 +442,13 @@ struct HomePage {
   private renameDialogController: CustomDialogController | null = null;
   @State renameProjectId: string = '';
   @State renameProjectName: string = '';
+  
+  // 节点详情对话框
+  private taskDetailDialogController: CustomDialogController | null = null;
+  @State selectedTaskForDetail: TaskNode | null = null;
+  
+  // 画布渲染模式（手机端默认使用缩略模式）
+  @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
@@ -284,6 +523,8 @@ struct HomePage {
 
   onPageShow() {
     this.loadProjects();
+    // 初始化画布控制器回调
+    this.initializeCanvasCallbacks();
     // 如果有选中的项目，重新加载其详细数据以确保显示最新内容
     if (this.selectedProjectId) {
       this.onSelectProject(this.selectedProjectId);
@@ -379,7 +620,15 @@ struct HomePage {
     this.isPhone = BreakpointSystem.isPhone(this.screenWidth);
     this.isTablet = BreakpointSystem.isTablet(this.screenWidth);
     
-    console.log(`[Home] Screen size updated: ${this.screenWidth}vp, Device type: ${this.currentBreakpoint.deviceType}`);
+    // 手机端使用缩略模式，平板/大屏使用普通模式
+    this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
+    
+    // 更新画布控制器的渲染模式
+    if (this.canvasController) {
+      this.canvasController.setRenderMode(this.canvasRenderMode);
+    }
+    
+    console.log(`[Home] Screen size updated: ${this.screenWidth}vp, Device type: ${this.currentBreakpoint.deviceType}, Render mode: ${this.canvasRenderMode}`);
     
     // 如果从非手机变为手机，关闭侧边栏抽屉
     if (this.isPhone && !previousIsPhone) {
@@ -2032,6 +2281,34 @@ struct HomePage {
     renderer.render(this.selectedProjectDetail, config);
   }
 
+  // 初始化画布控制器回调（在项目加载后调用）
+  private initializeCanvasCallbacks() {
+    if (!this.canvasController) return;
+
+    // 设置画布控制器回调
+    this.canvasController.setCallbacks(
+      // onTaskSelect
+      (task: TaskNode | null) => {
+        console.log('[Home] Task selected:', task?.name || 'None');
+      },
+      // onDependencyCreate
+      (fromId: string, toId: string) => {
+        console.log('[Home] Dependency create:', fromId, '->', toId);
+      },
+      // onTaskMove
+      (taskId: string, x: number, y: number) => {
+        console.log('[Home] Task moved:', taskId, x, y);
+      },
+      // onTaskMoveImmediate
+      undefined,
+      // onTaskClick (用于缩略模式显示详情)
+      (task: TaskNode) => {
+        console.log('[Home] Task clicked in compact mode:', task.name);
+        this.showTaskDetailDialog(task);
+      }
+    );
+  }
+
   // 计算项目总任务数
   private getProjectTotalTasks(project: Project | null): number {
     if (!project) return 0;
@@ -2132,6 +2409,79 @@ struct HomePage {
     });
 
     this.renameDialogController.open();
+  }
+
+  // 显示节点详情对话框（缩略模式下点击节点时触发）
+  private showTaskDetailDialog(task: TaskNode) {
+    // 先关闭之前的对话框（如果存在）
+    if (this.taskDetailDialogController) {
+      this.taskDetailDialogController.close();
+      this.taskDetailDialogController = null;
+    }
+
+    this.selectedTaskForDetail = task;
+
+    // 创建并打开对话框
+    this.taskDetailDialogController = new CustomDialogController({
+      builder: TaskNodeDetailDialog({
+        task: this.selectedTaskForDetail,
+        isDarkMode: this.isDarkMode,
+        onEdit: () => {
+          this.handleEditTask(task);
+        },
+        onDelete: () => {
+          this.handleDeleteTask(task);
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.taskDetailDialogController.open();
+  }
+
+  // 编辑任务（从节点详情对话框触发）
+  private handleEditTask(task: TaskNode) {
+    if (!this.selectedProjectId) return;
+    
+    // 跳转到Index页面，并传递任务ID以便编辑
+    router.pushUrl({
+      url: 'pages/Index',
+      params: {
+        projectId: this.selectedProjectId,
+        taskId: task.id
+      }
+    }).catch((error: Error) => {
+      console.error('[Home] Failed to navigate to Index:', error);
+      this.promptAction.showToast({
+        message: '跳转失败',
+        duration: 2000
+      });
+    });
+  }
+
+  // 删除任务（从节点详情对话框触发）
+  private handleDeleteTask(task: TaskNode) {
+    // Home 页面是只读视图，不支持删除任务
+    // 引导用户跳转到 Index 页面进行编辑
+    this.promptAction.showToast({
+      message: '请在项目编辑页面删除任务',
+      duration: 2000
+    });
+    
+    // 跳转到 Index 页面
+    if (!this.selectedProjectId) return;
+    
+    router.pushUrl({
+      url: 'pages/Index',
+      params: {
+        projectId: this.selectedProjectId,
+        taskId: task.id
+      }
+    }).catch((error: Error) => {
+      console.error('[Home] Failed to navigate to Index:', error);
+    });
   }
 
   // 处理项目重命名

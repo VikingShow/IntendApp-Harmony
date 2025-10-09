@@ -32,7 +32,8 @@
  */
 
 import { ProjectManager } from '../core/ProjectManager';
-import { CanvasController } from '../core/CanvasController';
+import { CanvasController } from '../core/canvas/CanvasController';
+import { RenderMode } from '../core/canvas/CanvasRenderer';
 import { Sidebar } from '../components/Sidebar';
 import { StorageService } from '../services/StorageService';
 import { PermissionService } from '../services/PermissionService';
@@ -40,6 +41,7 @@ import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
 import { PromptAction } from '@kit.ArkUI';
+import vibrator from '@ohos.vibrator';
 import { CommandHistory } from '../core/CommandHistory';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { AppState } from '../core/AppState';
@@ -86,6 +88,9 @@ struct Index {
   private appState: AppState = AppState.getInstance();
   private configCallbackId: number = -1;
   @State isDarkMode: boolean = false;
+  
+  // 画布渲染模式
+  @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
 
   async aboutToAppear() {
     // 初始化权限服务
@@ -127,6 +132,9 @@ struct Index {
     );
     // 注入uiContext
     this.canvasController.setContext(this.uiContext);
+    
+    // 初始化画布渲染模式
+    this.canvasController.setRenderMode(this.canvasRenderMode);
 
     // 初始化主题监听器
     this.setupThemeListener();
@@ -388,6 +396,27 @@ struct Index {
     if (this.project) {
       this.canvasController.getRenderer().render(this.project, renderConfig);
     }
+  }
+
+  // 切换画布渲染模式
+  private toggleRenderMode(): void {
+    // 切换模式
+    this.canvasRenderMode = this.canvasRenderMode === RenderMode.NORMAL 
+      ? RenderMode.COMPACT 
+      : RenderMode.NORMAL;
+    
+    // 更新画布控制器
+    this.canvasController.setRenderMode(this.canvasRenderMode);
+    
+    // 重新绘制
+    this.drawGraph();
+    
+    // 显示提示
+    const modeName = this.canvasRenderMode === RenderMode.NORMAL ? '完整模式' : '缩略模式';
+    this.promptAction.showToast({
+      message: `已切换到${modeName}`,
+      duration: 1500
+    });
   }
 
   // 处理开始连接
@@ -711,6 +740,53 @@ struct Index {
         .width('100%')
         .justifyContent(FlexAlign.End)
         .position({ x: 0, y: 0 })
+        
+        // 右下角 - 渲染模式切换按钮
+        Button() {
+          Column({ space: 4 }) {
+            Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
+              .fontSize(20)
+            Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
+              .fontSize(11)
+              .fontColor(ColorResource.textPrimary)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+          }
+        }
+        .width(65)
+        .height(65)
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(ThemeConfig.radiusLarge)
+        .border({ 
+          width: 2, 
+          color: this.canvasRenderMode === RenderMode.COMPACT 
+            ? ColorResource.primaryColor 
+            : ColorResource.surfaceNeutral, 
+          radius: ThemeConfig.radiusLarge 
+        })
+        .shadow({
+          radius: 12,
+          color: this.isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)',
+          offsetX: 0,
+          offsetY: 4
+        })
+        .position({ x: '100%', y: '100%' })
+        .translate({ x: -85, y: -85 })
+        .zIndex(100)
+        .onClick(() => {
+          // 触发震动反馈
+          try {
+            vibrator.startVibration({
+              type: 'time',
+              duration: 15
+            }, {
+              usage: 'touch'
+            });
+          } catch (error) {
+            console.error('[Index] Vibration error:', error);
+          }
+          
+          this.toggleRenderMode();
+        })
       }
       .width('100%')
       .height('100%')

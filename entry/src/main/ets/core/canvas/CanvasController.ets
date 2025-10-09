@@ -32,8 +32,8 @@
  * @since 2024-01-01
  */
 
-import { Project, TaskNode } from '../model/ProjectData';
-import { CanvasRenderer, RenderConfig } from './CanvasRenderer';
+import { Project, TaskNode } from '../../model/ProjectData';
+import { CanvasRenderer, RenderConfig, RenderMode } from './CanvasRenderer';
 
 /**
  * 画布状态接口
@@ -68,6 +68,8 @@ export interface CanvasState {
   dragStartX: number;
   /** 拖拽开始时的任务Y坐标（用于撤销/重做） */
   dragStartY: number;
+  /** 渲染模式 */
+  renderMode: RenderMode;
 }
 
 /**
@@ -128,13 +130,15 @@ export class CanvasController {
     dragOffsetY: 0,
     selectedTask: null,
     dragStartX: 0,
-    dragStartY: 0
+    dragStartY: 0,
+    renderMode: RenderMode.NORMAL
   };
 
   private onTaskSelect: ((task: TaskNode | null) => void) | null = null;
   private onDependencyCreate: ((fromId: string, toId: string) => void) | null = null;
   private onTaskMove: ((taskId: string, x: number, y: number) => void) | null = null;
   private onTaskMoveImmediate: ((taskId: string, x: number, y: number) => void) | null = null;
+  private onTaskClick: ((task: TaskNode) => void) | null = null; // 节点点击回调（用于缩略模式显示详情）
   private uiContext: UIContext | null = null;
 
   public setContext(ctx: UIContext) {
@@ -157,12 +161,21 @@ export class CanvasController {
     onTaskSelect: (task: TaskNode | null) => void,
     onDependencyCreate: (fromId: string, toId: string) => void,
     onTaskMove: (taskId: string, x: number, y: number) => void,
-    onTaskMoveImmediate?: (taskId: string, x: number, y: number) => void
+    onTaskMoveImmediate?: (taskId: string, x: number, y: number) => void,
+    onTaskClick?: (task: TaskNode) => void
   ): void {
     this.onTaskSelect = onTaskSelect;
     this.onDependencyCreate = onDependencyCreate;
     this.onTaskMove = onTaskMove;
     this.onTaskMoveImmediate = onTaskMoveImmediate || null;
+    this.onTaskClick = onTaskClick || null;
+  }
+
+  /**
+   * 设置渲染模式
+   */
+  public setRenderMode(mode: RenderMode): void {
+    this.state.renderMode = mode;
   }
 
   public getState(): CanvasState {
@@ -192,21 +205,12 @@ export class CanvasController {
     const realTouchY = event.touches[0].y;
 
     let hitNode: TaskNode | null = null;
-    const HIT_PADDING = 8;
-
-    // 命中检测
-    for (let i = project.tasks.length - 1; i >= 0; i--) {
-      const task = project.tasks[i];
-      const nodeLeft = task.x + this.state.canvasOffsetX - HIT_PADDING;
-      const nodeTop = task.y + this.state.canvasOffsetY - HIT_PADDING;
-      const nodeRight = nodeLeft + 200 + HIT_PADDING * 2;
-      const nodeBottom = nodeTop + 120 + HIT_PADDING * 2;
-      
-      if (realTouchX >= nodeLeft && realTouchX <= nodeRight &&
-          realTouchY >= nodeTop && realTouchY <= nodeBottom) {
-        hitNode = task;
-        break;
-      }
+    
+    // 根据渲染模式进行不同的命中检测
+    if (this.state.renderMode === RenderMode.COMPACT) {
+      hitNode = this.hitTestCompact(realTouchX, realTouchY, project);
+    } else {
+      hitNode = this.hitTestNormal(realTouchX, realTouchY, project);
     }
 
     switch (event.type) {
@@ -222,6 +226,55 @@ export class CanvasController {
     }
   }
 
+  /**
+   * 普通模式命中检测（矩形区域）
+   */
+  private hitTestNormal(touchX: number, touchY: number, project: Project): TaskNode | null {
+    const HIT_PADDING = 8;
+    
+    for (let i = project.tasks.length - 1; i >= 0; i--) {
+      const task: TaskNode = project.tasks[i];
+      const nodeLeft = task.x + this.state.canvasOffsetX - HIT_PADDING;
+      const nodeTop = task.y + this.state.canvasOffsetY - HIT_PADDING;
+      const nodeRight = nodeLeft + 200 + HIT_PADDING * 2;
+      const nodeBottom = nodeTop + 120 + HIT_PADDING * 2;
+      
+      if (touchX >= nodeLeft && touchX <= nodeRight &&
+          touchY >= nodeTop && touchY <= nodeBottom) {
+        return task;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * 缩略模式命中检测（圆形区域）
+   */
+  private hitTestCompact(touchX: number, touchY: number, project: Project): TaskNode | null {
+    const CIRCLE_RADIUS = 24; // 与渲染器中的圆圈半径保持一致
+    const HIT_TOLERANCE = 8; // 增加点击容差，方便点击
+    
+    for (let i = project.tasks.length - 1; i >= 0; i--) {
+      const task: TaskNode = project.tasks[i];
+      // 圆圈中心点
+      const centerX: number = task.x + this.state.canvasOffsetX + 100;
+      const centerY: number = task.y + this.state.canvasOffsetY + 60;
+      
+      // 计算距离
+      const dx = touchX - centerX;
+      const dy = touchY - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // 点击在圆圈范围内（含容差）
+      if (distance <= CIRCLE_RADIUS + HIT_TOLERANCE) {
+        return task;
+      }
+    }
+    
+    return null;
+  }
+
   private handleTouchDown(touchX: number, touchY: number, hitNode: TaskNode | null): void {
     if (this.state.isConnecting && this.state.connectingFromTaskId) {
       this.handleConnectingTouchDown(hitNode);
@@ -230,14 +283,22 @@ export class CanvasController {
 
     if (hitNode) {
       this.state.selectedTask = hitNode;
-      this.state.isDraggingNode = true;
-      this.state.isDraggingCanvas = false;
-      this.state.dragOffsetX = touchX - (hitNode.x + this.state.canvasOffsetX);
-      this.state.dragOffsetY = touchY - (hitNode.y + this.state.canvasOffsetY);
       
-      // 记录拖拽开始时的位置（用于撤销/重做）
-      this.state.dragStartX = hitNode.x;
-      this.state.dragStartY = hitNode.y;
+      // 缩略模式下，点击节点不拖拽，仅触发点击事件
+      if (this.state.renderMode === RenderMode.COMPACT) {
+        this.state.isDraggingNode = false;
+        this.state.isDraggingCanvas = false;
+      } else {
+        // 普通模式下，可以拖拽节点
+        this.state.isDraggingNode = true;
+        this.state.isDraggingCanvas = false;
+        this.state.dragOffsetX = touchX - (hitNode.x + this.state.canvasOffsetX);
+        this.state.dragOffsetY = touchY - (hitNode.y + this.state.canvasOffsetY);
+        
+        // 记录拖拽开始时的位置（用于撤销/重做）
+        this.state.dragStartX = hitNode.x;
+        this.state.dragStartY = hitNode.y;
+      }
       
       if (this.onTaskSelect) {
         this.onTaskSelect(hitNode);
@@ -294,10 +355,20 @@ export class CanvasController {
   }
 
   private handleTouchUp(): void {
+    // 缩略模式下，如果点击了节点（没有拖拽），触发节点点击事件
+    if (this.state.renderMode === RenderMode.COMPACT && 
+        this.state.selectedTask && 
+        !this.state.isDraggingNode && 
+        !this.state.isDraggingCanvas) {
+      if (this.onTaskClick) {
+        this.onTaskClick(this.state.selectedTask);
+      }
+    }
+    
     // 如果正在拖拽节点，在抬起时创建命令（记录整个拖拽过程）
     if (this.state.isDraggingNode && this.state.selectedTask) {
-      const finalX = this.state.selectedTask.x;
-      const finalY = this.state.selectedTask.y;
+      const finalX: number = this.state.selectedTask.x;
+      const finalY: number = this.state.selectedTask.y;
       
       // 只有当位置真的改变了才创建命令
       if (finalX !== this.state.dragStartX || finalY !== this.state.dragStartY) {
@@ -340,7 +411,8 @@ export class CanvasController {
       canvasOffsetY: this.state.canvasOffsetY,
       isConnecting: this.state.isConnecting,
       connectingFromTaskId: this.state.connectingFromTaskId,
-      selectedTaskId: selectedTaskId
+      selectedTaskId: selectedTaskId,
+      renderMode: this.state.renderMode
     };
   }
 }

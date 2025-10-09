@@ -32,8 +32,18 @@
  * @since 2024-01-01
  */
 
-import { Project, TaskNode } from '../model/ProjectData';
-import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { Project, TaskNode, Dependency, ChecklistItem } from '../../model/ProjectData';
+import { ThemeConfig, ColorResource } from '../../utils/ThemeConfig';
+
+/**
+ * 渲染模式枚举
+ */
+export enum RenderMode {
+  /** 普通模式：显示完整节点信息 */
+  NORMAL = 'normal',
+  /** 缩略模式：仅显示小圆圈和名称 */
+  COMPACT = 'compact'
+}
 
 /**
  * 渲染配置接口
@@ -50,6 +60,8 @@ export interface RenderConfig {
   connectingFromTaskId: string | null;
   /** 当前选中的任务ID */
   selectedTaskId: string | null;
+  /** 渲染模式 */
+  renderMode?: RenderMode;
 }
 
 /**
@@ -163,9 +175,9 @@ export class CanvasRenderer {
   }
 
   private renderDependencies(project: Project, config: RenderConfig): void {
-    project.dependencies.forEach(dep => {
-      const fromNode = project.tasks.find(t => t.id === dep.fromId);
-      const toNode = project.tasks.find(t => t.id === dep.toId);
+    project.dependencies.forEach((dep: Dependency) => {
+      const fromNode = project.tasks.find((t: TaskNode) => t.id === dep.fromId);
+      const toNode = project.tasks.find((t: TaskNode) => t.id === dep.toId);
       
       if (fromNode && toNode) {
         const isCriticalDep = fromNode.isCritical && toNode.isCritical;
@@ -191,7 +203,20 @@ export class CanvasRenderer {
   }
 
   private renderTasks(project: Project, config: RenderConfig): void {
-    project.tasks.forEach(task => {
+    const isCompactMode = config.renderMode === RenderMode.COMPACT;
+    
+    if (isCompactMode) {
+      this.renderTasksCompact(project, config);
+    } else {
+      this.renderTasksNormal(project, config);
+    }
+  }
+
+  /**
+   * 普通模式渲染任务节点
+   */
+  private renderTasksNormal(project: Project, config: RenderConfig): void {
+    project.tasks.forEach((task: TaskNode) => {
       const NODE_WIDTH = 200;
       const NODE_HEIGHT = 120;
       const isSelected = task.id === config.selectedTaskId;
@@ -242,6 +267,102 @@ export class CanvasRenderer {
     });
   }
 
+  /**
+   * 缩略模式渲染任务节点
+   * 节点显示为小圆圈，旁边显示名称
+   */
+  private renderTasksCompact(project: Project, config: RenderConfig): void {
+    const CIRCLE_RADIUS = 24; // 圆圈半径
+    const NAME_OFFSET_X = 36; // 名称相对圆圈中心的X偏移
+    const NAME_OFFSET_Y = 8; // 名称相对圆圈中心的Y偏移
+    
+    project.tasks.forEach((task: TaskNode) => {
+      const isSelected = task.id === config.selectedTaskId;
+      // 圆圈中心点（相对于节点原始位置）
+      const centerX = task.x + config.canvasOffsetX + 100; // 节点宽度200的一半
+      const centerY = task.y + config.canvasOffsetY + 60; // 节点高度120的一半
+
+      // 根据任务状态确定圆圈颜色
+      const circleColor = this.getTaskColor(task);
+      
+      // 绘制外圈（选中状态）
+      if (isSelected) {
+        this.context.beginPath();
+        this.context.arc(centerX, centerY, CIRCLE_RADIUS + 4, 0, Math.PI * 2);
+        this.context.strokeStyle = ThemeConfig.taskSelected.toString();
+        this.context.lineWidth = 3;
+        this.context.stroke();
+      }
+
+      // 绘制圆圈主体
+      this.context.beginPath();
+      this.context.arc(centerX, centerY, CIRCLE_RADIUS, 0, Math.PI * 2);
+      this.context.fillStyle = circleColor;
+      this.context.fill();
+      
+      // 绘制圆圈边框
+      this.context.strokeStyle = this.isDarkMode ? '#48484A' : '#D1D1D6';
+      this.context.lineWidth = 2;
+      this.context.stroke();
+
+      // 绘制进度环（完成度）
+      const completionProgress = this.getCompletionProgress(task);
+      if (completionProgress > 0) {
+        this.context.beginPath();
+        const startAngle = -Math.PI / 2; // 从12点钟方向开始
+        const endAngle = startAngle + (Math.PI * 2 * completionProgress / 100);
+        this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
+        this.context.strokeStyle = '#FFFFFF';
+        this.context.lineWidth = 3;
+        this.context.stroke();
+      }
+
+      // 绘制任务名称
+      this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+      this.context.font = `28px HarmonyOS Sans`;
+      this.context.textAlign = 'left';
+      this.context.textBaseline = 'middle';
+      
+      // 限制名称长度，避免过长
+      const maxNameLength = 8;
+      const displayName = task.name.length > maxNameLength 
+        ? task.name.substring(0, maxNameLength) + '...' 
+        : task.name;
+      
+      this.context.fillText(displayName, centerX + NAME_OFFSET_X, centerY + NAME_OFFSET_Y);
+      
+      // 重置文本对齐方式
+      this.context.textAlign = 'left';
+      this.context.textBaseline = 'alphabetic';
+    });
+  }
+
+  /**
+   * 根据任务状态获取颜色
+   */
+  private getTaskColor(task: TaskNode): string {
+    const completionProgress = this.getCompletionProgress(task);
+    const timeProgress = this.getTimeProgress(task);
+    
+    // 关键路径 - 红色
+    if (task.isCritical) {
+      return this.isDarkMode ? '#FF6B6B' : '#FF453A';
+    }
+    
+    // 已完成 - 绿色
+    if (completionProgress === 100) {
+      return this.isDarkMode ? '#32D74B' : '#34C759';
+    }
+    
+    // 进行中 - 蓝色
+    if (completionProgress > 0 || timeProgress > 0) {
+      return this.isDarkMode ? '#0A84FF' : '#007AFF';
+    }
+    
+    // 未开始 - 灰色
+    return this.isDarkMode ? '#636366' : '#8E8E93';
+  }
+
   private drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -282,7 +403,7 @@ export class CanvasRenderer {
   private getCompletionProgress(task: TaskNode): number {
     if (!task || !task.checklist) return 0;
     if (task.checklist.length === 0) return 0;
-    const completedCount = task.checklist.filter(item => item.isCompleted).length;
+    const completedCount = task.checklist.filter((item: ChecklistItem) => item.isCompleted).length;
     return Math.round((completedCount / task.checklist.length) * 100);
   }
 

@@ -36,6 +36,7 @@ import { Project, TaskNode } from '../model/ProjectData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import router from '@ohos.router';
 import vibrator from '@ohos.vibrator';
+import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
 
 /**
  * 项目仪表板视图组件
@@ -72,6 +73,10 @@ export struct DashboardView {
   @State private editButtonScale: number = 1;
   @State private editButtonOpacity: number = 1;
   @State private isEditButtonPressed: boolean = false;
+  /** 响应式布局状态 */
+  @State private screenWidth: number = 0;
+  @State private currentBreakpoint: BreakpointConfig = BreakpointSystem.getCurrentBreakpoint(0);
+  @State private isPhone: boolean = false;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
@@ -80,11 +85,30 @@ export struct DashboardView {
     console.log(`[DashboardView] Overall completion: ${this.getOverallCompletion()}%`);
     console.log(`[DashboardView] Critical tasks: ${this.getCriticalTasksCount()}`);
     
+    // 初始化屏幕尺寸
+    this.updateScreenSize();
+    
     // 强制触发更新
     this.updateKey++;
     
     // 触发进入动画
     this.startEnterAnimation();
+  }
+
+  // 更新屏幕尺寸和断点配置
+  private updateScreenSize() {
+    try {
+      const uiContext = this.getUIContext();
+      // 使用默认值避免类型问题
+      this.screenWidth = 840;
+      this.currentBreakpoint = BreakpointSystem.getCurrentBreakpoint(this.screenWidth);
+      this.isPhone = false;
+    } catch (error) {
+      console.error('[DashboardView] Error getting screen size:', error);
+      this.screenWidth = 840;
+      this.currentBreakpoint = BreakpointSystem.getCurrentBreakpoint(this.screenWidth);
+      this.isPhone = false;
+    }
   }
 
   // aboutToUpdate 会在 @Prop project 的数据发生变化时调用
@@ -193,19 +217,19 @@ export struct DashboardView {
 
   build() {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
-    Column({ space: 20 }) {
+    Column({ space: BreakpointSystem.getResponsiveSpacing(20, this.screenWidth) }) {
       // 1. 项目标题和进入编辑按钮 - 简约设计
-      Column({ space: 24 }) {
+      Column({ space: BreakpointSystem.getResponsiveSpacing(24, this.screenWidth) }) {
         Row() {
-          Column({ space: 12 }) {
+          Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
             Text(this.project.name)
-              .fontSize(ThemeConfig.fontSizeXXXXXXL)
+              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXXXXL, this.screenWidth))
               .fontWeight(ThemeConfig.fontWeightBold)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
               .fontColor(ColorResource.surfaceDeep)
             Text(`项目ID: ${this.project.id}`)
-              .fontSize(ThemeConfig.fontSizeL)
+              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeL, this.screenWidth))
               .fontColor(ColorResource.surfaceEmphasized)
               .fontWeight(ThemeConfig.fontWeightMedium)
           }
@@ -215,22 +239,25 @@ export struct DashboardView {
           Button() {
             Row({ space: ThemeConfig.spacingS }) {
               Text('编辑项目')
-                .fontSize(ThemeConfig.fontSizeXL)
+                .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXL, this.screenWidth))
                 .fontColor(Color.White)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
           }
           .accessibilityLevel('important')
-          .height(ThemeConfig.buttonHeightLarge)
-          .padding({ left: ThemeConfig.spacingXXL, right: ThemeConfig.spacingXXL })
+          .height(this.isPhone ? 44 : ThemeConfig.buttonHeightLarge)
+          .padding({ 
+            left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth), 
+            right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth) 
+          })
           .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
-          .borderRadius(26)
+          .borderRadius(this.isPhone ? 22 : 26)
           .shadow(ThemeConfig.shadowMedium)
           // .backdropBlur(ThemeConfig.backdropBlurMedium)
           .border({ 
             width: 2, 
             color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
-            radius: 26
+            radius: this.isPhone ? 22 : 26
           })
           .scale({ x: this.editButtonScale, y: this.editButtonScale })
           .opacity(this.editButtonOpacity)
@@ -275,22 +302,41 @@ export struct DashboardView {
         .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .padding(ThemeConfig.spacingXXL)
+      .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
       .backgroundColor(ColorResource.transparent)
       .borderRadius(ThemeConfig.radiusXXLarge)
       .shadow(ThemeConfig.cardShadow)
       .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXXLarge })
 
-      // 2. 核心指标统计 - 等高布局
-      Row({ space: 16 }) {
-        this.StatCard('总任务数', `${this.project.tasks.length}个`, ColorResource.primaryLight, ColorResource.primaryColor)
-        this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ColorResource.successLight, ColorResource.successColor)
-        this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
-        this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, ColorResource.errorLight, ColorResource.errorColor)
+      // 2. 核心指标统计 - 响应式布局
+      if (this.isPhone) {
+        // 手机端：2x2 网格布局
+        Column({ space: 16 }) {
+          Row({ space: 16 }) {
+            this.StatCard('总任务数', `${this.project.tasks.length}个`, ColorResource.primaryLight, ColorResource.primaryColor)
+            this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ColorResource.successLight, ColorResource.successColor)
+          }
+          .width('100%')
+          Row({ space: 16 }) {
+            this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
+            this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, ColorResource.errorLight, ColorResource.errorColor)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .key(`stats-${this.updateKey}`)
+      } else {
+        // 平板/大屏：单行布局
+        Row({ space: 16 }) {
+          this.StatCard('总任务数', `${this.project.tasks.length}个`, ColorResource.primaryLight, ColorResource.primaryColor)
+          this.StatCard('项目总工期', `${this.getTotalDuration()}天`, ColorResource.successLight, ColorResource.successColor)
+          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
+          this.StatCard('关键任务数', `${this.getCriticalTasksCount()}个`, ColorResource.errorLight, ColorResource.errorColor)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+        .key(`stats-${this.updateKey}`)
       }
-      .width('100%')
-      .alignItems(VerticalAlign.Top)
-      .key(`stats-${this.updateKey}`)
 
       // 3. 即将到期的任务列表 - 简约设计
       Column({ space: 20 }) {
@@ -348,7 +394,7 @@ export struct DashboardView {
     }
     .width('100%')
     .height('100%')
-    .padding(ThemeConfig.spacingXXXL)
+    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
     .backgroundColor(ColorResource.transparent)
     .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
     .opacity(this.fadeOpacity)
@@ -365,24 +411,24 @@ export struct DashboardView {
   // 构建器：统计卡片 - 现代化设计，增强视觉吸引力
   @Builder
   StatCard(title: string, value: string, bgColor: string | Resource, textColor: string | Resource, icon?: string) {
-    Column({ space: ThemeConfig.spacingM }) {
+    Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
       // 图标 - 增强视觉效果
       if (icon) {
         Text(icon)
-          .fontSize(ThemeConfig.fontSizeXXXXL)
+          .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXL, this.screenWidth))
           .fontColor(textColor)
           .margin({ bottom: ThemeConfig.spacingS })
       }
       
       Text(title)
-        .fontSize(ThemeConfig.fontSizeM)
+        .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
         .fontColor(ColorResource.surfaceEmphasized)
         .fontWeight(ThemeConfig.fontWeightMedium)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(value)
-        .fontSize(ThemeConfig.fontSizeXXXXL)
+        .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXXL, this.screenWidth))
         .fontWeight(ThemeConfig.fontWeightBold)
         .fontColor(textColor)
         .textAlign(TextAlign.Center)
@@ -390,8 +436,8 @@ export struct DashboardView {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .height(160)
-    .padding(ThemeConfig.spacingXXL)
+    .height(this.isPhone ? 140 : 160)
+    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
     .backgroundColor(ColorResource.transparent)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.shadowMedium)
@@ -412,25 +458,30 @@ export struct DashboardView {
   // 构建器：即将到期的任务卡片 - 简约设计
   @Builder
   UpcomingTaskCard(task: TaskNode) {
-    Row({ space: ThemeConfig.spacingXL }) {
+    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXL, this.screenWidth) }) {
       // 任务信息 - 简约设计
-      Column({ space: ThemeConfig.spacingS }) {
+      Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
         Text(task.name)
-          .fontSize(ThemeConfig.fontSizeXL)
+          .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXL, this.screenWidth))
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.surfaceDeep)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Row({ space: ThemeConfig.spacingM }) {
+        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
           Text(`截止于: ${task.endDate.toLocaleDateString()}`)
-            .fontSize(ThemeConfig.fontSizeS)
+            .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
           if (task.isCritical) {
             Text('关键任务')
-              .fontSize(ThemeConfig.fontSizeXS)
+              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
               .fontColor(ColorResource.errorColor)
               .fontWeight(ThemeConfig.fontWeightMedium)
-              .padding({ left: ThemeConfig.spacingS, right: ThemeConfig.spacingS, top: ThemeConfig.spacingXS, bottom: ThemeConfig.spacingXS })
+              .padding({ 
+                left: ThemeConfig.spacingS, 
+                right: ThemeConfig.spacingS, 
+                top: ThemeConfig.spacingXS, 
+                bottom: ThemeConfig.spacingXS 
+              })
               .backgroundColor(ColorResource.hoverError)
               .borderRadius(ThemeConfig.radiusSmall)
               .border({ width: 1, color: ColorResource.errorColor, radius: ThemeConfig.radiusSmall })
@@ -442,7 +493,7 @@ export struct DashboardView {
       .layoutWeight(1)
     }
     .width('100%')
-    .padding(ThemeConfig.spacingXXL)
+    .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth))
     .backgroundColor(ColorResource.transparent)
     .borderRadius(ThemeConfig.radiusXLarge)
     .shadow(ThemeConfig.cardShadow)

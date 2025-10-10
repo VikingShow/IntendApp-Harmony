@@ -1106,6 +1106,8 @@ struct HomePage {
             this.showCanvasBackground = true;
             // 延迟渲染画布以确保组件已更新
             setTimeout(() => {
+              // 清除渲染缓存，确保强制重新渲染
+              this.canvasController.getRenderer().clearRenderCache();
               this.renderProjectCanvas();
             }, 100);
           }, 200); // 与淡出动画时长匹配
@@ -2482,6 +2484,8 @@ struct HomePage {
       })
       .onReady(() => {
         if (this.selectedProjectDetail) {
+          // 清除渲染缓存，确保Canvas准备好时强制重新渲染
+          this.canvasController.getRenderer().clearRenderCache();
           this.renderProjectCanvas();
         }
       })
@@ -2510,7 +2514,7 @@ struct HomePage {
     const renderer = this.canvasController.getRenderer();
     renderer.setDarkMode(this.isDarkMode);
     
-    // 使用项目保存的画布状态进行渲染
+    // 使用当前的渲染模式（手机端为缩略模式，和编辑页保持一致）
     renderer.render(this.selectedProjectDetail, {
       canvasOffsetX: this.selectedProjectDetail.canvasOffsetX || 0,
       canvasOffsetY: this.selectedProjectDetail.canvasOffsetY || 0,
@@ -2521,7 +2525,7 @@ struct HomePage {
       renderMode: this.canvasRenderMode
     });
     
-    console.log(`[Home] Canvas rendered - Zoom: ${this.selectedProjectDetail.zoomScale || 1.0}, Offset: (${this.selectedProjectDetail.canvasOffsetX || 0}, ${this.selectedProjectDetail.canvasOffsetY || 0})`);
+    console.log(`[Home] Canvas rendered - Zoom: ${this.selectedProjectDetail.zoomScale || 1.0}, Offset: (${this.selectedProjectDetail.canvasOffsetX || 0}, ${this.selectedProjectDetail.canvasOffsetY || 0}), Mode: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
   }
 
   // 初始化画布控制器回调（在项目加载后调用）
@@ -3146,19 +3150,23 @@ struct HomePage {
                 console.log('[Home] Haptic feedback not available:', error);
               }
               
-              // 选中项目并显示Dashboard卡片
+              // 选中项目并预加载Canvas
               this.onSelectProject(meta.id);
               
-              // 等待项目数据加载完成后再显示卡片
+              // 等待项目数据加载完成（缩短延迟）
               setTimeout(() => {
-                this.showCanvasBackground = true;
-                this.showDashboardCard = true;
-                
-                // 再次延迟确保Canvas已创建
-                setTimeout(() => {
+                // 预渲染Canvas（透明状态，用户看不到）
+                if (this.selectedProjectDetail) {
+                  this.canvasController.getRenderer().clearRenderCache();
                   this.renderProjectCanvas();
-                }, 150);
-              }, 300);
+                }
+                
+                // Canvas预渲染完成后立即显示背景和卡片（减少延迟）
+                setTimeout(() => {
+                  this.showCanvasBackground = true;
+                  this.showDashboardCard = true;
+                }, 50);
+              }, 150);
             })
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
@@ -3246,157 +3254,139 @@ struct HomePage {
   @Builder
   PhoneDashboardCard() {
     Stack() {
-      // 遮罩层（可点击关闭）
+      // 全屏画布背景层（始终存在，通过透明度控制显示，预加载避免闪烁）
+      Canvas(this.canvasController.getRenderer().getContext())
+        .width('100%')
+        .height('100%')
+        .backgroundColor(Color.Transparent)
+        .opacity(this.showCanvasBackground && this.selectedProjectDetail ? 1 : 0)
+        .animation({
+          duration: 200,
+          curve: Curve.EaseInOut
+        })
+        .onReady(() => {
+          // Canvas准备就绪后立即渲染（如果有选中的项目），不延迟避免闪烁
+          if (this.selectedProjectDetail) {
+            this.canvasController.getRenderer().clearRenderCache();
+            this.renderProjectCanvas();
+          }
+        })
+        .onTouch((event: TouchEvent) => {
+          // 处理画布触摸事件
+          if (!this.selectedProjectDetail || !this.showCanvasBackground) {
+            return;
+          }
+
+          this.canvasController.getActions().handleTouch(
+            event,
+            this.selectedProjectDetail,
+            null, // Home页面不需要选中任务高亮
+            0     // 手机端Dashboard画布全屏，无需X轴偏移
+          );
+          
+          // 重新渲染画布
+          this.renderProjectCanvas();
+        })
+      
+      // 透明遮罩层（点击关闭，不影响Canvas显示）
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0, 0, 0, 0.3)')
+        .backgroundColor(Color.Transparent)
         .onClick(() => {
-          // 关闭Dashboard卡片
+          // 点击空白区域关闭Dashboard卡片
           this.showDashboardCard = false;
           this.showCanvasBackground = false;
         })
       
-      // Dashboard卡片（包含画布背景）
-      Stack() {
-        // 画布背景层（只在卡片范围内显示）
-        if (this.selectedProjectDetail) {
-          Canvas(this.canvasController.getRenderer().getContext())
-            .width('100%')
-            .height('100%')
-            .backgroundColor(Color.Transparent)
-            .borderRadius(ThemeConfig.radiusXLarge)
-            .opacity(this.canvasOpacity) // 平滑过渡透明度
-            .animation({
-              duration: 150,
-              curve: Curve.EaseInOut
-            })
-            .onReady(() => {
-              // Canvas准备就绪后立即渲染
-              if (this.selectedProjectDetail) {
-                this.renderProjectCanvas();
-              }
-            })
-            .onTouch((event: TouchEvent) => {
-              // 处理画布触摸事件（缩略模式）
-              if (!this.selectedProjectDetail) {
-                return;
-              }
-
-              this.canvasController.getActions().handleTouch(
-                event,
-                this.selectedProjectDetail,
-                null, // Home页面不需要选中任务高亮
-                0     // 手机端Dashboard卡片画布全屏，无需X轴偏移
-              );
-              
-              // 重新渲染画布
-              this.renderProjectCanvas();
-            })
-        }
-        
-        // 半透明遮罩层（降低画布对比度，让Dashboard内容更清晰）
-        // 注意：透明度已降低，让背景画布更清晰可见
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(ResponsiveColorConfig.getFloatingPanelBackgroundColor(this.isDarkMode))
-          .backdropBlur(30) // 降低模糊度，让背景更清晰
-          .borderRadius(ThemeConfig.radiusXLarge)
-          .hitTestBehavior(HitTestMode.Transparent) // 允许触摸事件穿透到画布
-        
-        // Dashboard内容层
-        Column() {
-          // 顶部操作栏
-          Row() {
-            // 关闭按钮
-            Button() {
-              Text('×')
-                .fontSize(ThemeConfig.fontSizeXXL)
-                .fontColor(ColorResource.surfaceDeep)
-            }
-            .width(40)
-            .height(40)
-            .type(ButtonType.Circle)
-            .backgroundColor(ResponsiveColorConfig.getCardBackgroundColor(true, this.isDarkMode, this.screenWidth))
-            .shadow(ThemeConfig.shadowSmall)
-            .onClick(() => {
-              try {
-                vibrator.startVibration({
-                  type: 'time',
-                  duration: 30
-                }, {
-                  id: 0,
-                  usage: 'alarm'
-                });
-              } catch (error) {
-                console.log('[Home] Haptic feedback not available:', error);
-              }
-              this.showDashboardCard = false;
-              this.showCanvasBackground = false;
-            })
-
-            Blank()
-
-            // 编辑按钮
-            Button() {
-              Text('✎')
-                .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(Color.White)
-            }
-            .width(40)
-            .height(40)
-            .type(ButtonType.Circle)
-            .backgroundColor(ColorResource.primaryColor)
-            .onClick(() => {
-              try {
-                vibrator.startVibration({
-                  type: 'time',
-                  duration: 40
-                }, {
-                  id: 0,
-                  usage: 'alarm'
-                });
-              } catch (error) {
-                console.log('[Home] Haptic feedback not available:', error);
-              }
-              
-              if (this.selectedProjectId) {
-                this.getUIContext().getRouter().pushUrl({
-                  url: 'pages/Index',
-                  params: { projectId: this.selectedProjectId },
-                  animation: {
-                    type: 'fade',
-                    duration: 300
-                  }
-                } as router.RouterOptions);
-              }
-            })
+      // Dashboard内容卡片
+      Column() {
+        // 顶部操作栏
+        Row() {
+          // 关闭按钮
+          Button() {
+            Text('×')
+              .fontSize(ThemeConfig.fontSizeXXL)
+              .fontColor(ColorResource.surfaceDeep)
           }
-          .width('100%')
-          .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingS })
-
-          // Dashboard内容（可滚动）
-          Scroll() {
-            if (this.selectedProjectDetail) {
-              DashboardView({ 
-                project: this.selectedProjectDetail,
-                showCanvasBackground: false,
-                isFloatingCard: true,
-                isDarkMode: this.isDarkMode
-              })
-                .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+          .width(40)
+          .height(40)
+          .type(ButtonType.Circle)
+          .backgroundColor(ResponsiveColorConfig.getCardBackgroundColor(true, this.isDarkMode, this.screenWidth))
+          .shadow(ThemeConfig.shadowSmall)
+          .onClick(() => {
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 30
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
             }
+            this.showDashboardCard = false;
+            this.showCanvasBackground = false;
+          })
+
+          Blank()
+
+          // 编辑按钮
+          Button() {
+            Text('✎')
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontColor(Color.White)
           }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Auto)
-          .backgroundColor(Color.Transparent)
-          .hitTestBehavior(HitTestMode.Default) // 滚动区域正常处理触摸事件
+          .width(40)
+          .height(40)
+          .type(ButtonType.Circle)
+          .backgroundColor(ColorResource.primaryColor)
+          .onClick(() => {
+            try {
+              vibrator.startVibration({
+                type: 'time',
+                duration: 40
+              }, {
+                id: 0,
+                usage: 'alarm'
+              });
+            } catch (error) {
+              console.log('[Home] Haptic feedback not available:', error);
+            }
+            
+            if (this.selectedProjectId) {
+              this.getUIContext().getRouter().pushUrl({
+                url: 'pages/Index',
+                params: { projectId: this.selectedProjectId },
+                animation: {
+                  type: 'fade',
+                  duration: 300
+                }
+              } as router.RouterOptions);
+            }
+          })
         }
         .width('100%')
-        .height('100%')
-        .hitTestBehavior(HitTestMode.Default) // Dashboard内容层正常处理触摸事件
+        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingS })
+
+        // Dashboard内容（可滚动）
+        Scroll() {
+          if (this.selectedProjectDetail) {
+            DashboardView({ 
+              project: this.selectedProjectDetail,
+              showCanvasBackground: true,
+              isFloatingCard: true,
+              isDarkMode: this.isDarkMode
+            })
+              .key(`dashboard-card-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
+          }
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .scrollBar(BarState.Auto)
+        .backgroundColor(Color.Transparent)
+        .hitTestBehavior(HitTestMode.Default) // 滚动区域正常处理触摸事件
       }
       .width('90%')
       .height('75%')
@@ -3417,6 +3407,7 @@ struct HomePage {
       .clip(true)
       .scale({ x: this.contentScale, y: this.contentScale })
       .opacity(this.contentOpacity)
+      .hitTestBehavior(HitTestMode.Default) // Dashboard内容层正常处理触摸事件
       .animation({
         duration: ThemeConfig.animationNormal,
         curve: Curve.Friction,

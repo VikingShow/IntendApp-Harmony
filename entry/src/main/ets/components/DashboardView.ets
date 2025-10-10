@@ -276,18 +276,20 @@ export struct DashboardView {
     Column({ space: BreakpointSystem.getResponsiveSpacing(16, this.screenWidth) }) {
       // 1. 项目标题和进入编辑按钮 - 优化布局
       Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
-        // 项目名称单独一行，确保不被遮挡
+        // 项目名称单独一行，确保不被遮挡（手机端缩小字体）
         Text(this.project.name)
-          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL : 
+                   (this.isPhone ? ThemeConfig.fontSizeXXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)))
           .fontWeight(ThemeConfig.fontWeightBold)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .maxLines(2)
           .fontColor(ColorResource.surfaceDeep)
           .width('100%')
-          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)) * 1.3)
+          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeL : 
+                      (this.isPhone ? ThemeConfig.fontSizeXXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))) * 1.3)
         
-        // 项目ID和编辑按钮在一行（浮动卡片模式不显示编辑按钮）
-        if (!this.isFloatingCard) {
+        // 项目ID和编辑按钮在一行（浮动卡片模式和手机端不显示编辑按钮）
+        if (!this.isFloatingCard && !this.isPhone) {
           Row({ space: ThemeConfig.spacingM }) {
             Text(`ID: ${this.project.id}`)
               .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
@@ -306,18 +308,18 @@ export struct DashboardView {
               }
             }
             .accessibilityLevel('important')
-            .height(this.isPhone ? 36 : 40)
+            .height(40)
             .padding({ 
               left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth), 
               right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth) 
             })
             .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
-            .borderRadius(this.isPhone ? 18 : 20)
+            .borderRadius(20)
             .shadow(ThemeConfig.shadowMedium)
             .border({ 
               width: 2, 
               color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
-              radius: this.isPhone ? 18 : 20
+              radius: 20
             })
             .scale({ x: this.editButtonScale, y: this.editButtonScale })
             .opacity(this.editButtonOpacity)
@@ -361,9 +363,9 @@ export struct DashboardView {
           .width('100%')
           .alignItems(VerticalAlign.Center)
         } else {
-          // 浮动卡片模式：只显示ID
+          // 浮动卡片模式或手机端：只显示ID
           Text(`ID: ${this.project.id}`)
-            .fontSize(ThemeConfig.fontSizeXS)
+            .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
             .fontColor(ColorResource.surfaceEmphasized)
             .fontWeight(ThemeConfig.fontWeightMedium)
             .opacity(0.8)
@@ -407,14 +409,16 @@ export struct DashboardView {
       }
 
       // 3. 即将到期的任务列表 - 紧凑设计
-      Column({ space: 12 }) {
+      Column({ space: this.isPhone ? 8 : 12 }) {
         Row({ space: ThemeConfig.spacingM }) {
           Text('即将到期')
-            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL)
+            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : 
+                     (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ColorResource.surfaceDeep)
           Text('(未来7天)')
-            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+            .fontSize(this.isFloatingCard ? 10 : 
+                     (this.isPhone ? 11 : ThemeConfig.fontSizeS))
             .fontColor(ColorResource.surfaceEmphasized)
             .fontWeight(ThemeConfig.fontWeightMedium)
         }

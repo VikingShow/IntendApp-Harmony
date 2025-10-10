@@ -137,6 +137,15 @@ export class CanvasRenderer {
   }
 
   /**
+   * 强制清除渲染缓存，下次调用 render() 会强制重新渲染
+   * 用于 Canvas onReady 等需要强制刷新的场景
+   */
+  public clearRenderCache(): void {
+    this.lastRenderHash = '';
+    this.gridCacheValid = false;
+  }
+
+  /**
    * 绘制水印（用于导出图片）
    * 在画布右下角添加 EasyFlow 水印
    * @param canvasWidth Canvas 宽度

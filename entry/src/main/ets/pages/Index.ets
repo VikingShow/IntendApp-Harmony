@@ -326,9 +326,10 @@ struct Index {
       const project = args[0] as Project;
       this.updateStateFromManager();
       this.updateUndoRedoState();
-      this.drawGraph();
-      // 项目加载完成后恢复画布位置
+      // 项目加载完成后立即恢复画布位置并绘制，避免闪烁
       this.restoreCanvasPosition();
+      this.canvasController.getRenderer().clearRenderCache();
+      this.drawGraph();
     });
 
     // 监听项目保存事件
@@ -961,11 +962,11 @@ struct Index {
             left: 16
           })
           .onReady(() => {
-            this.drawGraph(); // 绘制图形（包含网格）
-            // Canvas准备就绪后恢复画布位置
-            setTimeout(() => {
-              this.restoreCanvasPosition();
-            }, 100);
+            // Canvas准备就绪后立即恢复画布位置并绘制，避免闪烁
+            this.restoreCanvasPosition();
+            // 立即清除缓存并绘制，不延迟
+            this.canvasController.getRenderer().clearRenderCache();
+            this.drawGraph();
           })
           .onTouch((event: TouchEvent) => {
             if (!this.project) {

@@ -105,6 +105,9 @@ struct Index {
   // 画布缩放比例
   @State zoomScale: number = 1.0;
   
+  // 画布透明度（用于避免闪烁）
+  @State canvasOpacity: number = 0;
+  
   // 渲染节流相关
   private isRendering: boolean = false;
   private pendingRender: boolean = false;
@@ -173,9 +176,31 @@ struct Index {
     // 注入uiContext
     this.canvasController.setContext(this.uiContext);
     
+    // 先同步获取屏幕宽度并设置 isPhone（确保渲染模式正确）
+    const windowStage = (this.uiContext.getHostContext() as common.UIAbilityContext)?.windowStage;
+    if (windowStage) {
+      try {
+        const window = await windowStage.getMainWindow();
+        const properties = window.getWindowProperties();
+        const widthPx = properties.windowRect.width;
+        this.screenWidth = this.uiContext.px2vp(widthPx);
+        this.isPhone = BreakpointSystem.isPhone(this.screenWidth);
+        console.log(`[Index] Initial screen size: ${this.screenWidth}vp, isPhone: ${this.isPhone}`);
+      } catch (error) {
+        console.error('[Index] Failed to get initial window size:', error);
+        this.screenWidth = 840;
+        this.isPhone = false;
+      }
+    } else {
+      this.screenWidth = 840;
+      this.isPhone = false;
+    }
+    
     // 根据设备类型设置渲染模式（手机端使用缩略模式）
     this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
     this.canvasController.setRenderMode(this.canvasRenderMode);
+    console.log(`[Index] aboutToAppear - screenWidth: ${this.screenWidth}, isPhone: ${this.isPhone}, setting renderMode to: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+    console.log(`[Index] aboutToAppear - canvasController.state.renderMode: ${this.canvasController.getState().renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
 
     // 初始化主题监听器
     this.setupThemeListener();
@@ -197,17 +222,23 @@ struct Index {
       // 如果有ID，则加载现有项目
       console.log(`[EasyFlow] Loading existing project with ID: ${projectId}`);
       await this.projectManager.getActions().loadProject(projectId);
+      // 项目加载完成后立即恢复画布位置，确保 Canvas onReady 时使用正确状态
+      this.restoreCanvasPosition();
+      // 延迟一帧确保状态完全生效
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     } else {
       // 如果没有ID，则创建新项目并填充示例数据
       console.log("[EasyFlow] Creating new project with example data.");
       await this.createNewExampleProject();
+      // 项目创建完成后立即恢复画布位置
+      this.restoreCanvasPosition();
     }
-
-    // 项目加载完成后恢复画布位置
-    this.restoreCanvasPosition();
   }
 
   aboutToDisappear() {
+    // 重置画布透明度
+    this.canvasOpacity = 0;
+    
     // 清理防抖定时器
     if (this.saveTimer !== -1) {
       clearTimeout(this.saveTimer);
@@ -326,10 +357,16 @@ struct Index {
       const project = args[0] as Project;
       this.updateStateFromManager();
       this.updateUndoRedoState();
-      // 项目加载完成后立即恢复画布位置并绘制，避免闪烁
-      this.restoreCanvasPosition();
+      // 确保渲染模式正确设置（直接基于 isPhone 判断，避免 @State 异步更新问题）
+      const correctRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
+      this.canvasRenderMode = correctRenderMode;
+      this.canvasController.setRenderMode(correctRenderMode);
+      console.log(`[Index] project_loaded - setting renderMode to: ${correctRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+      // 画布位置已在 aboutToAppear 中恢复，这里只需要清除缓存并重新渲染
       this.canvasController.getRenderer().clearRenderCache();
       this.drawGraph();
+      // 渲染完成后立即显示画布，无延迟
+      this.canvasOpacity = 1;
     });
 
     // 监听项目保存事件
@@ -426,15 +463,18 @@ struct Index {
     const savedOffsetY = this.project.canvasOffsetY || 0;
     const savedZoomScale = this.project.zoomScale || 1.0;
 
-    // 设置到CanvasController
+    // 获取 CanvasController 的状态对象
+    const canvasState = this.canvasController.getState();
+    
+    // 设置偏移量
     this.canvasController.setCanvasOffset(savedOffsetX, savedOffsetY);
     
-    // 恢复缩放比例
-    const canvasState = this.canvasController.getState();
+    // 恢复缩放比例（同时更新 CanvasController 和 UI 状态）
     canvasState.zoomScale = savedZoomScale;
     this.zoomScale = savedZoomScale;
     
     console.log(`[EasyFlow] 从项目 ${this.project.id} 恢复画布状态: x=${savedOffsetX}, y=${savedOffsetY}, zoom=${savedZoomScale}`);
+    console.log(`[EasyFlow] 当前渲染模式 - this.canvasRenderMode: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}, canvasState.renderMode: ${canvasState.renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
   }
 
   // 创建示例项目
@@ -535,6 +575,7 @@ struct Index {
     );
 
     if (this.project) {
+      console.log(`[Index] drawGraph - renderMode: ${renderConfig.renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}, zoomScale: ${renderConfig.zoomScale}`);
       this.canvasController.getRenderer().render(this.project, renderConfig);
       // 更新缩放比例显示
       this.zoomScale = this.canvasController.getState().zoomScale;
@@ -961,12 +1002,27 @@ struct Index {
             bottom: 16,
             left: 16
           })
+          .opacity(this.canvasOpacity)
           .onReady(() => {
-            // Canvas准备就绪后立即恢复画布位置并绘制，避免闪烁
-            this.restoreCanvasPosition();
-            // 立即清除缓存并绘制，不延迟
-            this.canvasController.getRenderer().clearRenderCache();
-            this.drawGraph();
+            console.log(`[Index] Canvas onReady - project exists: ${!!this.project}, isPhone: ${this.isPhone}, this.canvasRenderMode: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+            // Canvas准备就绪，但只有项目加载完成后才渲染和显示
+            if (this.project) {
+              // 确保渲染模式正确设置（直接基于 isPhone 判断，避免 @State 异步更新问题）
+              const correctRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
+              this.canvasRenderMode = correctRenderMode;
+              this.canvasController.setRenderMode(correctRenderMode);
+              console.log(`[Index] Canvas onReady - setting renderMode to: ${correctRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+              
+              // 项目已加载，立即恢复画布位置并绘制
+              this.restoreCanvasPosition();
+              console.log(`[Index] After restore - zoomScale: ${this.canvasController.getState().zoomScale}, renderMode: ${this.canvasController.getState().renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+              this.canvasController.getRenderer().clearRenderCache();
+              this.drawGraph();
+              // 渲染完成后立即显示画布，无延迟
+              this.canvasOpacity = 1;
+              console.log(`[Index] Canvas now visible`);
+            }
+            // 如果项目还没加载，等待 project_loaded 事件触发渲染
           })
           .onTouch((event: TouchEvent) => {
             if (!this.project) {

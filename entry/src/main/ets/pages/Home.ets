@@ -709,9 +709,30 @@ struct HomePage {
     // 初始化画布控制器回调（在页面初始化时就设置）
     this.initializeCanvasCallbacks();
     
+    // 先同步获取屏幕宽度并设置 isPhone（确保渲染模式正确）
+    const windowStage = (this.uiContext.getHostContext() as common.UIAbilityContext)?.windowStage;
+    if (windowStage) {
+      try {
+        const window = await windowStage.getMainWindow();
+        const properties = window.getWindowProperties();
+        const widthPx = properties.windowRect.width;
+        this.screenWidth = this.uiContext.px2vp(widthPx);
+        this.isPhone = BreakpointSystem.isPhone(this.screenWidth);
+        console.log(`[Home] Initial screen size: ${this.screenWidth}vp, isPhone: ${this.isPhone}`);
+      } catch (error) {
+        console.error('[Home] Failed to get initial window size:', error);
+        this.screenWidth = 840;
+        this.isPhone = false;
+      }
+    } else {
+      this.screenWidth = 840;
+      this.isPhone = false;
+    }
+    
     // 根据屏幕尺寸设置初始渲染模式
     this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
     this.canvasController.setRenderMode(this.canvasRenderMode);
+    console.log(`[Home] Initial canvas render mode: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
 
     // 初始化主题监听器
     this.setupThemeListener();

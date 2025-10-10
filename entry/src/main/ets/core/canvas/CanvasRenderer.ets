@@ -196,9 +196,10 @@ export class CanvasRenderer {
       `dark:${this.isDarkMode}`
     ];
     
-    // 添加任务位置和关键路径状态
+    // 添加任务的完整信息（包括名称、日期、子任务等，确保任务内容变化时触发重绘）
     project.tasks.forEach(task => {
-      parts.push(`t:${task.id}:${task.x},${task.y}:${task.isCritical ? '1' : '0'}`);
+      const checklistInfo = task.checklist ? `${task.checklist.length}:${task.checklist.filter(c => c.isCompleted).length}` : '0:0';
+      parts.push(`t:${task.id}:${task.x},${task.y}:${task.isCritical ? '1' : '0'}:${task.name}:${task.startDate}:${task.endDate}:${checklistInfo}`);
     });
     
     return parts.join('|');

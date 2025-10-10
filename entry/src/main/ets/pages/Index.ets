@@ -107,6 +107,9 @@ struct Index {
   // 滑块拖动相关
   private sliderDragging: boolean = false;
   private lastSliderPosition: number = 0;
+  
+  // 防抖保存定时器
+  private saveTimer: number = -1;
 
   async aboutToAppear() {
     // 初始化屏幕尺寸和设备类型
@@ -187,7 +190,13 @@ struct Index {
   }
 
   aboutToDisappear() {
-    // 页面离开时保存画布位置
+    // 清理防抖定时器
+    if (this.saveTimer !== -1) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = -1;
+    }
+    
+    // 页面离开时立即保存画布位置
     this.saveCanvasPosition();
 
     // 取消主题监听
@@ -352,6 +361,28 @@ struct Index {
     
     console.log(`[EasyFlow] 保存画布状态到项目 ${this.project.id}: x=${canvasState.canvasOffsetX}, y=${canvasState.canvasOffsetY}, zoom=${canvasState.zoomScale}`);
   }
+  
+  // 防抖保存画布状态（用于连续操作如拖动）
+  private debouncedSaveCanvasPosition() {
+    // 清除之前的定时器
+    if (this.saveTimer !== -1) {
+      clearTimeout(this.saveTimer);
+    }
+    
+    // 立即更新项目对象中的状态（确保数据最新）
+    if (this.project) {
+      const canvasState = this.canvasController.getState();
+      this.project.canvasOffsetX = canvasState.canvasOffsetX;
+      this.project.canvasOffsetY = canvasState.canvasOffsetY;
+      this.project.zoomScale = canvasState.zoomScale;
+    }
+    
+    // 延迟500ms后保存到文件
+    this.saveTimer = setTimeout(() => {
+      this.saveCanvasPosition();
+      this.saveTimer = -1;
+    }, 500);
+  }
 
   // 从项目恢复画布位置和缩放
   private restoreCanvasPosition() {
@@ -486,6 +517,7 @@ struct Index {
     this.canvasController.getActions().zoomIn();
     this.zoomScale = this.canvasController.getState().zoomScale;
     this.drawGraph();
+    this.debouncedSaveCanvasPosition(); // 实时保存
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
       duration: 1000
@@ -497,6 +529,7 @@ struct Index {
     this.canvasController.getActions().zoomOut();
     this.zoomScale = this.canvasController.getState().zoomScale;
     this.drawGraph();
+    this.debouncedSaveCanvasPosition(); // 实时保存
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
       duration: 1000
@@ -508,6 +541,7 @@ struct Index {
     this.canvasController.getActions().resetZoom();
     this.zoomScale = this.canvasController.getState().zoomScale;
     this.drawGraph();
+    this.debouncedSaveCanvasPosition(); // 实时保存
     this.promptAction.showToast({
       message: '已重置缩放',
       duration: 1000
@@ -558,6 +592,9 @@ struct Index {
     
     // 实时重绘
     this.drawGraph();
+    
+    // 拖动过程中使用防抖保存
+    this.debouncedSaveCanvasPosition();
   }
   
   // 处理滑块点击
@@ -575,6 +612,9 @@ struct Index {
     
     // 重绘
     this.drawGraph();
+    
+    // 立即保存
+    this.debouncedSaveCanvasPosition();
     
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
@@ -810,6 +850,11 @@ struct Index {
             }
             
             this.drawGraph(); // 重新绘制图形（使用节流优化）
+            
+            // 触摸结束时保存画布状态（缩放和拖动）
+            if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.debouncedSaveCanvasPosition();
+            }
           })
 
         // 右上角控制按钮

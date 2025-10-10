@@ -99,6 +99,10 @@ struct Index {
   
   // 画布缩放比例
   @State zoomScale: number = 1.0;
+  
+  // 渲染节流相关
+  private isRendering: boolean = false;
+  private pendingRender: boolean = false;
 
   async aboutToAppear() {
     // 初始化屏幕尺寸和设备类型
@@ -425,8 +429,15 @@ struct Index {
     this.updateStateFromManager();
   }
 
-  // 渲染画布
+  // 渲染画布（添加节流优化）
   private drawGraph(): void {
+    if (this.isRendering) {
+      this.pendingRender = true;
+      return;
+    }
+    
+    this.isRendering = true;
+    
     const renderConfig = this.canvasController.getActions().getRenderConfig(
       this.selectedTask?.id || null
     );
@@ -436,6 +447,15 @@ struct Index {
       // 更新缩放比例显示
       this.zoomScale = this.canvasController.getState().zoomScale;
     }
+    
+    // 使用微任务队列，确保渲染完成后再允许下一次渲染
+    Promise.resolve().then(() => {
+      this.isRendering = false;
+      if (this.pendingRender) {
+        this.pendingRender = false;
+        this.drawGraph();
+      }
+    });
   }
   
   // 放大画布
@@ -692,10 +712,13 @@ struct Index {
               0  // 编辑页面不需要X轴偏移
             );
             
-            // 更新缩放比例显示（双指缩放时也会更新）
-            this.zoomScale = this.canvasController.getState().zoomScale;
+            // 立即更新缩放比例显示（不等待渲染）
+            const currentScale = this.canvasController.getState().zoomScale;
+            if (Math.abs(currentScale - this.zoomScale) > 0.01) {
+              this.zoomScale = currentScale;
+            }
             
-            this.drawGraph(); // 重新绘制图形（包含网格）
+            this.drawGraph(); // 重新绘制图形（使用节流优化）
           })
 
         // 右上角控制按钮

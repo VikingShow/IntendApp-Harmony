@@ -156,6 +156,8 @@ export class CanvasController {
   private isPinching: boolean = false;
   private lastPinchDistance: number = 0;
   private pinchStartScale: number = 1.0;
+  private pinchCenterX: number = 0;
+  private pinchCenterY: number = 0;
 
   private onTaskSelect: ((task: TaskNode | null) => void) | null = null;
   private onDependencyCreate: ((fromId: string, toId: string) => void) | null = null;
@@ -275,13 +277,17 @@ export class CanvasController {
   }
   
   /**
-   * 处理双指捏合缩放手势
+   * 处理双指捏合缩放手势（优化版）
    */
   private handlePinchGesture(event: TouchEvent, touchOffsetX: number): void {
     const touch1X = event.touches[0].x - touchOffsetX;
     const touch1Y = event.touches[0].y;
     const touch2X = event.touches[1].x - touchOffsetX;
     const touch2Y = event.touches[1].y;
+    
+    // 计算捏合中心点（屏幕坐标）- 提前计算，避免重复
+    const centerX = (touch1X + touch2X) * 0.5;
+    const centerY = (touch1Y + touch2Y) * 0.5;
     
     // 计算两个触摸点之间的距离
     const distance = this.calculateDistance(touch1X, touch1Y, touch2X, touch2Y);
@@ -292,6 +298,8 @@ export class CanvasController {
         this.isPinching = true;
         this.lastPinchDistance = distance;
         this.pinchStartScale = this.state.zoomScale;
+        this.pinchCenterX = centerX;
+        this.pinchCenterY = centerY;
         
         // 取消任何正在进行的单指操作
         this.state.isDraggingCanvas = false;
@@ -300,30 +308,32 @@ export class CanvasController {
         
       case TouchType.Move:
         if (this.isPinching && this.lastPinchDistance > 0) {
-          // 计算缩放比例变化
+          // 计算缩放比例变化（增加灵敏度系数）
           const scaleFactor = distance / this.lastPinchDistance;
           
           // 计算新的缩放比例
           let newScale = this.state.zoomScale * scaleFactor;
-          newScale = Math.max(this.MIN_ZOOM, Math.min(newScale, this.MAX_ZOOM));
           
-          // 如果缩放比例没有实际变化（达到边界），跳过计算
-          if (Math.abs(newScale - this.state.zoomScale) < 0.001) {
+          // 限制在合理范围内
+          const clampedScale = Math.max(this.MIN_ZOOM, Math.min(newScale, this.MAX_ZOOM));
+          
+          // 如果缩放比例变化太小，跳过以减少抖动
+          const scaleChange = Math.abs(clampedScale - this.state.zoomScale);
+          if (scaleChange < 0.001) {
             break;
           }
           
-          // 计算捏合中心点（屏幕坐标）
-          const centerX = (touch1X + touch2X) / 2;
-          const centerY = (touch1Y + touch2Y) / 2;
-          
-          // 优化的缩放中心算法
-          // 公式：newOffset = centerScreen / newScale - (centerScreen / oldScale - oldOffset)
+          // 优化的缩放中心算法（使用固定中心点）
           const oldScale = this.state.zoomScale;
-          this.state.canvasOffsetX = centerX / newScale - (centerX / oldScale - this.state.canvasOffsetX);
-          this.state.canvasOffsetY = centerY / newScale - (centerY / oldScale - this.state.canvasOffsetY);
           
-          // 应用新的缩放比例
-          this.state.zoomScale = newScale;
+          // 计算偏移调整量
+          const offsetAdjustX = centerX / clampedScale - centerX / oldScale;
+          const offsetAdjustY = centerY / clampedScale - centerY / oldScale;
+          
+          // 应用新的缩放比例和偏移
+          this.state.zoomScale = clampedScale;
+          this.state.canvasOffsetX += offsetAdjustX;
+          this.state.canvasOffsetY += offsetAdjustY;
           
           // 更新上次距离
           this.lastPinchDistance = distance;

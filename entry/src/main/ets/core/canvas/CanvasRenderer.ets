@@ -54,6 +54,8 @@ export interface RenderConfig {
   canvasOffsetX: number;
   /** 画布Y轴偏移量 */
   canvasOffsetY: number;
+  /** 画布缩放比例 */
+  zoomScale: number;
   /** 是否正在连接任务 */
   isConnecting: boolean;
   /** 连接源任务ID */
@@ -113,16 +115,30 @@ export class CanvasRenderer {
   public render(project: Project, config: RenderConfig): void {
     this.context.clearRect(0, 0, 3000, 3000);
     
+    // 保存上下文状态
+    this.context.save();
+    
+    // 应用缩放变换（在偏移之前）
+    const scale = config.zoomScale || 1.0;
+    this.context.scale(scale, scale);
+    
     // 先绘制网格背景
     this.renderGrid();
     
-    if (!project) return;
+    if (!project) {
+      // 恢复上下文状态
+      this.context.restore();
+      return;
+    }
 
     // 渲染依赖连线
     this.renderDependencies(project, config);
     
     // 渲染任务节点
     this.renderTasks(project, config);
+    
+    // 恢复上下文状态
+    this.context.restore();
   }
 
   private renderGrid(): void {

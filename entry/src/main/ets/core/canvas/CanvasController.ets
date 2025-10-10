@@ -44,6 +44,8 @@ export interface CanvasState {
   canvasOffsetX: number;
   /** 画布Y轴偏移量 */
   canvasOffsetY: number;
+  /** 画布缩放比例 */
+  zoomScale: number;
   /** 是否正在拖拽画布 */
   isDraggingCanvas: boolean;
   /** 是否正在拖拽节点 */
@@ -89,6 +91,12 @@ export interface CanvasActions {
   stopConnecting: () => void;
   /** 获取渲染配置 */
   getRenderConfig: (selectedTaskId: string | null) => RenderConfig;
+  /** 放大画布 */
+  zoomIn: () => void;
+  /** 缩小画布 */
+  zoomOut: () => void;
+  /** 重置缩放 */
+  resetZoom: () => void;
 }
 
 /**
@@ -119,6 +127,7 @@ export class CanvasController {
   private state: CanvasState = {
     canvasOffsetX: 0,
     canvasOffsetY: 0,
+    zoomScale: 1.0,
     isDraggingCanvas: false,
     isDraggingNode: false,
     isConnecting: false,
@@ -133,6 +142,11 @@ export class CanvasController {
     dragStartY: 0,
     renderMode: RenderMode.NORMAL
   };
+  
+  // 缩放相关常量
+  private readonly MIN_ZOOM: number = 0.3;
+  private readonly MAX_ZOOM: number = 3.0;
+  private readonly ZOOM_STEP: number = 0.2;
 
   // 追踪触摸开始的位置（用于区分点击和拖拽）
   private touchStartX: number = 0;
@@ -197,7 +211,10 @@ export class CanvasController {
       toggleCanvasLock: () => this.toggleCanvasLock(),
       startConnecting: (taskId: string) => this.startConnecting(taskId),
       stopConnecting: () => this.stopConnecting(),
-      getRenderConfig: (selectedTaskId: string | null) => this.getRenderConfig(selectedTaskId)
+      getRenderConfig: (selectedTaskId: string | null) => this.getRenderConfig(selectedTaskId),
+      zoomIn: () => this.zoomIn(),
+      zoomOut: () => this.zoomOut(),
+      resetZoom: () => this.resetZoom()
     };
   }
 
@@ -205,8 +222,12 @@ export class CanvasController {
     if (this.state.isCanvasLocked) return;
 
     // touchOffsetX 用于处理左侧按钮栏等偏移（编辑页面需要，Home页面不需要）
-    const realTouchX = event.touches[0].x - touchOffsetX;
-    const realTouchY = event.touches[0].y;
+    const screenTouchX = event.touches[0].x - touchOffsetX;
+    const screenTouchY = event.touches[0].y;
+    
+    // 将屏幕坐标转换为画布坐标（考虑缩放）
+    const realTouchX = screenTouchX / this.state.zoomScale;
+    const realTouchY = screenTouchY / this.state.zoomScale;
 
     let hitNode: TaskNode | null = null;
     
@@ -407,11 +428,35 @@ export class CanvasController {
     return {
       canvasOffsetX: this.state.canvasOffsetX,
       canvasOffsetY: this.state.canvasOffsetY,
+      zoomScale: this.state.zoomScale,
       isConnecting: this.state.isConnecting,
       connectingFromTaskId: this.state.connectingFromTaskId,
       selectedTaskId: selectedTaskId,
       renderMode: this.state.renderMode
     };
+  }
+  
+  /**
+   * 放大画布
+   */
+  private zoomIn(): void {
+    const newScale = Math.min(this.state.zoomScale + this.ZOOM_STEP, this.MAX_ZOOM);
+    this.state.zoomScale = Math.round(newScale * 10) / 10; // 保留一位小数
+  }
+  
+  /**
+   * 缩小画布
+   */
+  private zoomOut(): void {
+    const newScale = Math.max(this.state.zoomScale - this.ZOOM_STEP, this.MIN_ZOOM);
+    this.state.zoomScale = Math.round(newScale * 10) / 10; // 保留一位小数
+  }
+  
+  /**
+   * 重置缩放
+   */
+  private resetZoom(): void {
+    this.state.zoomScale = 1.0;
   }
 }
 

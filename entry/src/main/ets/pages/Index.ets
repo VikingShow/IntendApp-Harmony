@@ -96,6 +96,9 @@ struct Index {
   
   // 画布渲染模式
   @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
+  
+  // 画布缩放比例
+  @State zoomScale: number = 1.0;
 
   async aboutToAppear() {
     // 初始化屏幕尺寸和设备类型
@@ -430,7 +433,42 @@ struct Index {
 
     if (this.project) {
       this.canvasController.getRenderer().render(this.project, renderConfig);
+      // 更新缩放比例显示
+      this.zoomScale = this.canvasController.getState().zoomScale;
     }
+  }
+  
+  // 放大画布
+  private handleZoomIn(): void {
+    this.canvasController.getActions().zoomIn();
+    this.zoomScale = this.canvasController.getState().zoomScale;
+    this.drawGraph();
+    this.promptAction.showToast({
+      message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
+      duration: 1000
+    });
+  }
+  
+  // 缩小画布
+  private handleZoomOut(): void {
+    this.canvasController.getActions().zoomOut();
+    this.zoomScale = this.canvasController.getState().zoomScale;
+    this.drawGraph();
+    this.promptAction.showToast({
+      message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
+      duration: 1000
+    });
+  }
+  
+  // 重置缩放
+  private handleResetZoom(): void {
+    this.canvasController.getActions().resetZoom();
+    this.zoomScale = this.canvasController.getState().zoomScale;
+    this.drawGraph();
+    this.promptAction.showToast({
+      message: '已重置缩放',
+      duration: 1000
+    });
   }
 
   // 切换画布渲染模式
@@ -777,6 +815,64 @@ struct Index {
         .width('100%')
         .justifyContent(FlexAlign.End)
         .position({ x: 0, y: 0 })
+        
+        // 左上角 - 缩放控制
+        Column({ space: 8 }) {
+          // 放大按钮
+          Button() {
+            Text('🔍+')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(48)
+          .height(48)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(ThemeConfig.radiusMedium)
+          .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
+          .shadow(ThemeConfig.shadowMedium)
+          .onClick(() => this.handleZoomIn())
+          
+          // 缩放比例显示
+          Text(`${Math.round(this.zoomScale * 100)}%`)
+            .fontSize(13)
+            .fontColor(ColorResource.textPrimary)
+            .fontWeight(ThemeConfig.fontWeightMedium)
+            .padding(6)
+            .backgroundColor(ColorResource.overlayStrong)
+            .borderRadius(6)
+            .backdropBlur(ThemeConfig.backdropBlurMedium)
+            .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 6 })
+          
+          // 缩小按钮
+          Button() {
+            Text('🔍-')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(48)
+          .height(48)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(ThemeConfig.radiusMedium)
+          .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
+          .shadow(ThemeConfig.shadowMedium)
+          .onClick(() => this.handleZoomOut())
+          
+          // 重置缩放按钮
+          Button() {
+            Text('1:1')
+              .fontSize(13)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(48)
+          .height(48)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(ThemeConfig.radiusMedium)
+          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
+          .shadow(ThemeConfig.shadowMedium)
+          .onClick(() => this.handleResetZoom())
+        }
+        .position({ x: 24, y: 24 })
+        .zIndex(100)
         
         // 右下角 - 渲染模式切换按钮
         Button() {

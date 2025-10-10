@@ -2,15 +2,14 @@
 /**
  * 导出服务模块
  * 
- * 本模块负责项目数据的多格式导出功能，支持 JSON、图片、PDF、Excel 等多种导出格式。
+ * 本模块负责项目数据的多格式导出功能，支持 JSON、图片、Excel 等多种导出格式。
  * 提供统一的导出接口，处理文件生成、权限申请、错误处理等功能。
  * 
  * 主要功能：
  * 1. JSON 导出：将项目数据导出为 JSON 文件
  * 2. 图片导出：将画布内容导出为 PNG/JPG 图片
- * 3. PDF 导出：将项目甘特图导出为 PDF 文档
- * 4. Excel 导出：将任务数据导出为 CSV/Excel 表格
- * 5. 文件管理：处理文件保存、权限申请等
+ * 3. Excel 导出：将任务数据导出为 CSV/Excel 表格
+ * 4. 文件管理：处理文件保存、权限申请等
  * 
  * @author EasyFlow开发团队
  * @version 1.0.0
@@ -36,22 +35,10 @@ export enum ExportFormat {
   PNG = 'png',
   /** JPG 图片 */
   JPG = 'jpg',
-  /** PDF 文档 */
-  PDF = 'pdf',
   /** CSV 表格 */
   CSV = 'csv',
   /** Excel 表格 */
   EXCEL = 'xlsx'
-}
-
-/**
- * PDF 导出选项接口
- */
-export interface PdfExportOptions {
-  /** 是否包含任务列表 */
-  includeTaskList?: boolean;
-  /** 是否包含统计信息 */
-  includeStats?: boolean;
 }
 
 /**
@@ -66,8 +53,6 @@ export interface ExportOptions {
   includeTimestamp?: boolean;
   /** 图片质量（0-100，仅用于 JPG） */
   imageQuality?: number;
-  /** PDF 选项 */
-  pdfOptions?: PdfExportOptions;
 }
 
 /**
@@ -179,8 +164,6 @@ export class ExportService {
         case ExportFormat.PNG:
         case ExportFormat.JPG:
           return await this.exportToImage(project, options, canvasPixelMap);
-        case ExportFormat.PDF:
-          return await this.exportToPDF(project, options, canvasPixelMap);
         case ExportFormat.CSV:
         case ExportFormat.EXCEL:
           return await this.exportToExcel(project, options);
@@ -332,34 +315,6 @@ export class ExportService {
       return {
         success: false,
         error: `图片导出失败: ${error.message || '未知错误'}`
-      };
-    }
-  }
-
-  /**
-   * 导出为 PDF 格式
-   */
-  private async exportToPDF(
-    project: Project,
-    options: ExportOptions,
-    canvasPixelMap?: image.PixelMap
-  ): Promise<ExportResult> {
-    try {
-      console.log('[ExportService] 开始导出 PDF...');
-
-      // 目前 HarmonyOS 没有原生 PDF 生成 API
-      // 作为替代方案，可以先导出为图片，然后提示用户使用第三方工具转换
-      // 或者在未来版本中集成 PDF 生成库
-
-      return {
-        success: false,
-        error: 'PDF 导出功能开发中，请先使用图片导出功能'
-      };
-    } catch (error) {
-      console.error('[ExportService] PDF 导出失败:', error);
-      return {
-        success: false,
-        error: `PDF 导出失败: ${error.message || '未知错误'}`
       };
     }
   }

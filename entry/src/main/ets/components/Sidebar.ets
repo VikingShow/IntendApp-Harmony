@@ -127,7 +127,7 @@ export struct Sidebar {
   private async exportToJSON() {
     if (!this.project) {
       this.promptAction.showToast({ 
-        message: '⚠️ 当前没有可导出的项目', 
+        message: '当前没有可导出的项目',
         duration: 2000 
       });
       return;
@@ -135,7 +135,7 @@ export struct Sidebar {
     
     if (!this.exportService) {
       this.promptAction.showToast({ 
-        message: '⚠️ 导出服务未初始化', 
+        message: '导出服务未初始化',
         duration: 2000 
       });
       return;
@@ -143,7 +143,7 @@ export struct Sidebar {
     
     // 显示导出中提示
     this.promptAction.showToast({ 
-      message: '📄 正在导出 JSON...', 
+      message: '正在导出 JSON...',
       duration: 1000 
     });
     
@@ -157,13 +157,13 @@ export struct Sidebar {
     
     if (result.success) {
       this.promptAction.showToast({ 
-        message: `✅ JSON 导出成功！\n文件已保存`, 
+        message: `JSON 导出成功！文件已保存`,
         duration: 3000 
       });
       console.log('[Sidebar] JSON 导出成功:', result.filePath);
     } else {
       this.promptAction.showToast({ 
-        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        message: `导出失败: ${result.error || '未知错误'}`,
         duration: 3000 
       });
       console.error('[Sidebar] JSON 导出失败:', result.error);
@@ -177,7 +177,7 @@ export struct Sidebar {
   private async exportToImage() {
     if (!this.project) {
       this.promptAction.showToast({ 
-        message: '⚠️ 当前没有可导出的项目', 
+        message: '当前没有可导出的项目',
         duration: 2000 
       });
       return;
@@ -185,7 +185,7 @@ export struct Sidebar {
     
     if (!this.exportService) {
       this.promptAction.showToast({ 
-        message: '⚠️ 导出服务未初始化', 
+        message: '导出服务未初始化',
         duration: 2000 
       });
       return;
@@ -193,7 +193,7 @@ export struct Sidebar {
     
     if (!this.onGetCanvasPixelMap) {
       this.promptAction.showToast({ 
-        message: '⚠️ 无法获取画布数据', 
+        message: '无法获取画布数据',
         duration: 2000 
       });
       return;
@@ -201,7 +201,7 @@ export struct Sidebar {
     
     // 显示导出中提示
     this.promptAction.showToast({ 
-      message: '🖼️ 正在导出图片...', 
+      message: '正在导出图片...',
       duration: 1000 
     });
     
@@ -209,7 +209,7 @@ export struct Sidebar {
     const pixelMap = await this.onGetCanvasPixelMap();
     if (!pixelMap) {
       this.promptAction.showToast({ 
-        message: '❌ 获取画布截图失败', 
+        message: '获取画布截图失败',
         duration: 3000 
       });
       return;
@@ -217,7 +217,7 @@ export struct Sidebar {
     
     const options: ExportOptions = {
       format: ExportFormat.PNG,
-      fileName: `${this.project.name}_甘特图`,
+      fileName: `${this.project.name}`,
       includeTimestamp: true,
       imageQuality: 95
     };
@@ -226,37 +226,17 @@ export struct Sidebar {
     
     if (result.success) {
       this.promptAction.showToast({ 
-        message: `✅ 图片导出成功！\n文件已保存`, 
+        message: `图片导出成功！文件已保存`,
         duration: 3000 
       });
       console.log('[Sidebar] 图片导出成功:', result.filePath);
     } else {
       this.promptAction.showToast({ 
-        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        message: `导出失败: ${result.error || '未知错误'}`,
         duration: 3000 
       });
       console.error('[Sidebar] 图片导出失败:', result.error);
     }
-  }
-  
-  /**
-   * 导出为 PDF 格式
-   * 将项目甘特图和任务列表导出为 PDF 文档
-   */
-  private async exportToPDF() {
-    if (!this.project) {
-      this.promptAction.showToast({ 
-        message: '⚠️ 当前没有可导出的项目', 
-        duration: 2000 
-      });
-      return;
-    }
-    
-    // PDF 导出功能暂未实现
-    this.promptAction.showToast({ 
-      message: `📋 PDF 导出功能开发中\n请先使用图片导出功能`, 
-      duration: 3000 
-    });
   }
   
   /**
@@ -266,7 +246,7 @@ export struct Sidebar {
   private async exportToExcel() {
     if (!this.project) {
       this.promptAction.showToast({ 
-        message: '⚠️ 当前没有可导出的项目', 
+        message: '当前没有可导出的项目',
         duration: 2000 
       });
       return;
@@ -274,7 +254,7 @@ export struct Sidebar {
     
     if (!this.exportService) {
       this.promptAction.showToast({ 
-        message: '⚠️ 导出服务未初始化', 
+        message: '导出服务未初始化',
         duration: 2000 
       });
       return;
@@ -282,7 +262,7 @@ export struct Sidebar {
     
     // 显示导出中提示
     this.promptAction.showToast({ 
-      message: '📊 正在导出 Excel...', 
+      message: '正在导出 Excel...',
       duration: 1000 
     });
     
@@ -296,13 +276,13 @@ export struct Sidebar {
     
     if (result.success) {
       this.promptAction.showToast({ 
-        message: `✅ Excel(CSV) 导出成功！\n文件已保存`, 
+        message: `Excel(CSV) 导出成功！\n文件已保存`,
         duration: 3000 
       });
       console.log('[Sidebar] Excel 导出成功:', result.filePath);
     } else {
       this.promptAction.showToast({ 
-        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        message: `导出失败: ${result.error || '未知错误'}`,
         duration: 3000 
       });
       console.error('[Sidebar] Excel 导出失败:', result.error);
@@ -472,15 +452,6 @@ export struct Sidebar {
         })
           .onChange(() => {
             this.exportToImage();
-          })
-        
-        // PDF 导出选项
-        MenuItem({ 
-          content: '导出为 PDF',
-          labelInfo: '便携文档格式'
-        })
-          .onChange(() => {
-            this.exportToPDF();
           })
 
       // 数据导出选项组

@@ -353,16 +353,7 @@ export class CanvasRenderer {
         this.context.stroke();
       }
 
-      // 绘制关键路径标记（小红点）
-      if (task.isCritical) {
-        this.context.beginPath();
-        this.context.arc(centerX + CIRCLE_RADIUS - 6, centerY - CIRCLE_RADIUS + 6, 6, 0, Math.PI * 2);
-        this.context.fillStyle = ThemeConfig.taskCritical.toString();
-        this.context.fill();
-        this.context.strokeStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
-        this.context.lineWidth = 2;
-        this.context.stroke();
-      }
+      // 缩略模式下不需要额外的关键路径标记，因为整个圆圈已经是红色了
 
       // 绘制任务名称
       this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';

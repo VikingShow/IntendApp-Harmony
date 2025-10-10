@@ -2450,7 +2450,8 @@ struct HomePage {
         this.canvasController.getActions().handleTouch(
           event,
           this.selectedProjectDetail,
-          null // Home页面不需要选中任务高亮
+          null, // Home页面不需要选中任务高亮
+          0     // Home页面画布全屏，无需X轴偏移
         );
         
         // 重新渲染画布
@@ -3214,7 +3215,7 @@ struct HomePage {
               }
             })
             .onTouch((event: TouchEvent) => {
-              // 处理画布触摸事件（缩略模式下点击节点显示详情）
+              // 处理画布触摸事件（缩略模式）
               if (!this.selectedProjectDetail) {
                 return;
               }
@@ -3222,7 +3223,8 @@ struct HomePage {
               this.canvasController.getActions().handleTouch(
                 event,
                 this.selectedProjectDetail,
-                null
+                null, // Home页面不需要选中任务高亮
+                0     // 手机端Dashboard卡片画布全屏，无需X轴偏移
               );
               
               // 重新渲染画布

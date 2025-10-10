@@ -78,7 +78,7 @@ export interface CanvasState {
  */
 export interface CanvasActions {
   /** 处理触摸事件 */
-  handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => void;
+  handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null, touchOffsetX?: number) => void;
   /** 重置画布 */
   resetCanvas: () => void;
   /** 切换画布锁定状态 */
@@ -192,7 +192,7 @@ export class CanvasController {
   }
   public getActions(): CanvasActions {
     return {
-      handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null) => this.handleTouch(event, project, selectedTaskId),
+      handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null, touchOffsetX?: number) => this.handleTouch(event, project, selectedTaskId, touchOffsetX),
       resetCanvas: () => this.resetCanvas(),
       toggleCanvasLock: () => this.toggleCanvasLock(),
       startConnecting: (taskId: string) => this.startConnecting(taskId),
@@ -201,11 +201,11 @@ export class CanvasController {
     };
   }
 
-  private handleTouch(event: TouchEvent, project: Project, selectedTaskId: string | null): void {
+  private handleTouch(event: TouchEvent, project: Project, selectedTaskId: string | null, touchOffsetX: number = 0): void {
     if (this.state.isCanvasLocked) return;
 
-    const buttonWidth = 32;
-    const realTouchX = event.touches[0].x - buttonWidth;
+    // touchOffsetX 用于处理左侧按钮栏等偏移（编辑页面需要，Home页面不需要）
+    const realTouchX = event.touches[0].x - touchOffsetX;
     const realTouchY = event.touches[0].y;
 
     let hitNode: TaskNode | null = null;
@@ -257,20 +257,20 @@ export class CanvasController {
    */
   private hitTestCompact(touchX: number, touchY: number, project: Project): TaskNode | null {
     const CIRCLE_RADIUS = 24; // 与渲染器中的圆圈半径保持一致
-    const HIT_TOLERANCE = 8; // 增加点击容差，方便点击
+    const HIT_TOLERANCE = 12; // 适当的点击容差，方便点击小圆圈
     
     for (let i = project.tasks.length - 1; i >= 0; i--) {
       const task: TaskNode = project.tasks[i];
-      // 圆圈中心点
+      // 圆圈中心点（需要与渲染器保持一致）
       const centerX: number = task.x + this.state.canvasOffsetX + 100;
       const centerY: number = task.y + this.state.canvasOffsetY + 60;
       
-      // 计算距离
+      // 计算触摸点到圆心的距离
       const dx = touchX - centerX;
       const dy = touchY - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // 点击在圆圈范围内（含容差）
+      // 点击在圆圈范围内（含容差）- 总半径约36px
       if (distance <= CIRCLE_RADIUS + HIT_TOLERANCE) {
         return task;
       }

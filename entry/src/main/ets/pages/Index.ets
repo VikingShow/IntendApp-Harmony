@@ -646,10 +646,12 @@ struct Index {
               return;
             }
 
+            // 触摸坐标相对于Canvas，无需偏移（左侧按钮和侧边栏使用position浮动定位）
             this.canvasController.getActions().handleTouch(
               event,
               this.project,
-              this.selectedTask?.id || null
+              this.selectedTask?.id || null,
+              0  // 编辑页面不需要X轴偏移
             );
             this.drawGraph(); // 重新绘制图形（包含网格）
           })

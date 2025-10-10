@@ -137,6 +137,39 @@ export class CanvasRenderer {
   }
 
   /**
+   * 绘制水印（用于导出图片）
+   * 在画布右下角添加 EasyFlow 水印
+   * @param canvasWidth Canvas 宽度
+   * @param canvasHeight Canvas 高度
+   */
+  public drawWatermark(canvasWidth: number, canvasHeight: number): void {
+    const ctx = this.context;
+    
+    // 保存当前上下文状态
+    ctx.save();
+    
+    // 重置变换（水印应该在原始坐标系统中）
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // 水印位置（右下角，留出边距）
+    const marginRight = 30;
+    const marginBottom = 30;
+    const watermarkX = canvasWidth - marginRight;
+    const watermarkY = canvasHeight - marginBottom;
+    
+    // 绘制 "EasyFlow" 文字
+    ctx.globalAlpha = 0.6;
+    ctx.font = '600 45px sans-serif';
+    ctx.fillStyle = this.isDarkMode ? '#E0E0E0' : '#424242';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('EasyFlow', watermarkX, watermarkY);
+    
+    // 恢复上下文状态
+    ctx.restore();
+  }
+
+  /**
    * 计算渲染状态哈希值（用于判断是否需要重绘）
    */
   private calculateRenderHash(project: Project | null, config: RenderConfig): string {

@@ -676,9 +676,10 @@ export class CanvasController {
   /**
    * 获取 Canvas 的 PixelMap（用于导出图片）
    * 保持当前深色/浅色模式，根据Canvas实际尺寸导出
+   * 导出的图片会包含 EasyFlow 水印
    * 
-   * @param project 项目数据（暂不使用）
-   * @param selectedTaskId 当前选中的任务ID（暂不使用）
+   * @param project 项目数据
+   * @param selectedTaskId 当前选中的任务ID
    * @returns Promise<PixelMap | null> Canvas 的像素图
    */
   public async getCanvasPixelMap(project?: Project, selectedTaskId?: string): Promise<image.PixelMap | null> {
@@ -697,10 +698,21 @@ export class CanvasController {
       console.log(`[CanvasController] 当前模式: ${this.renderer.getDarkMode() ? '深色' : '浅色'}`);
       console.log(`[CanvasController] Canvas 实际尺寸: ${canvasWidth}x${canvasHeight}`);
 
+      // 绘制水印（在获取 PixelMap 之前）
+      this.renderer.drawWatermark(canvasWidth, canvasHeight);
+      console.log('[CanvasController] ✅ 已添加水印');
+
       // 根据Canvas实际尺寸导出（避免黑色区域）
       const pixelMap = await context.getPixelMap(0, 0, canvasWidth, canvasHeight);
       
       console.log('[CanvasController] ✅ 成功获取 Canvas PixelMap');
+      
+      // 重新渲染以清除水印（恢复正常显示）
+      if (project) {
+        const config = this.getRenderConfig(selectedTaskId || null);
+        this.renderer.render(project, config);
+        console.log('[CanvasController] ✅ 已清除水印，恢复正常显示');
+      }
       
       return pixelMap;
     } catch (error) {

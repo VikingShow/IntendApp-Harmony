@@ -272,83 +272,6 @@ export class ExportService {
   }
 
   /**
-   * 裁剪图片中的黑色区域，只保留有内容的部分
-   */
-  private async cropBlackArea(sourcePixelMap: image.PixelMap): Promise<image.PixelMap> {
-    try {
-      // 获取源图片的尺寸信息
-      const imageInfo = await sourcePixelMap.getImageInfo();
-      const width = imageInfo.size.width;
-      const height = imageInfo.size.height;
-      console.log(`[ExportService] 源图片尺寸: ${width}x${height}`);
-
-      // 读取像素数据
-      const buffer = new ArrayBuffer(width * height * 4); // RGBA
-      await sourcePixelMap.readPixelsToBuffer(buffer);
-      const pixels = new Uint8Array(buffer);
-
-      let minX = width;
-      let minY = height;
-      let maxX = 0;
-      let maxY = 0;
-
-      // 遍历所有像素，找到非黑色区域的边界
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const index = (y * width + x) * 4;
-          const r = pixels[index];
-          const g = pixels[index + 1];
-          const b = pixels[index + 2];
-          
-          // 如果不是纯黑色（允许一些误差）
-          if (r > 10 || g > 10 || b > 10) {
-            minX = Math.min(minX, x);
-            minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x);
-            maxY = Math.max(maxY, y);
-          }
-        }
-      }
-
-      // 如果没有找到非黑色区域，返回原图
-      if (minX >= width || minY >= height || maxX <= 0 || maxY <= 0) {
-        console.warn('[ExportService] 未找到有效内容区域，返回原图');
-        return sourcePixelMap;
-      }
-
-      // 添加一些边距
-      const padding = 20;
-      minX = Math.max(0, minX - padding);
-      minY = Math.max(0, minY - padding);
-      maxX = Math.min(width - 1, maxX + padding);
-      maxY = Math.min(height - 1, maxY + padding);
-
-      const cropWidth = maxX - minX + 1;
-      const cropHeight = maxY - minY + 1;
-
-      console.log(`[ExportService] 裁剪区域: (${minX}, ${minY}) -> (${maxX}, ${maxY})`);
-      console.log(`[ExportService] 裁剪后尺寸: ${cropWidth}x${cropHeight}`);
-
-      // 裁剪图片：创建新的 PixelMap
-      const cropRegion: image.Region = {
-        x: minX,
-        y: minY,
-        size: { width: cropWidth, height: cropHeight }
-      };
-      
-      // crop() 方法会原地修改 PixelMap
-      await sourcePixelMap.crop(cropRegion);
-
-      console.log('[ExportService] ✅ 成功裁剪黑色区域');
-      return sourcePixelMap;
-
-    } catch (error) {
-      console.error('[ExportService] 裁剪失败，返回原图:', error);
-      return sourcePixelMap;
-    }
-  }
-
-  /**
    * 导出为图片格式
    */
   private async exportToImage(
@@ -366,8 +289,12 @@ export class ExportService {
         };
       }
 
-      // 1. 处理图片：裁剪掉黑色区域，只保留有内容的部分
-      const processedPixelMap = await this.cropBlackArea(canvasPixelMap);
+      // 1. 直接使用Canvas导出的图片（已经是正确尺寸，无需裁剪）
+      const processedPixelMap = canvasPixelMap;
+      
+      // 获取图片信息用于日志
+      const imageInfo = await processedPixelMap.getImageInfo();
+      console.log(`[ExportService] 导出图片尺寸: ${imageInfo.size.width}x${imageInfo.size.height}`);
 
       // 2. 生成文件名
       const extension = options.format === ExportFormat.PNG ? 'png' : 'jpg';

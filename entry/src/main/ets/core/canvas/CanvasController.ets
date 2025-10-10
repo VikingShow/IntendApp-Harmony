@@ -675,7 +675,7 @@ export class CanvasController {
 
   /**
    * 获取 Canvas 的 PixelMap（用于导出图片）
-   * 保持当前深色/浅色模式，导出整个画布以避免黑色区域
+   * 保持当前深色/浅色模式，根据Canvas实际尺寸导出
    * 
    * @param project 项目数据（暂不使用）
    * @param selectedTaskId 当前选中的任务ID（暂不使用）
@@ -690,14 +690,17 @@ export class CanvasController {
         return null;
       }
 
-      console.log(`[CanvasController] 当前模式: ${this.renderer.getDarkMode() ? '深色' : '浅色'}`);
-      console.log(`[CanvasController] 导出整个 Canvas（3000x3000）以避免黑色区域`);
-
-      // 导出整个 Canvas（3000x3000）
-      // 注意：Canvas 内部坐标系统是 3000x3000，直接导出可以避免像素坐标不一致的问题
-      const pixelMap = await context.getPixelMap(0, 0, 3000, 3000);
+      // 获取Canvas的实际像素尺寸
+      const canvasWidth = context.width;
+      const canvasHeight = context.height;
       
-      console.log('[CanvasController] 成功获取 Canvas PixelMap');
+      console.log(`[CanvasController] 当前模式: ${this.renderer.getDarkMode() ? '深色' : '浅色'}`);
+      console.log(`[CanvasController] Canvas 实际尺寸: ${canvasWidth}x${canvasHeight}`);
+
+      // 根据Canvas实际尺寸导出（避免黑色区域）
+      const pixelMap = await context.getPixelMap(0, 0, canvasWidth, canvasHeight);
+      
+      console.log('[CanvasController] ✅ 成功获取 Canvas PixelMap');
       
       return pixelMap;
     } catch (error) {

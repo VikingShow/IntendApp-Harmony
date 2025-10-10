@@ -37,6 +37,8 @@ import { RenderMode } from '../core/canvas/CanvasRenderer';
 import { Sidebar } from '../components/Sidebar';
 import { StorageService } from '../services/StorageService';
 import { PermissionService } from '../services/PermissionService';
+import { ExportService } from '../services/ExportService';
+import { FileStorageService } from '../services/FileStorageService';
 import { TaskNode, Project, ChecklistItem } from '../model/ProjectData';
 import { EventBus, EventArgs } from '../core/EventBus';
 import common from '@ohos.app.ability.common';
@@ -80,6 +82,7 @@ struct Index {
   private projectManager: ProjectManager = ProjectManager.getInstance();
   private storageService: StorageService | null = null;
   private permissionService: PermissionService | null = null;
+  private exportService: ExportService | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   @State canvasLock: boolean = false;
@@ -137,6 +140,11 @@ struct Index {
     // 初始化存储服务
     this.storageService =
       StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+
+    // 初始化导出服务
+    const fileStorageService = FileStorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+    this.exportService = ExportService.getInstance(fileStorageService);
+    this.exportService.setContext(this.uiContext.getHostContext() as common.UIAbilityContext);
 
     // 初始化项目管理器
     await this.projectManager.initialize((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
@@ -865,6 +873,10 @@ struct Index {
           project: this.project,
           selectedTask: this.selectedTask,
           isHomePage: false,
+          exportService: this.exportService,
+          onGetCanvasPixelMap: async () => {
+            return await this.canvasController.getCanvasPixelMap();
+          },
           onUpdateProjectName: (newName) => {
             this.projectManager.getActions().updateProjectName(newName);
           },

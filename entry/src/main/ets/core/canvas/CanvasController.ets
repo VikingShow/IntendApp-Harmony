@@ -34,6 +34,7 @@
 
 import { Project, TaskNode } from '../../model/ProjectData';
 import { CanvasRenderer, RenderConfig, RenderMode } from './CanvasRenderer';
+import { image } from '@kit.ImageKit';
 
 /**
  * 画布状态接口
@@ -564,6 +565,31 @@ export class CanvasController {
    */
   private resetZoom(): void {
     this.state.zoomScale = 1.0;
+  }
+
+  /**
+   * 获取 Canvas 的 PixelMap（用于导出图片）
+   * 
+   * @returns Promise<PixelMap | null> Canvas 的像素图
+   */
+  public async getCanvasPixelMap(): Promise<image.PixelMap | null> {
+    try {
+      const context = this.renderer.getContext();
+      
+      if (!context) {
+        console.error('[CanvasController] 无法获取 Canvas 上下文');
+        return null;
+      }
+
+      // 获取 Canvas 的 PixelMap
+      const pixelMap = await context.getPixelMap(0, 0, 3000, 3000);
+      console.log('[CanvasController] 成功获取 Canvas PixelMap');
+      
+      return pixelMap;
+    } catch (error) {
+      console.error('[CanvasController] 获取 PixelMap 失败:', error);
+      return null;
+    }
   }
 }
 

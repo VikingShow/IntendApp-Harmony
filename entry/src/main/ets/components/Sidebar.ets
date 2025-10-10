@@ -37,6 +37,8 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PromptAction } from '@kit.ArkUI';
+import { ExportService, ExportFormat, ExportOptions } from '../services/ExportService';
+import { image } from '@kit.ImageKit';
 
 /**
  * 侧边栏组件
@@ -67,6 +69,8 @@ export struct Sidebar {
   onCreateBlankProject: () => void = () => {};
   onCreateProjectFromTemplate: (templateId: string, projectName: string) => void = () => {};
   onDeleteTask: (taskId: string) => void = () => {};
+  onGetCanvasPixelMap: (() => Promise<image.PixelMap | null>) | null = null; // 获取 Canvas 截图的回调
+  exportService: ExportService | null = null; // 导出服务实例
 
   @State isEditingProjectName: boolean = false;
   @State tempProjectName: string = '';
@@ -114,6 +118,195 @@ export struct Sidebar {
         }
       }
     });
+  }
+  
+  /**
+   * 导出为 JSON 格式
+   * 将项目数据导出为标准 JSON 文件，包含所有任务和依赖关系
+   */
+  private async exportToJSON() {
+    if (!this.project) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 当前没有可导出的项目', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    if (!this.exportService) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 导出服务未初始化', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    // 显示导出中提示
+    this.promptAction.showToast({ 
+      message: '📄 正在导出 JSON...', 
+      duration: 1000 
+    });
+    
+    const options: ExportOptions = {
+      format: ExportFormat.JSON,
+      fileName: this.project.name,
+      includeTimestamp: true
+    };
+    
+    const result = await this.exportService.exportProject(this.project, options);
+    
+    if (result.success) {
+      this.promptAction.showToast({ 
+        message: `✅ JSON 导出成功！\n文件已保存`, 
+        duration: 3000 
+      });
+      console.log('[Sidebar] JSON 导出成功:', result.filePath);
+    } else {
+      this.promptAction.showToast({ 
+        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        duration: 3000 
+      });
+      console.error('[Sidebar] JSON 导出失败:', result.error);
+    }
+  }
+  
+  /**
+   * 导出为图片格式
+   * 将画布内容导出为 PNG/JPG 图片
+   */
+  private async exportToImage() {
+    if (!this.project) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 当前没有可导出的项目', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    if (!this.exportService) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 导出服务未初始化', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    if (!this.onGetCanvasPixelMap) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 无法获取画布数据', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    // 显示导出中提示
+    this.promptAction.showToast({ 
+      message: '🖼️ 正在导出图片...', 
+      duration: 1000 
+    });
+    
+    // 获取 Canvas 截图
+    const pixelMap = await this.onGetCanvasPixelMap();
+    if (!pixelMap) {
+      this.promptAction.showToast({ 
+        message: '❌ 获取画布截图失败', 
+        duration: 3000 
+      });
+      return;
+    }
+    
+    const options: ExportOptions = {
+      format: ExportFormat.PNG,
+      fileName: `${this.project.name}_甘特图`,
+      includeTimestamp: true,
+      imageQuality: 95
+    };
+    
+    const result = await this.exportService.exportProject(this.project, options, pixelMap);
+    
+    if (result.success) {
+      this.promptAction.showToast({ 
+        message: `✅ 图片导出成功！\n文件已保存`, 
+        duration: 3000 
+      });
+      console.log('[Sidebar] 图片导出成功:', result.filePath);
+    } else {
+      this.promptAction.showToast({ 
+        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        duration: 3000 
+      });
+      console.error('[Sidebar] 图片导出失败:', result.error);
+    }
+  }
+  
+  /**
+   * 导出为 PDF 格式
+   * 将项目甘特图和任务列表导出为 PDF 文档
+   */
+  private async exportToPDF() {
+    if (!this.project) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 当前没有可导出的项目', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    // PDF 导出功能暂未实现
+    this.promptAction.showToast({ 
+      message: `📋 PDF 导出功能开发中\n请先使用图片导出功能`, 
+      duration: 3000 
+    });
+  }
+  
+  /**
+   * 导出为 Excel 格式
+   * 将任务数据导出为 Excel 电子表格，便于数据分析
+   */
+  private async exportToExcel() {
+    if (!this.project) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 当前没有可导出的项目', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    if (!this.exportService) {
+      this.promptAction.showToast({ 
+        message: '⚠️ 导出服务未初始化', 
+        duration: 2000 
+      });
+      return;
+    }
+    
+    // 显示导出中提示
+    this.promptAction.showToast({ 
+      message: '📊 正在导出 Excel...', 
+      duration: 1000 
+    });
+    
+    const options: ExportOptions = {
+      format: ExportFormat.CSV,
+      fileName: `${this.project.name}_任务列表`,
+      includeTimestamp: true
+    };
+    
+    const result = await this.exportService.exportProject(this.project, options);
+    
+    if (result.success) {
+      this.promptAction.showToast({ 
+        message: `✅ Excel(CSV) 导出成功！\n文件已保存`, 
+        duration: 3000 
+      });
+      console.log('[Sidebar] Excel 导出成功:', result.filePath);
+    } else {
+      this.promptAction.showToast({ 
+        message: `❌ 导出失败: ${result.error || '未知错误'}`, 
+        duration: 3000 
+      });
+      console.error('[Sidebar] Excel 导出失败:', result.error);
+    }
   }
   
   aboutToUpdate() {
@@ -249,6 +442,59 @@ export struct Sidebar {
     .height('100%')
   }
 
+  /**
+   * 导出菜单 Builder
+   * 使用 bindMenu 实现的现代化下拉菜单，提供多种导出格式选项
+   * 
+   * 特性：
+   * - 原生下拉菜单组件，自动处理定位和点击外部关闭
+   * - 使用图标和说明文字提升用户体验
+   * - 分组显示不同类型的导出选项
+   * - 响应式布局，自动适应屏幕尺寸
+   */
+  @Builder
+  ExportMenu() {
+    Menu() {
+      // JSON 导出选项 - 数据格式
+      MenuItem({ 
+        content: '导出为 JSON',
+        labelInfo: '项目数据文件'
+      })
+        .onChange(() => {
+          this.exportToJSON();
+        })
+      
+      // 视觉导出选项组
+        // 图片导出选项
+        MenuItem({ 
+          content: '导出为图片',
+          labelInfo: 'PNG/JPG 格式'
+        })
+          .onChange(() => {
+            this.exportToImage();
+          })
+        
+        // PDF 导出选项
+        MenuItem({ 
+          content: '导出为 PDF',
+          labelInfo: '便携文档格式'
+        })
+          .onChange(() => {
+            this.exportToPDF();
+          })
+
+      // 数据导出选项组
+        // Excel 导出选项
+        MenuItem({ 
+          content: '导出为 Excel',
+          labelInfo: '电子表格格式'
+        })
+          .onChange(() => {
+            this.exportToExcel();
+          })
+    }
+  }
+
   @Builder
   ProjectView() {
     if (this.project) {
@@ -286,7 +532,7 @@ export struct Sidebar {
             .shadow(ThemeConfig.shadowMedium)
             .border({ width: 2, color: ColorResource.successLight, radius: 26 })
             .onClick(() => { this.onAddTask() })
-            .margin({ left: 0, right: 0 })
+            .margin({ left: 12 })
           }
 
           // 保存项目按钮 - 现代化设计
@@ -302,6 +548,22 @@ export struct Sidebar {
           .shadow(ThemeConfig.shadowMedium)
           .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 26 })
           .onClick(() => { this.onSave() })
+          .margin({ left: 12 })
+          
+          // 导出按钮 - 使用 bindMenu 实现下拉菜单
+          Button({ type: ButtonType.Circle }) {
+            Text('📤')
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontColor(Color.White)
+          }
+          .width(52)
+          .height(52)
+          .backgroundColor(ColorResource.successColor)
+          .borderRadius(26)
+          .shadow(ThemeConfig.shadowMedium)
+          .border({ width: 2, color: ColorResource.successLight, radius: 26 })
+          .margin({ left: 12 })
+          .bindMenu(this.ExportMenu())
 
           // 占位拉伸
           Blank().layoutWeight(1)

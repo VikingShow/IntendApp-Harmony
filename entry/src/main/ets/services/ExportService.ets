@@ -22,7 +22,7 @@ import { Project, TaskNode } from '../model/ProjectData';
 import { FileStorageService } from './FileStorageService';
 import util from '@ohos.util';
 import { image } from '@kit.ImageKit';
-import { photoAccessHelper } from '@kit.MediaLibraryKit';
+// import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { common } from '@kit.AbilityKit';
 
 /**
@@ -466,37 +466,43 @@ export class ExportService {
    */
   private async saveFileWithPicker(fileName: string, content: string, mimeType: string): Promise<string | null> {
     try {
-      if (!canIUse('SystemCapability.FileManagement.UserFileService')) {
+      if (canIUse('SystemCapability.FileManagement.UserFileService')) {
+
+
+        // 创建文档保存选择器
+        const documentSaveOptions = new picker.DocumentSaveOptions();
+        documentSaveOptions.newFileNames = [fileName];
+
+        const documentPicker = new picker.DocumentViewPicker();
+        const uris = await documentPicker.save(documentSaveOptions);
+
+        if (!uris || uris.length === 0) {
+          console.log('[ExportService] 用户取消了文件保存');
+          return null;
+        }
+
+        const uri = uris[0];
+        console.log(`[ExportService] 保存文件到: ${uri}`);
+        if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+          // 将内容写入文件
+          const file = fs.openSync(uri, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+          const encoder = new util.TextEncoder();
+          const uint8Array = encoder.encodeInto(content);
+          const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+
+          fs.writeSync(file.fd, buffer);
+          fs.closeSync(file);
+        }else {
+          console.warn('[ExportService] 设备不支持文件选择器');
+          return null;
+        }
+
+        console.log('[ExportService] 文件写入完成');
+        return uri;
+      }else {
         console.warn('[ExportService] 设备不支持文件选择器');
         return null;
       }
-
-      // 创建文档保存选择器
-      const documentSaveOptions = new picker.DocumentSaveOptions();
-      documentSaveOptions.newFileNames = [fileName];
-      
-      const documentPicker = new picker.DocumentViewPicker();
-      const uris = await documentPicker.save(documentSaveOptions);
-
-      if (!uris || uris.length === 0) {
-        console.log('[ExportService] 用户取消了文件保存');
-        return null;
-      }
-
-      const uri = uris[0];
-      console.log(`[ExportService] 保存文件到: ${uri}`);
-
-      // 将内容写入文件
-      const file = fs.openSync(uri, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
-      const encoder = new util.TextEncoder();
-      const uint8Array = encoder.encodeInto(content);
-      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
-      
-      fs.writeSync(file.fd, buffer);
-      fs.closeSync(file);
-
-      console.log('[ExportService] 文件写入完成');
-      return uri;
     } catch (error) {
       console.error('[ExportService] 文件保存失败:', error);
       return null;
@@ -511,33 +517,39 @@ export class ExportService {
       // 方案1：保存到相册（需要权限）
       // 方案2：使用文档选择器（推荐）
       
-      if (!canIUse('SystemCapability.FileManagement.UserFileService')) {
+      if (canIUse('SystemCapability.FileManagement.UserFileService')) {
+
+
+        // 使用文档选择器保存图片
+        const documentSaveOptions = new picker.DocumentSaveOptions();
+        documentSaveOptions.newFileNames = [fileName];
+
+        const documentPicker = new picker.DocumentViewPicker();
+        const uris = await documentPicker.save(documentSaveOptions);
+
+        if (!uris || uris.length === 0) {
+          console.log('[ExportService] 用户取消了图片保存');
+          return null;
+        }
+
+        const uri = uris[0];
+        console.log(`[ExportService] 保存图片到: ${uri}`);
+
+        if(canIUse('SystemCapability.FileManagement.File.FileIO')){ // 写入图片数据
+          const file = fs.openSync(uri, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+          fs.writeSync(file.fd, imageData);
+          fs.closeSync(file);
+        }else {
+          console.warn('[ExportService] 设备不支持文件选择器');
+          return null;
+        }
+
+        console.log('[ExportService] 图片写入完成');
+        return uri;
+      }else{
         console.warn('[ExportService] 设备不支持文件选择器');
         return null;
       }
-
-      // 使用文档选择器保存图片
-      const documentSaveOptions = new picker.DocumentSaveOptions();
-      documentSaveOptions.newFileNames = [fileName];
-      
-      const documentPicker = new picker.DocumentViewPicker();
-      const uris = await documentPicker.save(documentSaveOptions);
-
-      if (!uris || uris.length === 0) {
-        console.log('[ExportService] 用户取消了图片保存');
-        return null;
-      }
-
-      const uri = uris[0];
-      console.log(`[ExportService] 保存图片到: ${uri}`);
-
-      // 写入图片数据
-      const file = fs.openSync(uri, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
-      fs.writeSync(file.fd, imageData);
-      fs.closeSync(file);
-
-      console.log('[ExportService] 图片写入完成');
-      return uri;
     } catch (error) {
       console.error('[ExportService] 图片保存失败:', error);
       return null;

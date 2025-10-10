@@ -333,21 +333,40 @@ struct Index {
     this.selectedTask = state.selectedTask;
   }
 
-  // 保存画布位置
+  // 保存画布位置和缩放到项目中
   private saveCanvasPosition() {
+    if (!this.project) return;
+    
     const canvasState = this.canvasController.getState();
-    this.appState.setCanvasOffset(canvasState.canvasOffsetX, canvasState.canvasOffsetY);
-    console.log(`[EasyFlow] 保存画布位置: x=${canvasState.canvasOffsetX}, y=${canvasState.canvasOffsetY}`);
+    // 保存到当前项目
+    this.project.canvasOffsetX = canvasState.canvasOffsetX;
+    this.project.canvasOffsetY = canvasState.canvasOffsetY;
+    this.project.zoomScale = canvasState.zoomScale;
+    
+    // 触发自动保存
+    this.projectManager.getActions().saveProject();
+    
+    console.log(`[EasyFlow] 保存画布状态到项目 ${this.project.id}: x=${canvasState.canvasOffsetX}, y=${canvasState.canvasOffsetY}, zoom=${canvasState.zoomScale}`);
   }
 
-  // 恢复画布位置
+  // 从项目恢复画布位置和缩放
   private restoreCanvasPosition() {
-    const savedOffsetX = this.appState.canvasOffsetX;
-    const savedOffsetY = this.appState.canvasOffsetY;
+    if (!this.project) return;
+    
+    // 从当前项目读取画布状态
+    const savedOffsetX = this.project.canvasOffsetX || 0;
+    const savedOffsetY = this.project.canvasOffsetY || 0;
+    const savedZoomScale = this.project.zoomScale || 1.0;
 
     // 设置到CanvasController
     this.canvasController.setCanvasOffset(savedOffsetX, savedOffsetY);
-    console.log(`[EasyFlow] 恢复画布位置: x=${savedOffsetX}, y=${savedOffsetY}`);
+    
+    // 恢复缩放比例
+    const canvasState = this.canvasController.getState();
+    canvasState.zoomScale = savedZoomScale;
+    this.zoomScale = savedZoomScale;
+    
+    console.log(`[EasyFlow] 从项目 ${this.project.id} 恢复画布状态: x=${savedOffsetX}, y=${savedOffsetY}, zoom=${savedZoomScale}`);
   }
 
   // 创建示例项目

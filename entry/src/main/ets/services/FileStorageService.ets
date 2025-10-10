@@ -68,6 +68,12 @@ interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
   tasks: StorableTaskNode[];
   /** 项目分类 */
   category: string;
+  /** 画布X轴偏移量 */
+  canvasOffsetX: number;
+  /** 画布Y轴偏移量 */
+  canvasOffsetY: number;
+  /** 画布缩放比例 */
+  zoomScale: number;
 }
 
 /**
@@ -530,7 +536,10 @@ export class FileStorageService {
             endDate: task.endDate.toISOString(),
           };
         }),
-        category: project.category || '其他'
+        category: project.category || '其他',
+        canvasOffsetX: project.canvasOffsetX || 0,
+        canvasOffsetY: project.canvasOffsetY || 0,
+        zoomScale: project.zoomScale || 1.0
       };
 
       // 3. 保存项目数据到文件
@@ -617,6 +626,10 @@ export class FileStorageService {
           };
         });
         project.category = storableProject.category || '其他';
+        // 恢复画布状态
+        project.canvasOffsetX = storableProject.canvasOffsetX || 0;
+        project.canvasOffsetY = storableProject.canvasOffsetY || 0;
+        project.zoomScale = storableProject.zoomScale || 1.0;
 
         console.log(`[FileStorageService] 项目 ${projectId} 已从文件加载`);
         return project;

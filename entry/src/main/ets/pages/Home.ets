@@ -725,9 +725,10 @@ struct HomePage {
     this.loadProjects();
     // 初始化画布控制器回调
     this.initializeCanvasCallbacks();
-    // 如果有选中的项目，重新加载其详细数据以确保显示最新内容
+    // 如果有选中的项目，强制重新加载其详细数据以确保显示最新内容（包括画布状态）
     if (this.selectedProjectId) {
-      this.onSelectProject(this.selectedProjectId);
+      console.log(`[Home] onPageShow - 强制重新加载项目 ${this.selectedProjectId}`);
+      this.onSelectProject(this.selectedProjectId, true); // 强制刷新
     }
     // 重新检测屏幕尺寸（可能发生旋转）
     this.updateScreenSize();
@@ -1033,9 +1034,9 @@ struct HomePage {
     }
   }
 
-  async onSelectProject(projectId: string) {
+  async onSelectProject(projectId: string, forceReload: boolean = false) {
     if (this.storageService) {
-      console.log(`[Home] Selecting project: ${projectId}`);
+      console.log(`[Home] Selecting project: ${projectId}, forceReload: ${forceReload}`);
       
       // 如果正在切换中，忽略新的选择请求
       if (this.isTransitioning) {
@@ -1043,8 +1044,8 @@ struct HomePage {
         return;
       }
       
-      // 如果是同一个项目，不需要重新加载
-      if (this.selectedProjectId === projectId && this.selectedProjectDetail) {
+      // 如果是同一个项目且不强制刷新，不需要重新加载
+      if (!forceReload && this.selectedProjectId === projectId && this.selectedProjectDetail) {
         console.log(`[Home] Same project already selected: ${projectId}`);
         return;
       }
@@ -2460,15 +2461,25 @@ struct HomePage {
       })
   }
 
-  // 渲染项目画布
+  // 渲染项目画布（使用项目保存的画布状态）
   private renderProjectCanvas() {
     if (!this.selectedProjectDetail) return;
     
     const renderer = this.canvasController.getRenderer();
-    const config = this.canvasController.getActions().getRenderConfig(null);
+    renderer.setDarkMode(this.isDarkMode);
     
-    // 渲染画布内容
-    renderer.render(this.selectedProjectDetail, config);
+    // 使用项目保存的画布状态进行渲染
+    renderer.render(this.selectedProjectDetail, {
+      canvasOffsetX: this.selectedProjectDetail.canvasOffsetX || 0,
+      canvasOffsetY: this.selectedProjectDetail.canvasOffsetY || 0,
+      zoomScale: this.selectedProjectDetail.zoomScale || 1.0,
+      isConnecting: false,
+      connectingFromTaskId: null,
+      selectedTaskId: null,
+      renderMode: this.canvasRenderMode
+    });
+    
+    console.log(`[Home] Canvas rendered - Zoom: ${this.selectedProjectDetail.zoomScale || 1.0}, Offset: (${this.selectedProjectDetail.canvasOffsetX || 0}, ${this.selectedProjectDetail.canvasOffsetY || 0})`);
   }
 
   // 初始化画布控制器回调（在项目加载后调用）

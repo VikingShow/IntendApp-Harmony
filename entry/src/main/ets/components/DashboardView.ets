@@ -38,6 +38,7 @@ import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import router from '@ohos.router';
 import vibrator from '@ohos.vibrator';
 import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
+import { CanvasRenderer, RenderMode } from '../core/canvas/CanvasRenderer';
 
 /**
  * 项目仪表板视图组件
@@ -82,6 +83,10 @@ export struct DashboardView {
   @State private isPhone: boolean = false;
   /** 是否为浮动卡片模式（手机端） */
   @Prop isFloatingCard: boolean = false;
+  /** 画布渲染器（使用单例避免重复创建）*/
+  private canvasRenderer: CanvasRenderer | null = null;
+  /** Canvas是否已就绪 */
+  private canvasReady: boolean = false;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
@@ -119,6 +124,7 @@ export struct DashboardView {
   // aboutToUpdate 会在 @Prop project 的数据发生变化时调用
   aboutToUpdate() {
     console.log(`[DashboardView] Project data updated: ${this.project.name} with ${this.project.tasks.length} tasks`);
+    console.log(`[DashboardView] Canvas state: offset=(${this.project.canvasOffsetX}, ${this.project.canvasOffsetY}), zoom=${this.project.zoomScale}`);
     console.log(`[DashboardView] Total duration: ${this.getTotalDuration()} days`);
     console.log(`[DashboardView] Overall completion: ${this.getOverallCompletion()}%`);
     console.log(`[DashboardView] Critical tasks: ${this.getCriticalTasksCount()}`);
@@ -128,6 +134,15 @@ export struct DashboardView {
     
     // 触发进入动画
     this.startEnterAnimation();
+    
+    // 重新渲染画布背景（仅在Canvas已就绪时）
+    if (this.canvasReady && this.showCanvasBackground && this.project.tasks.length > 0) {
+      console.log('[DashboardView] Re-rendering canvas background due to project update');
+      // 延迟一帧以确保画布准备就绪
+      setTimeout(() => {
+        this.renderCanvasBackground();
+      }, 50);
+    }
   }
 
   // 监听project变化，确保数据更新时重新计算
@@ -220,8 +235,44 @@ export struct DashboardView {
     return upcoming;
   }
 
+  // 获取Canvas上下文（单例模式）
+  private getCanvasContext(): CanvasRenderingContext2D {
+    if (!this.canvasRenderer) {
+      console.log('[DashboardView] Creating new canvas renderer');
+      this.canvasRenderer = new CanvasRenderer();
+    }
+    return this.canvasRenderer.getContext();
+  }
+
+  // 渲染画布背景（与编辑页完全一致的画布状态）
+  private renderCanvasBackground() {
+    if (!this.showCanvasBackground || this.project.tasks.length === 0 || !this.canvasReady) {
+      return;
+    }
+    
+    // 确保渲染器已初始化
+    if (!this.canvasRenderer) {
+      console.warn('[DashboardView] Canvas renderer not initialized');
+      return;
+    }
+    
+    this.canvasRenderer.setDarkMode(this.isDarkMode);
+    this.canvasRenderer.render(this.project, {
+      canvasOffsetX: this.project.canvasOffsetX || 0,
+      canvasOffsetY: this.project.canvasOffsetY || 0,
+      zoomScale: this.project.zoomScale || 1.0, // ✅ 使用相同的缩放比例（不再缩小50%）
+      isConnecting: false,
+      connectingFromTaskId: null,
+      selectedTaskId: null,
+      renderMode: this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL // 根据设备类型选择
+    });
+    
+    console.log(`[DashboardView] Canvas background rendered - Mode: ${this.isPhone ? 'COMPACT' : 'NORMAL'}, Zoom: ${this.project.zoomScale || 1.0}, Offset: (${this.project.canvasOffsetX || 0}, ${this.project.canvasOffsetY || 0})`);
+  }
+
   build() {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
+    // 注意：不再在DashboardView中渲染Canvas，使用Home页面的Canvas作为背景
     Column({ space: BreakpointSystem.getResponsiveSpacing(16, this.screenWidth) }) {
       // 1. 项目标题和进入编辑按钮 - 优化布局
       Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {

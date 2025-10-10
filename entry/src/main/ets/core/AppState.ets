@@ -49,6 +49,8 @@ export interface AppStateSnapshot {
   canvasOffsetX: number;
   /** 画布Y轴偏移量 */
   canvasOffsetY: number;
+  /** 画布缩放比例 */
+  zoomScale: number;
   /** 画布是否锁定 */
   isCanvasLocked: boolean;
 }
@@ -85,6 +87,7 @@ export class AppState {
   sidebarVisible: boolean = true;
   canvasOffsetX: number = 0;
   canvasOffsetY: number = 0;
+  zoomScale: number = 1.0;
   isCanvasLocked: boolean = false;
 
   // 私有构造函数，确保单例模式
@@ -147,6 +150,13 @@ export class AppState {
   }
 
   /**
+   * 设置画布缩放比例
+   */
+  public setZoomScale(scale: number): void {
+    this.zoomScale = scale;
+  }
+
+  /**
    * 切换画布锁定状态
    */
   public toggleCanvasLock(): void {
@@ -159,6 +169,13 @@ export class AppState {
   public resetCanvas(): void {
     this.canvasOffsetX = 0;
     this.canvasOffsetY = 0;
+  }
+
+  /**
+   * 重置画布缩放
+   */
+  public resetZoom(): void {
+    this.zoomScale = 1.0;
   }
 
   /**
@@ -180,6 +197,7 @@ export class AppState {
       sidebarVisible: this.sidebarVisible,
       canvasOffsetX: this.canvasOffsetX,
       canvasOffsetY: this.canvasOffsetY,
+      zoomScale: this.zoomScale,
       isCanvasLocked: this.isCanvasLocked
     };
   }

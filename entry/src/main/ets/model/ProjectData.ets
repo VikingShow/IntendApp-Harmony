@@ -120,6 +120,11 @@ export class Project {
   tasks: TaskNode[] = [];
   /** 依赖关系列表 */
   dependencies: Dependency[] = [];
+  
+  /** 画布状态 - 每个项目单独保存 */
+  canvasOffsetX: number = 0;
+  canvasOffsetY: number = 0;
+  zoomScale: number = 1.0;
 
   /**
    * 构造函数

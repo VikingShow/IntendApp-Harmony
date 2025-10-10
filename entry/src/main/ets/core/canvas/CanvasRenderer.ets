@@ -175,28 +175,45 @@ export class CanvasRenderer {
   }
 
   private renderDependencies(project: Project, config: RenderConfig): void {
+    const isCompactMode = config.renderMode === RenderMode.COMPACT;
+    
     project.dependencies.forEach((dep: Dependency) => {
       const fromNode = project.tasks.find((t: TaskNode) => t.id === dep.fromId);
       const toNode = project.tasks.find((t: TaskNode) => t.id === dep.toId);
       
       if (fromNode && toNode) {
         const isCriticalDep = fromNode.isCritical && toNode.isCritical;
-        const fromCenterX = fromNode.x + config.canvasOffsetX + 200 / 2;
-        const fromCenterY = fromNode.y + config.canvasOffsetY + 120 / 2;
-        const toCenterX = toNode.x + config.canvasOffsetX + 200 / 2;
-        const toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
+        
+        // 根据渲染模式计算连接点位置
+        let fromCenterX: number, fromCenterY: number;
+        let toCenterX: number, toCenterY: number;
+        
+        if (isCompactMode) {
+          // 缩略模式：连接圆圈中心
+          fromCenterX = fromNode.x + config.canvasOffsetX + 100; // 节点宽度200的一半
+          fromCenterY = fromNode.y + config.canvasOffsetY + 60;  // 节点高度120的一半
+          toCenterX = toNode.x + config.canvasOffsetX + 100;
+          toCenterY = toNode.y + config.canvasOffsetY + 60;
+        } else {
+          // 普通模式：连接矩形中心
+          fromCenterX = fromNode.x + config.canvasOffsetX + 200 / 2;
+          fromCenterY = fromNode.y + config.canvasOffsetY + 120 / 2;
+          toCenterX = toNode.x + config.canvasOffsetX + 200 / 2;
+          toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
+        }
         
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
         
-        // 连线颜色根据深色模式调整
+        // 连线颜色根据深色模式和关键路径调整
         if (isCriticalDep) {
           this.context.strokeStyle = ThemeConfig.taskCritical.toString();
+          this.context.lineWidth = isCompactMode ? 2.5 : 3; // 缩略模式下稍细
         } else {
           this.context.strokeStyle = this.isDarkMode ? '#8E8E93' : '#AEAEB2';
+          this.context.lineWidth = isCompactMode ? 1.5 : 2; // 缩略模式下稍细
         }
-        this.context.lineWidth = isCriticalDep ? 3 : 2;
         this.context.stroke();
       }
     });
@@ -314,6 +331,17 @@ export class CanvasRenderer {
         this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
         this.context.strokeStyle = '#FFFFFF';
         this.context.lineWidth = 3;
+        this.context.stroke();
+      }
+
+      // 绘制关键路径标记（小红点）
+      if (task.isCritical) {
+        this.context.beginPath();
+        this.context.arc(centerX + CIRCLE_RADIUS - 6, centerY - CIRCLE_RADIUS + 6, 6, 0, Math.PI * 2);
+        this.context.fillStyle = ThemeConfig.taskCritical.toString();
+        this.context.fill();
+        this.context.strokeStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
+        this.context.lineWidth = 2;
         this.context.stroke();
       }
 

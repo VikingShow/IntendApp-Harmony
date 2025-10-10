@@ -62,12 +62,24 @@ interface ActionMenuButton {
 }
 
 /**
+ * 任务依赖关系接口
+ * 定义任务的前置和后续依赖
+ */
+interface TaskDependencies {
+  /** 前置任务列表 */
+  predecessors: string[];
+  /** 后续任务列表 */
+  successors: string[];
+}
+
+/**
  * 节点详情对话框
  */
 @CustomDialog
 struct TaskNodeDetailDialog {
   controller: CustomDialogController;
   task: TaskNode | null = null;
+  project: Project | null = null; // 添加项目参数以获取依赖关系
   isDarkMode: boolean = false;
   onEdit: () => void = () => {};
   onDelete: () => void = () => {};
@@ -179,6 +191,11 @@ struct TaskNodeDetailDialog {
           }
           .width('100%')
 
+          // 依赖关系信息
+          if (this.project && this.task) {
+            this.DependenciesSection()
+          }
+
           // 检查清单
           if (this.task.checklist && this.task.checklist.length > 0) {
             Column({ space: 8 }) {
@@ -289,6 +306,111 @@ struct TaskNodeDetailDialog {
   private getCompletedCount(): number {
     if (!this.task || !this.task.checklist) return 0;
     return this.task.checklist.filter(item => item.isCompleted).length;
+  }
+
+  // 获取依赖关系（前置任务和后续任务）
+  private getDependencies(): TaskDependencies {
+    if (!this.project || !this.task) {
+      let emptyResult: TaskDependencies = { predecessors: [], successors: [] };
+      return emptyResult;
+    }
+
+    let predecessors: string[] = [];
+    let successors: string[] = [];
+
+    // 遍历所有依赖关系
+    this.project.dependencies.forEach(dep => {
+      if (dep.toId === this.task!.id) {
+        // 找到指向当前任务的依赖（前置任务）
+        const fromTask = this.project!.tasks.find(t => t.id === dep.fromId);
+        if (fromTask) {
+          predecessors.push(fromTask.name);
+        }
+      } else if (dep.fromId === this.task!.id) {
+        // 找到从当前任务出发的依赖（后续任务）
+        const toTask = this.project!.tasks.find(t => t.id === dep.toId);
+        if (toTask) {
+          successors.push(toTask.name);
+        }
+      }
+    });
+
+    let result: TaskDependencies = { predecessors: predecessors, successors: successors };
+    return result;
+  }
+
+  // 依赖关系显示组件
+  @Builder
+  DependenciesSection() {
+    if (this.getDependencies().predecessors.length > 0 || this.getDependencies().successors.length > 0) {
+      Column({ space: 8 }) {
+        Row({ space: 8 }) {
+          Text('🔗')
+            .fontSize(16)
+          Text('依赖关系')
+            .fontSize(14)
+            .fontColor(ColorResource.textSecondary)
+        }
+        
+        // 前置任务
+        if (this.getDependencies().predecessors.length > 0) {
+          Column({ space: 4 }) {
+            Text('前置任务:')
+              .fontSize(13)
+              .fontColor(ColorResource.textTertiary)
+              .margin({ left: 24 })
+            
+            ForEach(this.getDependencies().predecessors.slice(0, 3), (taskName: string) => {
+              Text(`• ${taskName}`)
+                .fontSize(13)
+                .fontColor(ColorResource.textPrimary)
+                .margin({ left: 32 })
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            })
+            
+            if (this.getDependencies().predecessors.length > 3) {
+              Text(`+${this.getDependencies().predecessors.length - 3} 项...`)
+                .fontSize(12)
+                .fontColor(ColorResource.textTertiary)
+                .margin({ left: 32 })
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+        
+        // 后续任务
+        if (this.getDependencies().successors.length > 0) {
+          Column({ space: 4 }) {
+            Text('后续任务:')
+              .fontSize(13)
+              .fontColor(ColorResource.textTertiary)
+              .margin({ left: 24, top: this.getDependencies().predecessors.length > 0 ? 8 : 0 })
+            
+            ForEach(this.getDependencies().successors.slice(0, 3), (taskName: string) => {
+              Text(`• ${taskName}`)
+                .fontSize(13)
+                .fontColor(ColorResource.textPrimary)
+                .margin({ left: 32 })
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            })
+            
+            if (this.getDependencies().successors.length > 3) {
+              Text(`+${this.getDependencies().successors.length - 3} 项...`)
+                .fontSize(12)
+                .fontColor(ColorResource.textTertiary)
+                .margin({ left: 32 })
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
   }
 }
 
@@ -511,6 +633,13 @@ struct HomePage {
 
     // 初始化画布控制器
     this.canvasController.setContext(this.uiContext);
+    
+    // 初始化画布控制器回调（在页面初始化时就设置）
+    this.initializeCanvasCallbacks();
+    
+    // 根据屏幕尺寸设置初始渲染模式
+    this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
+    this.canvasController.setRenderMode(this.canvasRenderMode);
 
     // 初始化主题监听器
     this.setupThemeListener();
@@ -2268,6 +2397,21 @@ struct HomePage {
           this.renderProjectCanvas();
         }
       })
+      .onTouch((event: TouchEvent) => {
+        // 处理画布触摸事件
+        if (!this.selectedProjectDetail) {
+          return;
+        }
+
+        this.canvasController.getActions().handleTouch(
+          event,
+          this.selectedProjectDetail,
+          null // Home页面不需要选中任务高亮
+        );
+        
+        // 重新渲染画布
+        this.renderProjectCanvas();
+      })
   }
 
   // 渲染项目画布
@@ -2295,18 +2439,72 @@ struct HomePage {
       (fromId: string, toId: string) => {
         console.log('[Home] Dependency create:', fromId, '->', toId);
       },
-      // onTaskMove
+      // onTaskMove（拖拽结束时保存位置）
       (taskId: string, x: number, y: number) => {
-        console.log('[Home] Task moved:', taskId, x, y);
+        console.log('[Home] Task move complete:', taskId, x, y);
+        this.handleTaskMove(taskId, x, y);
       },
-      // onTaskMoveImmediate
-      undefined,
+      // onTaskMoveImmediate（拖拽过程中实时更新位置）
+      (taskId: string, x: number, y: number) => {
+        this.handleTaskMoveImmediate(taskId, x, y);
+      },
       // onTaskClick (用于缩略模式显示详情)
       (task: TaskNode) => {
         console.log('[Home] Task clicked in compact mode:', task.name);
         this.showTaskDetailDialog(task);
       }
     );
+  }
+
+  // 处理任务立即移动（拖拽过程中）
+  private handleTaskMoveImmediate(taskId: string, x: number, y: number) {
+    if (!this.selectedProjectDetail) return;
+    
+    // 查找并更新任务位置
+    const task = this.selectedProjectDetail.tasks.find(t => t.id === taskId);
+    if (task) {
+      task.x = x;
+      task.y = y;
+      
+      // 重新渲染画布
+      this.renderProjectCanvas();
+    }
+  }
+
+  // 处理任务移动完成（拖拽结束时保存）
+  private async handleTaskMove(taskId: string, x: number, y: number) {
+    if (!this.selectedProjectDetail || !this.storageService) return;
+    
+    // 查找并更新任务位置
+    const task = this.selectedProjectDetail.tasks.find(t => t.id === taskId);
+    if (task) {
+      task.x = x;
+      task.y = y;
+      
+      // 更新项目时间戳
+      this.selectedProjectDetail.lastModified = Date.now();
+      
+      // 保存到存储
+      try {
+        await this.storageService.saveProject(this.selectedProjectDetail);
+        console.log('[Home] Task position saved:', taskId, x, y);
+        
+        // 显示成功提示
+        this.promptAction.showToast({
+          message: '位置已保存',
+          duration: 1500
+        });
+      } catch (error) {
+        console.error('[Home] Failed to save task position:', error);
+        this.promptAction.showToast({
+          message: '保存失败，请重试',
+          duration: 2000
+        });
+      }
+      
+      // 重新渲染画布
+      this.renderProjectCanvas();
+    }
   }
 
   // 计算项目总任务数
@@ -2425,6 +2623,7 @@ struct HomePage {
     this.taskDetailDialogController = new CustomDialogController({
       builder: TaskNodeDetailDialog({
         task: this.selectedTaskForDetail,
+        project: this.selectedProjectDetail, // 传递项目数据以显示依赖关系
         isDarkMode: this.isDarkMode,
         onEdit: () => {
           this.handleEditTask(task);
@@ -2876,6 +3075,7 @@ struct HomePage {
             })
           })
         }
+        .height('100%')
         .width('100%')
         .layoutWeight(1)
         .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingS })
@@ -2960,6 +3160,21 @@ struct HomePage {
             .height('100%')
             .backgroundColor(Color.Transparent)
             .borderRadius(ThemeConfig.radiusXLarge)
+            .onTouch((event: TouchEvent) => {
+              // 处理画布触摸事件（缩略模式下点击节点显示详情）
+              if (!this.selectedProjectDetail) {
+                return;
+              }
+
+              this.canvasController.getActions().handleTouch(
+                event,
+                this.selectedProjectDetail,
+                null
+              );
+              
+              // 重新渲染画布
+              this.renderProjectCanvas();
+            })
         }
         
         // 半透明遮罩层（降低画布对比度，让Dashboard内容更清晰）
@@ -2969,6 +3184,7 @@ struct HomePage {
           .backgroundColor(this.isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.4)')
           .backdropBlur(40)
           .borderRadius(ThemeConfig.radiusXLarge)
+          .hitTestBehavior(HitTestMode.Transparent) // 允许触摸事件穿透到画布
         
         // Dashboard内容层
         Column() {
@@ -3057,9 +3273,11 @@ struct HomePage {
           .layoutWeight(1)
           .scrollBar(BarState.Auto)
           .backgroundColor(Color.Transparent)
+          .hitTestBehavior(HitTestMode.Default) // 滚动区域正常处理触摸事件
         }
         .width('100%')
         .height('100%')
+        .hitTestBehavior(HitTestMode.Default) // Dashboard内容层正常处理触摸事件
       }
       .width('90%')
       .height('75%')

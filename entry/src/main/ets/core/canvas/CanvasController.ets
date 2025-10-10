@@ -134,6 +134,10 @@ export class CanvasController {
     renderMode: RenderMode.NORMAL
   };
 
+  // 追踪触摸开始的位置（用于区分点击和拖拽）
+  private touchStartX: number = 0;
+  private touchStartY: number = 0;
+
   private onTaskSelect: ((task: TaskNode | null) => void) | null = null;
   private onDependencyCreate: ((fromId: string, toId: string) => void) | null = null;
   private onTaskMove: ((taskId: string, x: number, y: number) => void) | null = null;
@@ -276,6 +280,10 @@ export class CanvasController {
   }
 
   private handleTouchDown(touchX: number, touchY: number, hitNode: TaskNode | null): void {
+    // 记录触摸开始位置（用于区分点击和拖拽）
+    this.touchStartX = touchX;
+    this.touchStartY = touchY;
+    
     if (this.state.isConnecting && this.state.connectingFromTaskId) {
       this.handleConnectingTouchDown(hitNode);
       return;
@@ -284,21 +292,15 @@ export class CanvasController {
     if (hitNode) {
       this.state.selectedTask = hitNode;
       
-      // 缩略模式下，点击节点不拖拽，仅触发点击事件
-      if (this.state.renderMode === RenderMode.COMPACT) {
-        this.state.isDraggingNode = false;
-        this.state.isDraggingCanvas = false;
-      } else {
-        // 普通模式下，可以拖拽节点
-        this.state.isDraggingNode = true;
-        this.state.isDraggingCanvas = false;
-        this.state.dragOffsetX = touchX - (hitNode.x + this.state.canvasOffsetX);
-        this.state.dragOffsetY = touchY - (hitNode.y + this.state.canvasOffsetY);
-        
-        // 记录拖拽开始时的位置（用于撤销/重做）
-        this.state.dragStartX = hitNode.x;
-        this.state.dragStartY = hitNode.y;
-      }
+      // 所有模式下都启用节点拖拽
+      this.state.isDraggingNode = true;
+      this.state.isDraggingCanvas = false;
+      this.state.dragOffsetX = touchX - (hitNode.x + this.state.canvasOffsetX);
+      this.state.dragOffsetY = touchY - (hitNode.y + this.state.canvasOffsetY);
+      
+      // 记录拖拽开始时的位置（用于撤销/重做）
+      this.state.dragStartX = hitNode.x;
+      this.state.dragStartY = hitNode.y;
       
       if (this.onTaskSelect) {
         this.onTaskSelect(hitNode);
@@ -355,23 +357,25 @@ export class CanvasController {
   }
 
   private handleTouchUp(): void {
-    // 缩略模式下，如果点击了节点（没有拖拽），触发节点点击事件
-    if (this.state.renderMode === RenderMode.COMPACT && 
-        this.state.selectedTask && 
-        !this.state.isDraggingNode && 
-        !this.state.isDraggingCanvas) {
-      if (this.onTaskClick) {
-        this.onTaskClick(this.state.selectedTask);
-      }
-    }
-    
     // 如果正在拖拽节点，在抬起时创建命令（记录整个拖拽过程）
     if (this.state.isDraggingNode && this.state.selectedTask) {
       const finalX: number = this.state.selectedTask.x;
       const finalY: number = this.state.selectedTask.y;
       
-      // 只有当位置真的改变了才创建命令
-      if (finalX !== this.state.dragStartX || finalY !== this.state.dragStartY) {
+      // 计算移动距离（判断是点击还是拖拽）
+      const moveDistanceX = Math.abs(finalX - this.state.dragStartX);
+      const moveDistanceY = Math.abs(finalY - this.state.dragStartY);
+      const CLICK_THRESHOLD = 5; // 移动距离小于5像素认为是点击
+      
+      const isClick = (moveDistanceX < CLICK_THRESHOLD && moveDistanceY < CLICK_THRESHOLD);
+      
+      // 缩略模式下，如果是点击（移动距离很小），触发节点点击事件
+      if (this.state.renderMode === RenderMode.COMPACT && isClick) {
+        if (this.onTaskClick) {
+          this.onTaskClick(this.state.selectedTask);
+        }
+      } else if (!isClick) {
+        // 如果是拖拽（位置真的改变了），创建命令
         if (this.onTaskMove) {
           // 现在通过 ProjectManager 来创建命令
           // ProjectManager 会从初始位置创建命令

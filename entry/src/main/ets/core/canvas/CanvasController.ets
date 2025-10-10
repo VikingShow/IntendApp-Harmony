@@ -307,25 +307,23 @@ export class CanvasController {
           let newScale = this.state.zoomScale * scaleFactor;
           newScale = Math.max(this.MIN_ZOOM, Math.min(newScale, this.MAX_ZOOM));
           
+          // 如果缩放比例没有实际变化（达到边界），跳过计算
+          if (Math.abs(newScale - this.state.zoomScale) < 0.001) {
+            break;
+          }
+          
           // 计算捏合中心点（屏幕坐标）
           const centerX = (touch1X + touch2X) / 2;
           const centerY = (touch1Y + touch2Y) / 2;
           
-          // 以捏合中心为基准进行缩放
-          // 计算中心点在画布上的位置（缩放前）
-          const canvasCenterXBefore = (centerX / this.state.zoomScale) - this.state.canvasOffsetX;
-          const canvasCenterYBefore = (centerY / this.state.zoomScale) - this.state.canvasOffsetY;
+          // 优化的缩放中心算法
+          // 公式：newOffset = centerScreen / newScale - (centerScreen / oldScale - oldOffset)
+          const oldScale = this.state.zoomScale;
+          this.state.canvasOffsetX = centerX / newScale - (centerX / oldScale - this.state.canvasOffsetX);
+          this.state.canvasOffsetY = centerY / newScale - (centerY / oldScale - this.state.canvasOffsetY);
           
           // 应用新的缩放比例
           this.state.zoomScale = newScale;
-          
-          // 计算中心点在画布上的位置（缩放后）
-          const canvasCenterXAfter = (centerX / this.state.zoomScale) - this.state.canvasOffsetX;
-          const canvasCenterYAfter = (centerY / this.state.zoomScale) - this.state.canvasOffsetY;
-          
-          // 调整偏移量，使缩放中心保持不变
-          this.state.canvasOffsetX += (canvasCenterXAfter - canvasCenterXBefore);
-          this.state.canvasOffsetY += (canvasCenterYAfter - canvasCenterYBefore);
           
           // 更新上次距离
           this.lastPinchDistance = distance;

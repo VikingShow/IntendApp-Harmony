@@ -151,6 +151,11 @@ export class CanvasController {
   // 追踪触摸开始的位置（用于区分点击和拖拽）
   private touchStartX: number = 0;
   private touchStartY: number = 0;
+  
+  // 双指缩放相关状态
+  private isPinching: boolean = false;
+  private lastPinchDistance: number = 0;
+  private pinchStartScale: number = 1.0;
 
   private onTaskSelect: ((task: TaskNode | null) => void) | null = null;
   private onDependencyCreate: ((fromId: string, toId: string) => void) | null = null;
@@ -221,34 +226,128 @@ export class CanvasController {
   private handleTouch(event: TouchEvent, project: Project, selectedTaskId: string | null, touchOffsetX: number = 0): void {
     if (this.state.isCanvasLocked) return;
 
-    // touchOffsetX 用于处理左侧按钮栏等偏移（编辑页面需要，Home页面不需要）
-    const screenTouchX = event.touches[0].x - touchOffsetX;
-    const screenTouchY = event.touches[0].y;
+    const touchCount = event.touches.length;
     
-    // 将屏幕坐标转换为画布坐标（考虑缩放）
-    const realTouchX = screenTouchX / this.state.zoomScale;
-    const realTouchY = screenTouchY / this.state.zoomScale;
-
-    let hitNode: TaskNode | null = null;
-    
-    // 根据渲染模式进行不同的命中检测
-    if (this.state.renderMode === RenderMode.COMPACT) {
-      hitNode = this.hitTestCompact(realTouchX, realTouchY, project);
-    } else {
-      hitNode = this.hitTestNormal(realTouchX, realTouchY, project);
+    // 双指操作 - 缩放
+    if (touchCount === 2) {
+      this.handlePinchGesture(event, touchOffsetX);
+      return;
     }
+    
+    // 单指操作 - 拖拽
+    if (touchCount === 1) {
+      // 如果之前在进行双指操作，重置状态
+      if (this.isPinching) {
+        this.isPinching = false;
+        this.lastPinchDistance = 0;
+        return;
+      }
+      
+      // touchOffsetX 用于处理左侧按钮栏等偏移（编辑页面需要，Home页面不需要）
+      const screenTouchX = event.touches[0].x - touchOffsetX;
+      const screenTouchY = event.touches[0].y;
+      
+      // 将屏幕坐标转换为画布坐标（考虑缩放）
+      const realTouchX = screenTouchX / this.state.zoomScale;
+      const realTouchY = screenTouchY / this.state.zoomScale;
 
+      let hitNode: TaskNode | null = null;
+      
+      // 根据渲染模式进行不同的命中检测
+      if (this.state.renderMode === RenderMode.COMPACT) {
+        hitNode = this.hitTestCompact(realTouchX, realTouchY, project);
+      } else {
+        hitNode = this.hitTestNormal(realTouchX, realTouchY, project);
+      }
+
+      switch (event.type) {
+        case TouchType.Down:
+          this.handleTouchDown(realTouchX, realTouchY, hitNode);
+          break;
+        case TouchType.Move:
+          this.handleTouchMove(realTouchX, realTouchY);
+          break;
+        case TouchType.Up:
+          this.handleTouchUp(realTouchX, realTouchY);
+          break;
+      }
+    }
+  }
+  
+  /**
+   * 处理双指捏合缩放手势
+   */
+  private handlePinchGesture(event: TouchEvent, touchOffsetX: number): void {
+    const touch1X = event.touches[0].x - touchOffsetX;
+    const touch1Y = event.touches[0].y;
+    const touch2X = event.touches[1].x - touchOffsetX;
+    const touch2Y = event.touches[1].y;
+    
+    // 计算两个触摸点之间的距离
+    const distance = this.calculateDistance(touch1X, touch1Y, touch2X, touch2Y);
+    
     switch (event.type) {
       case TouchType.Down:
-        this.handleTouchDown(realTouchX, realTouchY, hitNode);
+        // 开始双指操作
+        this.isPinching = true;
+        this.lastPinchDistance = distance;
+        this.pinchStartScale = this.state.zoomScale;
+        
+        // 取消任何正在进行的单指操作
+        this.state.isDraggingCanvas = false;
+        this.state.isDraggingNode = false;
         break;
+        
       case TouchType.Move:
-        this.handleTouchMove(realTouchX, realTouchY);
+        if (this.isPinching && this.lastPinchDistance > 0) {
+          // 计算缩放比例变化
+          const scaleFactor = distance / this.lastPinchDistance;
+          
+          // 计算新的缩放比例
+          let newScale = this.state.zoomScale * scaleFactor;
+          newScale = Math.max(this.MIN_ZOOM, Math.min(newScale, this.MAX_ZOOM));
+          
+          // 计算捏合中心点（屏幕坐标）
+          const centerX = (touch1X + touch2X) / 2;
+          const centerY = (touch1Y + touch2Y) / 2;
+          
+          // 以捏合中心为基准进行缩放
+          // 计算中心点在画布上的位置（缩放前）
+          const canvasCenterXBefore = (centerX / this.state.zoomScale) - this.state.canvasOffsetX;
+          const canvasCenterYBefore = (centerY / this.state.zoomScale) - this.state.canvasOffsetY;
+          
+          // 应用新的缩放比例
+          this.state.zoomScale = newScale;
+          
+          // 计算中心点在画布上的位置（缩放后）
+          const canvasCenterXAfter = (centerX / this.state.zoomScale) - this.state.canvasOffsetX;
+          const canvasCenterYAfter = (centerY / this.state.zoomScale) - this.state.canvasOffsetY;
+          
+          // 调整偏移量，使缩放中心保持不变
+          this.state.canvasOffsetX += (canvasCenterXAfter - canvasCenterXBefore);
+          this.state.canvasOffsetY += (canvasCenterYAfter - canvasCenterYBefore);
+          
+          // 更新上次距离
+          this.lastPinchDistance = distance;
+        }
         break;
+        
       case TouchType.Up:
-        this.handleTouchUp(realTouchX, realTouchY);
+      case TouchType.Cancel:
+        // 结束双指操作
+        this.isPinching = false;
+        this.lastPinchDistance = 0;
         break;
     }
+  }
+  
+  /**
+   * 计算两点之间的距离
+   */
+  private calculateDistance(x1: number, y1: number, x2: number, y2: number): number {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   /**

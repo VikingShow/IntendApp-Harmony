@@ -691,6 +691,10 @@ struct Index {
               this.selectedTask?.id || null,
               0  // 编辑页面不需要X轴偏移
             );
+            
+            // 更新缩放比例显示（双指缩放时也会更新）
+            this.zoomScale = this.canvasController.getState().zoomScale;
+            
             this.drawGraph(); // 重新绘制图形（包含网格）
           })
 

@@ -38,10 +38,17 @@ export class PerformanceService {
   private static instance: PerformanceService;
   private metrics: PerformanceMetric[] = [];
   private userActions: UserAction[] = [];
-  private maxMetricsCount: number = 1000;
-  private maxActionsCount: number = 500;
+  private maxMetricsCount: number = 500; // 优化：减少最大指标数
+  private maxActionsCount: number = 200; // 优化：减少最大行为数
+  
+  // 性能优化：定期清理定时器
+  private cleanupTimer: number = -1;
+  private readonly CLEANUP_INTERVAL: number = 60000; // 1分钟清理一次
 
-  private constructor() {}
+  private constructor() {
+    // 启动定期清理
+    this.startAutoCleanup();
+  }
 
   /**
    * 获取单例实例
@@ -54,7 +61,32 @@ export class PerformanceService {
   }
 
   /**
-   * 记录性能指标
+   * 启动自动清理
+   */
+  private startAutoCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupOldData();
+    }, this.CLEANUP_INTERVAL);
+  }
+  
+  /**
+   * 清理旧数据（保留最近的数据）
+   */
+  private cleanupOldData(): void {
+    const now = Date.now();
+    const RETENTION_TIME = 300000; // 保留5分钟内的数据
+    
+    // 清理旧指标
+    this.metrics = this.metrics.filter(metric => (now - metric.timestamp) < RETENTION_TIME);
+    
+    // 清理旧行为
+    this.userActions = this.userActions.filter(action => (now - action.timestamp) < RETENTION_TIME);
+    
+    console.log(`[Performance] Cleanup: ${this.metrics.length} metrics, ${this.userActions.length} actions retained`);
+  }
+
+  /**
+   * 记录性能指标（优化版）
    * @param name 指标名称
    * @param value 指标值
    * @param unit 单位
@@ -69,16 +101,17 @@ export class PerformanceService {
 
     this.metrics.push(metric);
 
-    // 保持指标数量在合理范围内
+    // 保持指标数量在合理范围内（优化：更激进的清理策略）
     if (this.metrics.length > this.maxMetricsCount) {
-      this.metrics = this.metrics.slice(-this.maxMetricsCount / 2);
+      this.metrics = this.metrics.slice(-Math.floor(this.maxMetricsCount * 0.6));
     }
 
-    console.log(`[Performance] ${name}: ${value}${unit}`);
+    // 优化：简化日志输出（生产环境自动优化）
+    // console.log(`[Performance] ${name}: ${value}${unit}`);
   }
 
   /**
-   * 记录用户行为
+   * 记录用户行为（优化版）
    * @param action 行为名称
    * @param context 上下文
    * @param data 附加数据
@@ -93,12 +126,13 @@ export class PerformanceService {
 
     this.userActions.push(userAction);
 
-    // 保持行为记录数量在合理范围内
+    // 保持行为记录数量在合理范围内（优化：更激进的清理策略）
     if (this.userActions.length > this.maxActionsCount) {
-      this.userActions = this.userActions.slice(-this.maxActionsCount / 2);
+      this.userActions = this.userActions.slice(-Math.floor(this.maxActionsCount * 0.6));
     }
 
-    console.log(`[UserAction] ${action} in ${context}`, data);
+    // 优化：简化日志输出（生产环境自动优化）
+    // console.log(`[UserAction] ${action} in ${context}`, data);
   }
 
   /**
@@ -226,6 +260,17 @@ export class PerformanceService {
   public clear(): void {
     this.metrics = [];
     this.userActions = [];
+  }
+  
+  /**
+   * 销毁实例（清理资源）
+   */
+  public destroy(): void {
+    if (this.cleanupTimer !== -1) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = -1;
+    }
+    this.clear();
   }
 
   /**

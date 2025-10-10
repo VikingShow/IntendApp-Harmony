@@ -49,6 +49,7 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { AppState } from '../core/AppState';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
+import { PerformanceService } from '../services/PerformanceService';
 
 /**
  * 路由参数接口
@@ -92,6 +93,7 @@ struct Index {
   private appState: AppState = AppState.getInstance();
   private configCallbackId: number = -1;
   @State isDarkMode: boolean = false;
+  private performanceService: PerformanceService = PerformanceService.getInstance();
   
   // 响应式布局相关状态
   @State screenWidth: number = 0;
@@ -106,6 +108,8 @@ struct Index {
   // 渲染节流相关
   private isRendering: boolean = false;
   private pendingRender: boolean = false;
+  private lastRenderTime: number = 0;
+  private readonly RENDER_THROTTLE_MS: number = 16; // 约60fps
   
   // 滑块拖动相关
   private sliderDragging: boolean = false;
@@ -113,6 +117,7 @@ struct Index {
   
   // 防抖保存定时器
   private saveTimer: number = -1;
+  private readonly SAVE_DEBOUNCE_MS: number = 800; // 增加到800ms，减少保存频率
   
   // 缩放控制UI状态
   @State zoomControlExpanded: boolean = false; // 是否展开
@@ -217,6 +222,14 @@ struct Index {
     
     // 页面离开时立即保存画布位置
     this.saveCanvasPosition();
+    
+    // 性能监控：输出统计信息
+    const stats = this.performanceService.getPerformanceStats();
+    console.log('[Performance] 页面性能统计:', {
+      总指标数: stats.totalMetrics,
+      总行为数: stats.totalActions,
+      平均指标: stats.averageMetrics
+    });
 
     // 取消主题监听
     if (this.configCallbackId !== -1) {
@@ -381,7 +394,7 @@ struct Index {
     console.log(`[EasyFlow] 保存画布状态到项目 ${this.project.id}: x=${canvasState.canvasOffsetX}, y=${canvasState.canvasOffsetY}, zoom=${canvasState.zoomScale}`);
   }
   
-  // 防抖保存画布状态（用于连续操作如拖动）
+  // 防抖保存画布状态（用于连续操作如拖动）- 优化版
   private debouncedSaveCanvasPosition() {
     // 清除之前的定时器
     if (this.saveTimer !== -1) {
@@ -396,11 +409,11 @@ struct Index {
       this.project.zoomScale = canvasState.zoomScale;
     }
     
-    // 延迟500ms后保存到文件
+    // 延迟保存到文件（优化：增加延迟时间，减少I/O频率）
     this.saveTimer = setTimeout(() => {
       this.saveCanvasPosition();
       this.saveTimer = -1;
-    }, 500);
+    }, this.SAVE_DEBOUNCE_MS);
   }
 
   // 从项目恢复画布位置和缩放
@@ -502,14 +515,19 @@ struct Index {
     this.updateStateFromManager();
   }
 
-  // 渲染画布（添加节流优化）
+  // 渲染画布（增强节流优化 + 性能监控）
   private drawGraph(): void {
-    if (this.isRendering) {
+    const now = Date.now();
+    
+    // 节流检查：如果距离上次渲染时间太短，延迟处理
+    if (this.isRendering || (now - this.lastRenderTime < this.RENDER_THROTTLE_MS)) {
       this.pendingRender = true;
       return;
     }
     
     this.isRendering = true;
+    this.lastRenderTime = now;
+    const startTime = Date.now();
     
     const renderConfig = this.canvasController.getActions().getRenderConfig(
       this.selectedTask?.id || null
@@ -519,6 +537,10 @@ struct Index {
       this.canvasController.getRenderer().render(this.project, renderConfig);
       // 更新缩放比例显示
       this.zoomScale = this.canvasController.getState().zoomScale;
+      
+      // 性能监控：记录渲染时间
+      const renderTime = Date.now() - startTime;
+      this.performanceService.recordMetric('canvas_render', renderTime, 'ms');
     }
     
     // 使用微任务队列，确保渲染完成后再允许下一次渲染
@@ -526,7 +548,10 @@ struct Index {
       this.isRendering = false;
       if (this.pendingRender) {
         this.pendingRender = false;
-        this.drawGraph();
+        // 延迟执行下一次渲染，避免过于频繁
+        setTimeout(() => {
+          this.drawGraph();
+        }, this.RENDER_THROTTLE_MS);
       }
     });
   }

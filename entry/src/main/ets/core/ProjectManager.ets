@@ -48,6 +48,7 @@ import { DeleteTaskCommand } from './commands/DeleteTaskCommand';
 import { AddDependencyCommand } from './commands/AddDependencyCommand';
 import { DeleteDependencyCommand } from './commands/DeleteDependencyCommand';
 import { UpdateTaskCommand } from './commands/UpdateTaskCommand';
+import { PerformanceService } from '../services/PerformanceService';
 
 /**
  * 项目状态接口
@@ -123,6 +124,18 @@ export class ProjectManager {
   private dragStartPositions: Map<string, GeneratedTypeLiteralInterface_1> = new Map();
 
   private uiContext: UIContext | null = null;
+  
+  // 性能优化：批量更新机制
+  private batchUpdateTimer: number | null = null;
+  private readonly BATCH_UPDATE_DELAY: number = 50; // 50ms批量更新延迟
+  private pendingUpdates: Set<string> = new Set(); // 待更新的任务ID
+  
+  // 性能优化：保存节流
+  private lastSaveTime: number = 0;
+  private readonly SAVE_THROTTLE_MS: number = 1000; // 最快1秒保存一次
+  
+  // 性能监控
+  private performanceService: PerformanceService = PerformanceService.getInstance();
 
   public setContext(ctx: UIContext) {
     this.uiContext = ctx;
@@ -196,6 +209,7 @@ export class ProjectManager {
 
     this.appState.setLoading(true);
     this.appState.clearError();
+    const startTime = Date.now();
 
     try {
       const storageService = this.serviceContainer.get<StorageService>('storageService');
@@ -206,6 +220,16 @@ export class ProjectManager {
         this.appState.setSelectedTask(null);
         this.calculateCriticalPath();
         this.eventBus.emit(Events.PROJECT_LOADED, project);
+        
+        // 性能监控：记录加载时间
+        const loadTime = Date.now() - startTime;
+        this.performanceService.recordMetric('project_load', loadTime, 'ms');
+        const actionData: Record<string, string | number | boolean> = {
+          'projectId': projectId,
+          'taskCount': project.tasks.length
+        };
+        this.performanceService.recordUserAction('load_project', 'ProjectManager', actionData);
+        
         if(this.uiContext){
           const promptAction = this.uiContext.getPromptAction()
           promptAction.showToast({ message: `项目 "${project.name}" 已加载` });
@@ -261,16 +285,39 @@ export class ProjectManager {
       this.errorHandler.handleBusinessError('服务容器未初始化', 'ProjectManager.saveProject');
       return;
     }
+    
+    // 性能优化：节流保存，避免过于频繁
+    const now = Date.now();
+    if (now - this.lastSaveTime < this.SAVE_THROTTLE_MS) {
+      // 如果距离上次保存时间太短，延迟保存
+      if (this.autoSaveTimer !== null) {
+        clearTimeout(this.autoSaveTimer);
+      }
+      this.autoSaveTimer = setTimeout(() => {
+        this.saveProject();
+        this.autoSaveTimer = null;
+      }, this.SAVE_THROTTLE_MS - (now - this.lastSaveTime));
+      return;
+    }
 
     try {
+      this.lastSaveTime = now;
+      const saveStartTime = Date.now();
+      
       this.appState.project.lastModified = Date.now();
       const storageService = this.serviceContainer.get<StorageService>('storageService');
       await storageService.saveProject(this.appState.project);
       this.eventBus.emit(Events.PROJECT_SAVED, this.appState.project);
-      if(this.uiContext){
-        const promptAction = this.uiContext.getPromptAction()
-        promptAction.showToast({ message: `项目 "${this.appState.project.name}" 已保存` });
-      }
+      
+      // 性能监控：记录保存时间
+      const saveTime = Date.now() - saveStartTime;
+      this.performanceService.recordMetric('project_save', saveTime, 'ms');
+      
+      // 优化：减少Toast提示频率，避免打断用户
+      // if(this.uiContext){
+      //   const promptAction = this.uiContext.getPromptAction()
+      //   promptAction.showToast({ message: `项目 "${this.appState.project.name}" 已保存` });
+      // }
     } catch (error) {
       this.errorHandler.handleStorageError(error as Error, 'ProjectManager.saveProject');
     }

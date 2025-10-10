@@ -110,6 +110,11 @@ struct Index {
   
   // 防抖保存定时器
   private saveTimer: number = -1;
+  
+  // 缩放控制UI状态
+  @State zoomControlExpanded: boolean = false; // 是否展开
+  @State zoomControlOpacity: number = 0.3; // 透明度
+  private zoomControlHideTimer: number = -1; // 自动隐藏定时器
 
   async aboutToAppear() {
     // 初始化屏幕尺寸和设备类型
@@ -194,6 +199,12 @@ struct Index {
     if (this.saveTimer !== -1) {
       clearTimeout(this.saveTimer);
       this.saveTimer = -1;
+    }
+    
+    // 清理缩放控制自动隐藏定时器
+    if (this.zoomControlHideTimer !== -1) {
+      clearTimeout(this.zoomControlHideTimer);
+      this.zoomControlHideTimer = -1;
     }
     
     // 页面离开时立即保存画布位置
@@ -518,6 +529,7 @@ struct Index {
     this.zoomScale = this.canvasController.getState().zoomScale;
     this.drawGraph();
     this.debouncedSaveCanvasPosition(); // 实时保存
+    this.resetZoomControlHideTimer(); // 重置自动隐藏
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
       duration: 1000
@@ -530,6 +542,7 @@ struct Index {
     this.zoomScale = this.canvasController.getState().zoomScale;
     this.drawGraph();
     this.debouncedSaveCanvasPosition(); // 实时保存
+    this.resetZoomControlHideTimer(); // 重置自动隐藏
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
       duration: 1000
@@ -548,42 +561,59 @@ struct Index {
     });
   }
   
-  // 计算滑块手柄位置（0-200px）
+  // 计算滑块手柄位置（0-180px），100%在中间（y=90）
   private getSliderHandlePosition(): number {
-    // 将缩放比例(0.3-3.0)映射到位置(200-0)
-    // 注意：Y轴从上到下，所以需要反向映射
-    const minZoom = 0.3;
-    const maxZoom = 3.0;
-    const sliderHeight = 200;
+    // 将缩放比例映射到位置，100%在中间
+    // 0px（顶部）= 300%
+    // 90px（中间）= 100%
+    // 180px（底部）= 30%
+    const centerZoom = 1.0;  // 100%
+    const maxZoom = 3.0;     // 300%
+    const minZoom = 0.3;     // 30%
+    const centerPos = 90;    // 中间位置
+    const sliderHeight = 180;
     
-    const normalizedZoom = (this.zoomScale - minZoom) / (maxZoom - minZoom);
-    return sliderHeight - (normalizedZoom * sliderHeight);
+    if (this.zoomScale >= centerZoom) {
+      // 100% - 300%，映射到 90px - 0px
+      const ratio = (this.zoomScale - centerZoom) / (maxZoom - centerZoom);
+      return centerPos - (ratio * centerPos);
+    } else {
+      // 30% - 100%，映射到 180px - 90px
+      const ratio = (this.zoomScale - minZoom) / (centerZoom - minZoom);
+      return sliderHeight - (ratio * centerPos);
+    }
   }
   
-  // 计算滑块填充高度
+  // 计算滑块填充高度（暂时不用）
   private getSliderFillHeight(): number {
-    const minZoom = 0.3;
-    const maxZoom = 3.0;
-    const sliderHeight = 200;
-    
-    const normalizedZoom = (this.zoomScale - minZoom) / (maxZoom - minZoom);
-    return normalizedZoom * sliderHeight;
+    return 0;
   }
   
   // 处理滑块拖动
   private handleSliderDrag(offsetY: number): void {
     // 计算新位置
     let newPosition = this.lastSliderPosition + offsetY;
-    newPosition = Math.max(0, Math.min(200, newPosition));
+    newPosition = Math.max(0, Math.min(180, newPosition));
     
-    // 将位置(0-200)映射回缩放比例(3.0-0.3)
-    const minZoom = 0.3;
-    const maxZoom = 3.0;
-    const normalizedPosition = 1 - (newPosition / 200); // 反向映射
-    let newZoom = minZoom + normalizedPosition * (maxZoom - minZoom);
+    // 将位置映射回缩放比例，100%在中间
+    const centerZoom = 1.0;  // 100%
+    const maxZoom = 3.0;     // 300%
+    const minZoom = 0.3;     // 30%
+    const centerPos = 90;    // 中间位置
     
-    // 保留一位小数
-    newZoom = Math.round(newZoom * 10) / 10;
+    let newZoom: number;
+    if (newPosition <= centerPos) {
+      // 0-90px -> 300%-100%
+      const ratio = newPosition / centerPos;
+      newZoom = maxZoom - (ratio * (maxZoom - centerZoom));
+    } else {
+      // 90-180px -> 100%-30%
+      const ratio = (newPosition - centerPos) / centerPos;
+      newZoom = centerZoom - (ratio * (centerZoom - minZoom));
+    }
+    
+    // 保留两位小数
+    newZoom = Math.round(newZoom * 100) / 100;
     
     // 设置新的缩放比例
     const canvasState = this.canvasController.getState();
@@ -595,19 +625,33 @@ struct Index {
     
     // 拖动过程中使用防抖保存
     this.debouncedSaveCanvasPosition();
+    
+    // 重置自动隐藏（拖动时保持展开）
+    this.resetZoomControlHideTimer();
   }
   
   // 处理滑块点击
   private handleSliderClick(clickY: number): void {
-    // 将点击位置映射到缩放比例
-    const minZoom = 0.3;
-    const maxZoom = 3.0;
-    const normalizedPosition = 1 - (clickY / 200); // 反向映射
-    const newZoom = minZoom + normalizedPosition * (maxZoom - minZoom);
+    // 将点击位置映射到缩放比例，100%在中间
+    const centerZoom = 1.0;  // 100%
+    const maxZoom = 3.0;     // 300%
+    const minZoom = 0.3;     // 30%
+    const centerPos = 90;    // 中间位置
+    
+    let newZoom: number;
+    if (clickY <= centerPos) {
+      // 0-90px -> 300%-100%
+      const ratio = clickY / centerPos;
+      newZoom = maxZoom - (ratio * (maxZoom - centerZoom));
+    } else {
+      // 90-180px -> 100%-30%
+      const ratio = (clickY - centerPos) / centerPos;
+      newZoom = centerZoom - (ratio * (centerZoom - minZoom));
+    }
     
     // 设置新的缩放比例
     const canvasState = this.canvasController.getState();
-    canvasState.zoomScale = Math.round(newZoom * 10) / 10;
+    canvasState.zoomScale = Math.round(newZoom * 100) / 100;
     this.zoomScale = canvasState.zoomScale;
     
     // 重绘
@@ -616,10 +660,63 @@ struct Index {
     // 立即保存
     this.debouncedSaveCanvasPosition();
     
+    // 重置自动隐藏
+    this.resetZoomControlHideTimer();
+    
     this.promptAction.showToast({
       message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
       duration: 800
     });
+  }
+  
+  // 展开缩放控制
+  private showZoomControl(): void {
+    animateTo({
+      duration: 250,
+      curve: Curve.EaseOut
+    }, () => {
+      this.zoomControlExpanded = true;
+      this.zoomControlOpacity = 1.0;
+    });
+    this.resetZoomControlHideTimer();
+  }
+  
+  // 收起缩放控制
+  private hideZoomControl(): void {
+    animateTo({
+      duration: 300,
+      curve: Curve.EaseIn
+    }, () => {
+      this.zoomControlExpanded = false;
+      this.zoomControlOpacity = 0.3;
+    });
+  }
+  
+  // 重置自动隐藏定时器
+  private resetZoomControlHideTimer(): void {
+    // 清除旧定时器
+    if (this.zoomControlHideTimer !== -1) {
+      clearTimeout(this.zoomControlHideTimer);
+    }
+    
+    // 设置3秒后自动隐藏
+    this.zoomControlHideTimer = setTimeout(() => {
+      this.hideZoomControl();
+      this.zoomControlHideTimer = -1;
+    }, 3000);
+  }
+  
+  // 切换缩放控制展开状态
+  private toggleZoomControl(): void {
+    if (this.zoomControlExpanded) {
+      this.hideZoomControl();
+      if (this.zoomControlHideTimer !== -1) {
+        clearTimeout(this.zoomControlHideTimer);
+        this.zoomControlHideTimer = -1;
+      }
+    } else {
+      this.showZoomControl();
+    }
   }
 
   // 切换画布渲染模式
@@ -835,6 +932,11 @@ struct Index {
               return;
             }
 
+            // 检测双指操作（缩放），自动展开控制条
+            if (event.touches.length === 2) {
+              this.showZoomControl();
+            }
+
             // 触摸坐标相对于Canvas，无需偏移（左侧按钮和侧边栏使用position浮动定位）
             this.canvasController.getActions().handleTouch(
               event,
@@ -979,137 +1081,132 @@ struct Index {
         .justifyContent(FlexAlign.End)
         .position({ x: 0, y: 0 })
         
-        // 右侧中间 - 垂直缩放条
+        // 右侧中间 - 极简缩放控制
         Column({ space: 8 }) {
-          // 放大按钮
-          Button() {
-            Text('+')
-              .fontSize(20)
-              .fontWeight(FontWeight.Bold)
+          // 收起状态：极简图标
+          if (!this.zoomControlExpanded) {
+            Text(`${Math.round(this.zoomScale * 100)}%`)
+              .fontSize(12)
               .fontColor(ColorResource.primaryColor)
+              .fontWeight(FontWeight.Bold)
+              .padding(8)
+              .backgroundColor(ColorResource.surface)
+              .borderRadius(16)
+              .border({ width: 1, color: ColorResource.primaryColor })
+              .onClick(() => this.toggleZoomControl())
+              .opacity(this.zoomControlOpacity)
           }
-          .width(40)
-          .height(40)
-          .backgroundColor(ColorResource.surface)
-          .borderRadius(20)
-          .border({ width: 2, color: ColorResource.primaryColor })
-          .shadow(ThemeConfig.shadowMedium)
-          .onClick(() => this.handleZoomIn())
           
-          // 垂直滑块 - 连续缩放
-          Column() {
-            // 刻度线（可选）
-            Column({ space: 0 }) {
-              ForEach([300, 250, 200, 150, 100, 80, 50, 30], (value: number) => {
-                Row({ space: 4 }) {
-                  // 刻度线
-                  if (value === 100) {
-                    // 100%刻度线加粗
-                    Line()
-                      .width(8)
-                      .height(2)
-                      .backgroundColor(ColorResource.primaryColor)
-                  } else {
-                    Line()
-                      .width(6)
-                      .height(1)
-                      .backgroundColor(ColorResource.surfaceEmphasized)
-                  }
-                }
-                .width('100%')
-                .height(value === 100 ? 20 : 15)
-                .justifyContent(FlexAlign.Start)
-              })
-            }
-            .width(8)
-            .height(200)
-            .justifyContent(FlexAlign.SpaceBetween)
-            .position({ x: -12, y: 0 })
-            
-            // 滑块轨道
-            Stack({ alignContent: Alignment.Center }) {
-              // 背景轨道
-              Column()
-                .width(4)
-                .height(200)
-                .backgroundColor(ColorResource.surfaceNeutral)
-                .borderRadius(2)
-              
-              // 已选择部分（从底部到当前位置）
-              Column()
-                .width(4)
-                .height(this.getSliderFillHeight())
-                .backgroundColor(ColorResource.primaryColor)
-                .borderRadius(2)
-                .position({ x: 8, y: 200 - this.getSliderFillHeight() })
-              
-              // 滑块手柄
-              Column()
-                .width(20)
-                .height(20)
+          // 展开状态：极简面板
+          if (this.zoomControlExpanded) {
+            Column({ space: 6 }) {
+              // 放大
+              Text('+')
+                .fontSize(18)
+                .fontColor(ColorResource.primaryColor)
+                .fontWeight(FontWeight.Bold)
+                .width(32)
+                .height(32)
+                .textAlign(TextAlign.Center)
+                .borderRadius(16)
                 .backgroundColor(ColorResource.surface)
-                .borderRadius(10)
-                .border({ width: 3, color: ColorResource.primaryColor })
-                .shadow({
-                  radius: 8,
-                  color: ColorResource.shadowColorMedium,
-                  offsetX: 0,
-                  offsetY: 2
-                })
-                .position({ x: 0, y: this.getSliderHandlePosition() })
+                .border({ width: 1, color: ColorResource.primaryColor })
+                .onClick(() => this.handleZoomIn())
+          
+              // 滑块
+              Stack() {
+                // 轨道 - 居中
+                Column()
+                  .width(3)
+                  .height(180)
+                  .backgroundColor(ColorResource.surfaceNeutral)
+                  .borderRadius(1.5)
+                  .position({ x: 6.5, y: 0 })
+                
+                // 中线 - 居中并向左延伸
+                Line()
+                  .width(8)
+                  .height(1.5)
+                  .backgroundColor(ColorResource.primaryColor)
+                  .position({ x: 4, y: 90 })
+                
+                // 进度 - 居中
+                Column()
+                  .width(3)
+                  .height(Math.abs(90 - this.getSliderHandlePosition()))
+                  .backgroundColor(ColorResource.primaryColor)
+                  .borderRadius(1.5)
+                  .position({ 
+                    x: 6.5, 
+                    y: Math.min(90, this.getSliderHandlePosition())
+                  })
+                
+                // 手柄 - 居中
+                Column()
+                  .width(16)
+                  .height(16)
+                  .backgroundColor(ColorResource.surface)
+                  .borderRadius(8)
+                  .border({ width: 2, color: ColorResource.primaryColor })
+                  .scale({ 
+                    x: this.sliderDragging ? 1.1 : 1,
+                    y: this.sliderDragging ? 1.1 : 1
+                  })
+                  .position({ x: 0, y: this.getSliderHandlePosition() })
+              }
+              .width(16)
+              .height(180)
+              .gesture(
+                PanGesture()
+                  .onActionStart(() => {
+                    this.sliderDragging = true;
+                    this.lastSliderPosition = this.getSliderHandlePosition();
+                  })
+                  .onActionUpdate((event: GestureEvent) => {
+                    this.handleSliderDrag(event.offsetY);
+                  })
+                  .onActionEnd(() => {
+                    this.sliderDragging = false;
+                  })
+              )
+              .onClick((event: ClickEvent) => {
+                this.handleSliderClick(event.y);
+              })
+            
+              // 百分比
+              Text(`${Math.round(this.zoomScale * 100)}%`)
+                .fontSize(11)
+                .fontColor(ColorResource.primaryColor)
+                .fontWeight(FontWeight.Bold)
+                .padding(6)
+                .backgroundColor(ColorResource.surface)
+                .borderRadius(12)
+                .border({ width: 1, color: ColorResource.surfaceNeutral })
+            
+              // 缩小
+              Text('−')
+                .fontSize(20)
+                .fontColor(ColorResource.primaryColor)
+                .fontWeight(FontWeight.Bold)
+                .width(32)
+                .height(32)
+                .textAlign(TextAlign.Center)
+                .borderRadius(16)
+                .backgroundColor(ColorResource.surface)
+                .border({ width: 1, color: ColorResource.primaryColor })
+                .onClick(() => this.handleZoomOut())
             }
-            .width(20)
-            .height(200)
+            .width(48)
+            .height(310)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(24)
+            .padding({ top: 10, bottom: 10 })
+            .border({ width: 1, color: ColorResource.surfaceNeutral })
+            .opacity(this.zoomControlExpanded ? 1 : 0)
           }
-          .width(20)
-          .height(200)
-          .gesture(
-            // 拖动手势
-            PanGesture()
-              .onActionStart(() => {
-                this.sliderDragging = true;
-                this.lastSliderPosition = this.getSliderHandlePosition();
-              })
-              .onActionUpdate((event: GestureEvent) => {
-                this.handleSliderDrag(event.offsetY);
-              })
-              .onActionEnd(() => {
-                this.sliderDragging = false;
-              })
-          )
-          .onClick((event: ClickEvent) => {
-            // 点击轨道直接跳转
-            this.handleSliderClick(event.y);
-          })
-          
-          // 缩放比例显示
-          Text(`${Math.round(this.zoomScale * 100)}%`)
-            .fontSize(12)
-            .fontColor(ColorResource.textPrimary)
-            .fontWeight(ThemeConfig.fontWeightMedium)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .backgroundColor(ColorResource.overlayStrong)
-            .borderRadius(6)
-            .backdropBlur(ThemeConfig.backdropBlurMedium)
-            .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 6 })
-          
-          // 缩小按钮
-          Button() {
-            Text('-')
-              .fontSize(20)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(ColorResource.primaryColor)
-          }
-          .width(40)
-          .height(40)
-          .backgroundColor(ColorResource.surface)
-          .borderRadius(20)
-          .border({ width: 2, color: ColorResource.primaryColor })
-          .shadow(ThemeConfig.shadowMedium)
-          .onClick(() => this.handleZoomOut())
         }
         .position({ x: '100%', y: '50%' })
-        .translate({ x: -70, y: -175 })
+        .translate({ x: -60, y: -135 })
         .zIndex(100)
         
         // 右下角 - 渲染模式切换按钮

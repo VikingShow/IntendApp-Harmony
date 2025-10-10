@@ -2466,7 +2466,10 @@ struct HomePage {
       task.x = x;
       task.y = y;
       
-      // 重新渲染画布
+      // 更新时间戳以触发响应式更新
+      this.selectedProjectDetail.lastModified = Date.now();
+      
+      // 重新渲染画布（确保所有画布都更新）
       this.renderProjectCanvas();
     }
   }
@@ -3046,13 +3049,17 @@ struct HomePage {
               
               // 选中项目并显示Dashboard卡片
               this.onSelectProject(meta.id);
-              this.showCanvasBackground = true;
-              this.showDashboardCard = true;
               
-              // 延迟渲染画布，确保卡片已显示
+              // 等待项目数据加载完成后再显示卡片
               setTimeout(() => {
-                this.renderProjectCanvas();
-              }, 100);
+                this.showCanvasBackground = true;
+                this.showDashboardCard = true;
+                
+                // 再次延迟确保Canvas已创建
+                setTimeout(() => {
+                  this.renderProjectCanvas();
+                }, 150);
+              }, 300);
             })
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
@@ -3160,6 +3167,12 @@ struct HomePage {
             .height('100%')
             .backgroundColor(Color.Transparent)
             .borderRadius(ThemeConfig.radiusXLarge)
+            .onReady(() => {
+              // Canvas准备就绪后立即渲染
+              if (this.selectedProjectDetail) {
+                this.renderProjectCanvas();
+              }
+            })
             .onTouch((event: TouchEvent) => {
               // 处理画布触摸事件（缩略模式下点击节点显示详情）
               if (!this.selectedProjectDetail) {

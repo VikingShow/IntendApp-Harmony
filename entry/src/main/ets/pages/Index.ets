@@ -46,6 +46,7 @@ import { CommandHistory } from '../core/CommandHistory';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { AppState } from '../core/AppState';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
+import { BreakpointSystem } from '../utils/BreakpointSystem';
 
 /**
  * 路由参数接口
@@ -89,10 +90,17 @@ struct Index {
   private configCallbackId: number = -1;
   @State isDarkMode: boolean = false;
   
+  // 响应式布局相关状态
+  @State screenWidth: number = 0;
+  @State isPhone: boolean = false;
+  
   // 画布渲染模式
   @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
 
   async aboutToAppear() {
+    // 初始化屏幕尺寸和设备类型
+    this.updateScreenSize();
+    
     // 初始化权限服务
     this.permissionService = PermissionService.getInstance(this.uiContext.getHostContext() as common.UIAbilityContext);
     // 注入uiContext
@@ -133,7 +141,8 @@ struct Index {
     // 注入uiContext
     this.canvasController.setContext(this.uiContext);
     
-    // 初始化画布渲染模式
+    // 根据设备类型设置渲染模式（手机端使用缩略模式）
+    this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
     this.canvasController.setRenderMode(this.canvasRenderMode);
 
     // 初始化主题监听器
@@ -228,6 +237,32 @@ struct Index {
     }
 
     console.log(`[EasyFlow] Color mode updated: ${this.isDarkMode ? 'Dark' : 'Light'}`);
+  }
+
+  // 更新屏幕尺寸和设备类型
+  private updateScreenSize() {
+    // 使用窗口管理器获取屏幕宽度
+    const windowStage = (this.uiContext.getHostContext() as common.UIAbilityContext)?.windowStage;
+    if (windowStage) {
+      windowStage.getMainWindow().then(window => {
+        const properties = window.getWindowProperties();
+        const widthPx = properties.windowRect.width;
+        // 转换为vp
+        this.screenWidth = this.uiContext.px2vp(widthPx);
+        this.isPhone = BreakpointSystem.isPhone(this.screenWidth);
+        
+        console.log(`[Index] Screen size: ${this.screenWidth}vp, isPhone: ${this.isPhone}`);
+      }).catch((error: Error) => {
+        console.error('[Index] Failed to get window size:', error);
+        // 使用默认平板宽度
+        this.screenWidth = 840;
+        this.isPhone = false;
+      });
+    } else {
+      // 使用默认平板宽度
+      this.screenWidth = 840;
+      this.isPhone = false;
+    }
   }
 
   // 设置事件监听器
@@ -746,10 +781,10 @@ struct Index {
           Column({ space: 4 }) {
             Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
               .fontSize(20)
-            Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
-              .fontSize(11)
-              .fontColor(ColorResource.textPrimary)
-              .fontWeight(ThemeConfig.fontWeightMedium)
+            // Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
+            //   .fontSize(11)
+            //   .fontColor(ColorResource.textPrimary)
+            //   .fontWeight(ThemeConfig.fontWeightMedium)
           }
         }
         .width(65)

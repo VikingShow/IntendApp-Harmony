@@ -226,13 +226,13 @@ export struct DashboardView {
       Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
         // 项目名称单独一行，确保不被遮挡
         Text(this.project.name)
-          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
           .fontWeight(ThemeConfig.fontWeightBold)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .maxLines(2)
           .fontColor(ColorResource.surfaceDeep)
           .width('100%')
-          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)) * 1.3)
+          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)) * 1.3)
         
         // 项目ID和编辑按钮在一行（浮动卡片模式不显示编辑按钮）
         if (!this.isFloatingCard) {

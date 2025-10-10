@@ -103,6 +103,10 @@ struct Index {
   // 渲染节流相关
   private isRendering: boolean = false;
   private pendingRender: boolean = false;
+  
+  // 滑块拖动相关
+  private sliderDragging: boolean = false;
+  private lastSliderPosition: number = 0;
 
   async aboutToAppear() {
     // 初始化屏幕尺寸和设备类型
@@ -509,6 +513,74 @@ struct Index {
       duration: 1000
     });
   }
+  
+  // 计算滑块手柄位置（0-200px）
+  private getSliderHandlePosition(): number {
+    // 将缩放比例(0.3-3.0)映射到位置(200-0)
+    // 注意：Y轴从上到下，所以需要反向映射
+    const minZoom = 0.3;
+    const maxZoom = 3.0;
+    const sliderHeight = 200;
+    
+    const normalizedZoom = (this.zoomScale - minZoom) / (maxZoom - minZoom);
+    return sliderHeight - (normalizedZoom * sliderHeight);
+  }
+  
+  // 计算滑块填充高度
+  private getSliderFillHeight(): number {
+    const minZoom = 0.3;
+    const maxZoom = 3.0;
+    const sliderHeight = 200;
+    
+    const normalizedZoom = (this.zoomScale - minZoom) / (maxZoom - minZoom);
+    return normalizedZoom * sliderHeight;
+  }
+  
+  // 处理滑块拖动
+  private handleSliderDrag(offsetY: number): void {
+    // 计算新位置
+    let newPosition = this.lastSliderPosition + offsetY;
+    newPosition = Math.max(0, Math.min(200, newPosition));
+    
+    // 将位置(0-200)映射回缩放比例(3.0-0.3)
+    const minZoom = 0.3;
+    const maxZoom = 3.0;
+    const normalizedPosition = 1 - (newPosition / 200); // 反向映射
+    let newZoom = minZoom + normalizedPosition * (maxZoom - minZoom);
+    
+    // 保留一位小数
+    newZoom = Math.round(newZoom * 10) / 10;
+    
+    // 设置新的缩放比例
+    const canvasState = this.canvasController.getState();
+    canvasState.zoomScale = newZoom;
+    this.zoomScale = newZoom;
+    
+    // 实时重绘
+    this.drawGraph();
+  }
+  
+  // 处理滑块点击
+  private handleSliderClick(clickY: number): void {
+    // 将点击位置映射到缩放比例
+    const minZoom = 0.3;
+    const maxZoom = 3.0;
+    const normalizedPosition = 1 - (clickY / 200); // 反向映射
+    const newZoom = minZoom + normalizedPosition * (maxZoom - minZoom);
+    
+    // 设置新的缩放比例
+    const canvasState = this.canvasController.getState();
+    canvasState.zoomScale = Math.round(newZoom * 10) / 10;
+    this.zoomScale = canvasState.zoomScale;
+    
+    // 重绘
+    this.drawGraph();
+    
+    this.promptAction.showToast({
+      message: `缩放: ${Math.round(this.zoomScale * 100)}%`,
+      duration: 800
+    });
+  }
 
   // 切换画布渲染模式
   private toggleRenderMode(): void {
@@ -862,28 +934,115 @@ struct Index {
         .justifyContent(FlexAlign.End)
         .position({ x: 0, y: 0 })
         
-        // 左上角 - 缩放控制
+        // 右侧中间 - 垂直缩放条
         Column({ space: 8 }) {
           // 放大按钮
           Button() {
-            Text('🔍+')
-              .fontSize(16)
+            Text('+')
+              .fontSize(20)
               .fontWeight(FontWeight.Bold)
+              .fontColor(ColorResource.primaryColor)
           }
-          .width(48)
-          .height(48)
+          .width(40)
+          .height(40)
           .backgroundColor(ColorResource.surface)
-          .borderRadius(ThemeConfig.radiusMedium)
-          .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
+          .borderRadius(20)
+          .border({ width: 2, color: ColorResource.primaryColor })
           .shadow(ThemeConfig.shadowMedium)
           .onClick(() => this.handleZoomIn())
           
+          // 垂直滑块 - 连续缩放
+          Column() {
+            // 刻度线（可选）
+            Column({ space: 0 }) {
+              ForEach([300, 250, 200, 150, 100, 80, 50, 30], (value: number) => {
+                Row({ space: 4 }) {
+                  // 刻度线
+                  if (value === 100) {
+                    // 100%刻度线加粗
+                    Line()
+                      .width(8)
+                      .height(2)
+                      .backgroundColor(ColorResource.primaryColor)
+                  } else {
+                    Line()
+                      .width(6)
+                      .height(1)
+                      .backgroundColor(ColorResource.surfaceEmphasized)
+                  }
+                }
+                .width('100%')
+                .height(value === 100 ? 20 : 15)
+                .justifyContent(FlexAlign.Start)
+              })
+            }
+            .width(8)
+            .height(200)
+            .justifyContent(FlexAlign.SpaceBetween)
+            .position({ x: -12, y: 0 })
+            
+            // 滑块轨道
+            Stack({ alignContent: Alignment.Center }) {
+              // 背景轨道
+              Column()
+                .width(4)
+                .height(200)
+                .backgroundColor(ColorResource.surfaceNeutral)
+                .borderRadius(2)
+              
+              // 已选择部分（从底部到当前位置）
+              Column()
+                .width(4)
+                .height(this.getSliderFillHeight())
+                .backgroundColor(ColorResource.primaryColor)
+                .borderRadius(2)
+                .position({ x: 8, y: 200 - this.getSliderFillHeight() })
+              
+              // 滑块手柄
+              Column()
+                .width(20)
+                .height(20)
+                .backgroundColor(ColorResource.surface)
+                .borderRadius(10)
+                .border({ width: 3, color: ColorResource.primaryColor })
+                .shadow({
+                  radius: 8,
+                  color: ColorResource.shadowColorMedium,
+                  offsetX: 0,
+                  offsetY: 2
+                })
+                .position({ x: 0, y: this.getSliderHandlePosition() })
+            }
+            .width(20)
+            .height(200)
+          }
+          .width(20)
+          .height(200)
+          .gesture(
+            // 拖动手势
+            PanGesture()
+              .onActionStart(() => {
+                this.sliderDragging = true;
+                this.lastSliderPosition = this.getSliderHandlePosition();
+              })
+              .onActionUpdate((event: GestureEvent) => {
+                this.handleSliderDrag(event.offsetY);
+              })
+              .onActionEnd(() => {
+                this.sliderDragging = false;
+              })
+          )
+          .onClick((event: ClickEvent) => {
+            // 点击轨道直接跳转
+            this.handleSliderClick(event.y);
+          })
+          
           // 缩放比例显示
           Text(`${Math.round(this.zoomScale * 100)}%`)
-            .fontSize(13)
+            .fontSize(12)
             .fontColor(ColorResource.textPrimary)
             .fontWeight(ThemeConfig.fontWeightMedium)
-            .padding(6)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             .backgroundColor(ColorResource.overlayStrong)
             .borderRadius(6)
             .backdropBlur(ThemeConfig.backdropBlurMedium)
@@ -891,33 +1050,21 @@ struct Index {
           
           // 缩小按钮
           Button() {
-            Text('🔍-')
-              .fontSize(16)
+            Text('-')
+              .fontSize(20)
               .fontWeight(FontWeight.Bold)
+              .fontColor(ColorResource.primaryColor)
           }
-          .width(48)
-          .height(48)
+          .width(40)
+          .height(40)
           .backgroundColor(ColorResource.surface)
-          .borderRadius(ThemeConfig.radiusMedium)
-          .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
+          .borderRadius(20)
+          .border({ width: 2, color: ColorResource.primaryColor })
           .shadow(ThemeConfig.shadowMedium)
           .onClick(() => this.handleZoomOut())
-          
-          // 重置缩放按钮
-          Button() {
-            Text('1:1')
-              .fontSize(13)
-              .fontWeight(FontWeight.Bold)
-          }
-          .width(48)
-          .height(48)
-          .backgroundColor(ColorResource.surface)
-          .borderRadius(ThemeConfig.radiusMedium)
-          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
-          .shadow(ThemeConfig.shadowMedium)
-          .onClick(() => this.handleResetZoom())
         }
-        .position({ x: 24, y: 24 })
+        .position({ x: '100%', y: '50%' })
+        .translate({ x: -70, y: -175 })
         .zIndex(100)
         
         // 右下角 - 渲染模式切换按钮

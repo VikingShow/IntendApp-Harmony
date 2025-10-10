@@ -87,129 +87,132 @@ struct TaskNodeDetailDialog {
   build() {
     Column({ space: 0 }) {
       // 顶部标题栏
-      Row({ space: 12 }) {
+      Column({ space: 8 }) {
         Text(this.task?.name || '任务详情')
-          .fontSize(20)
+          .fontSize(17)
           .fontWeight(FontWeight.Medium)
           .fontColor(ColorResource.textPrimary)
-          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+          .width('100%')
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
         
-        // 关闭按钮
-        Button({ type: ButtonType.Circle }) {
-          Text('×')
-            .fontSize(24)
-            .fontColor(ColorResource.textSecondary)
+        // 关键路径标签（如果有）
+        if (this.task?.isCritical) {
+          Row({ space: 4 }) {
+            Circle({ width: 6, height: 6 })
+              .fill(ThemeConfig.taskCritical)
+            Text('关键路径')
+              .fontSize(13)
+              .fontColor(ThemeConfig.taskCritical)
+              .fontWeight(FontWeight.Medium)
+          }
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .backgroundColor(this.isDarkMode ? 'rgba(255, 107, 107, 0.12)' : 'rgba(255, 69, 58, 0.08)')
+          .borderRadius(10)
         }
-        .width(36)
-        .height(36)
-        .backgroundColor(ColorResource.surface)
-        .onClick(() => {
-          this.controller.close();
-        })
       }
       .width('100%')
-      .padding({ left: 20, right: 20, top: 16, bottom: 16 })
-      .borderRadius({ topLeft: 16, topRight: 16 })
-      .backgroundColor(ColorResource.surface)
+      .padding({ top: 20, left: 20, right: 20, bottom: 16 })
+      
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
 
-      // 内容区域
-      Column({ space: 16 }) {
-        if (this.task) {
-          // 关键路径标签
-          if (this.task.isCritical) {
-            Row({ space: 6 }) {
-              Circle({ width: 8, height: 8 })
-                .fill(ThemeConfig.taskCritical)
-              Text('关键路径')
-                .fontSize(14)
-                .fontColor(ThemeConfig.taskCritical)
-            }
-            .padding({ left: 4, right: 12, top: 4, bottom: 4 })
-            .backgroundColor(this.isDarkMode ? 'rgba(255, 107, 107, 0.15)' : 'rgba(255, 69, 58, 0.1)')
-            .borderRadius(12)
-          }
-
-          // 时间信息
-          Column({ space: 8 }) {
-            Row({ space: 8 }) {
-              Text('📅')
-                .fontSize(16)
-              Text('时间范围')
-                .fontSize(14)
-                .fontColor(ColorResource.textSecondary)
-            }
-            
-            Text(`${this.task.startDate.toLocaleDateString()} - ${this.task.endDate.toLocaleDateString()}`)
-              .fontSize(15)
-              .fontColor(ColorResource.textPrimary)
-              .margin({ left: 24 })
-          }
-          .width('100%')
-          .alignItems(HorizontalAlign.Start)
-
-          // 进度信息
-          Column({ space: 12 }) {
-            // 时间进度
-            Row({ space: 8 }) {
-              Text('⏱️')
-                .fontSize(16)
-              Text('时间进度')
-                .fontSize(14)
-                .fontColor(ColorResource.textSecondary)
-              
-              Text(`${this.getTimeProgress()}%`)
-                .fontSize(14)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorResource.primaryColor)
-            }
-            .width('100%')
-            
-            Progress({ value: this.getTimeProgress(), total: 100, type: ProgressType.Linear })
-              .width('100%')
-              .color(ColorResource.primaryColor)
-              .style({ strokeWidth: 6 })
-            
-            // 完成进度
-            Row({ space: 8 }) {
-              Text('✅')
-                .fontSize(16)
-              Text('完成进度')
-                .fontSize(14)
-                .fontColor(ColorResource.textSecondary)
-              
-              Text(`${this.getCompletionProgress()}%`)
-                .fontSize(14)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ThemeConfig.taskProgress)
-            }
-            .width('100%')
-            
-            Progress({ value: this.getCompletionProgress(), total: 100, type: ProgressType.Linear })
-              .width('100%')
-              .color(ThemeConfig.taskProgress)
-              .style({ strokeWidth: 6 })
-          }
-          .width('100%')
-
-          // 依赖关系信息
-          if (this.project && this.task) {
-            this.DependenciesSection()
-          }
-
-          // 检查清单
-          if (this.task.checklist && this.task.checklist.length > 0) {
-            Column({ space: 8 }) {
+      // 内容区域（可滚动）
+      Scroll() {
+        Column({ space: 20 }) {
+          if (this.task) {
+            // 时间信息
+            Column({ space: 10 }) {
               Row({ space: 8 }) {
-                Text('📋')
+                Text('📅')
                   .fontSize(16)
-                Text(`检查清单 (${this.getCompletedCount()}/${this.task.checklist.length})`)
-                  .fontSize(14)
-                  .fontColor(ColorResource.textSecondary)
+                Text('时间范围')
+                  .fontSize(15)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorResource.textPrimary)
               }
               
-              List({ space: 6 }) {
-                ForEach(this.task.checklist.slice(0, 3), (item: ChecklistItem) => {
-                  ListItem() {
+              Text(`${this.task.startDate.toLocaleDateString()} - ${this.task.endDate.toLocaleDateString()}`)
+                .fontSize(14)
+                .fontColor(ColorResource.textSecondary)
+                .margin({ left: 24 })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+
+            // 进度信息
+            Column({ space: 16 }) {
+              // 时间进度
+              Column({ space: 8 }) {
+                Row({ space: 8 }) {
+                  Text('⏱️')
+                    .fontSize(16)
+                  Text('时间进度')
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorResource.textPrimary)
+                  Blank()
+                  Text(`${this.getTimeProgress()}%`)
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorResource.primaryColor)
+                }
+                .width('100%')
+                
+                Progress({ value: this.getTimeProgress(), total: 100, type: ProgressType.Linear })
+                  .width('100%')
+                  .color(ColorResource.primaryColor)
+                  .style({ strokeWidth: 5 })
+              }
+              
+              // 完成进度
+              Column({ space: 8 }) {
+                Row({ space: 8 }) {
+                  Text('✅')
+                    .fontSize(16)
+                  Text('完成进度')
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorResource.textPrimary)
+                  Blank()
+                  Text(`${this.getCompletionProgress()}%`)
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ThemeConfig.taskProgress)
+                }
+                .width('100%')
+                
+                Progress({ value: this.getCompletionProgress(), total: 100, type: ProgressType.Linear })
+                  .width('100%')
+                  .color(ThemeConfig.taskProgress)
+                  .style({ strokeWidth: 5 })
+              }
+            }
+            .width('100%')
+
+            // 依赖关系信息
+            if (this.project && this.task) {
+              this.DependenciesSection()
+            }
+
+            // 检查清单
+            if (this.task.checklist && this.task.checklist.length > 0) {
+              Column({ space: 10 }) {
+                Row({ space: 8 }) {
+                  Text('📋')
+                    .fontSize(16)
+                  Text(`检查清单 (${this.getCompletedCount()}/${this.task.checklist.length})`)
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorResource.textPrimary)
+                }
+                
+                Column({ space: 8 }) {
+                  ForEach(this.task.checklist.slice(0, 3), (item: ChecklistItem) => {
                     Row({ space: 8 }) {
                       Text(item.isCompleted ? '☑' : '☐')
                         .fontSize(16)
@@ -220,65 +223,86 @@ struct TaskNodeDetailDialog {
                         .decoration({ type: item.isCompleted ? TextDecorationType.LineThrough : TextDecorationType.None })
                         .maxLines(1)
                         .textOverflow({ overflow: TextOverflow.Ellipsis })
+                        .layoutWeight(1)
                     }
-                  }
-                })
-                
-                if (this.task.checklist.length > 3) {
-                  ListItem() {
+                    .width('100%')
+                  })
+                  
+                  if (this.task.checklist.length > 3) {
                     Text(`+${this.task.checklist.length - 3} 项...`)
                       .fontSize(13)
                       .fontColor(ColorResource.textTertiary)
                       .margin({ left: 24 })
                   }
                 }
+                .width('100%')
               }
               .width('100%')
+              .alignItems(HorizontalAlign.Start)
             }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
           }
         }
+        .width('100%')
+        .padding({ top: 20, left: 20, right: 20, bottom: 20 })
       }
-      .width('100%')
-      .padding(20)
       .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .edgeEffect(EdgeEffect.Spring)
+      
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
 
       // 底部操作按钮
-      Row({ space: 12 }) {
-        Button('编辑任务')
-          .fontSize(16)
-          .fontColor('#FFFFFF')
-          .backgroundColor(ColorResource.primaryColor)
+      Row({ space: 0 }) {
+        Button('编辑')
           .layoutWeight(1)
-          .height(48)
-          .borderRadius(12)
+          .height(50)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(0)
           .onClick(() => {
             this.controller.close();
             this.onEdit();
           })
         
+        // 垂直分隔线
+        Divider()
+          .vertical(true)
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.3)
+          .height(50)
+        
         Button('删除')
-          .fontSize(16)
-          .fontColor(this.isDarkMode ? '#FF6B6B' : '#FF453A')
-          .backgroundColor(ColorResource.surface)
           .layoutWeight(1)
-          .height(48)
-          .borderRadius(12)
+          .height(50)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.isDarkMode ? '#FF6B6B' : '#FF453A')
+          .borderRadius(0)
           .onClick(() => {
             this.controller.close();
             this.onDelete();
           })
       }
       .width('100%')
-      .padding(20)
-      .backgroundColor(ColorResource.surface)
-      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
     }
     .width('90%')
-    .constraintSize({ maxWidth: 540 }) // 限制最大宽度，避免在平板上过宽
+    .constraintSize({ maxWidth: 360 })
     .backgroundColor(ColorResource.backgroundPage)
-    .borderRadius(16)
+    .borderRadius(14)
+    .shadow({ 
+      radius: 24, 
+      color: 'rgba(0, 0, 0, 0.12)', 
+      offsetX: 0, 
+      offsetY: 4 
+    })
   }
 
   // 计算时间进度
@@ -430,40 +454,80 @@ struct RenameProjectDialog {
   }
 
   build() {
-    Column({ space: 20 }) {
-      Text('编辑项目名称')
-        .fontSize(20)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(ColorResource.textPrimary)
+    Column({ space: 0 }) {
+      // 标题区域
+      Column({ space: 4 }) {
+        Text('编辑项目名称')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary)
+          .textAlign(TextAlign.Center)
+          .width('100%')
+      }
+      .width('100%')
+      .padding({ top: 24, left: 24, right: 24, bottom: 16 })
       
-      TextInput({ text: this.inputValue, placeholder: '请输入项目名称' })
-        .width('100%')
-        .height(48)
-        .fontSize(16)
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(8)
-        .onChange((value: string) => {
-          this.inputValue = value;
-        })
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
       
-      Row({ space: 12 }) {
-        Button('取消')
-          .layoutWeight(1)
+      // 内容区域
+      Column({ space: 8 }) {
+        TextInput({ text: this.inputValue, placeholder: '请输入项目名称' })
+          .width('100%')
           .height(44)
           .fontSize(16)
           .backgroundColor(ColorResource.surface)
-          .fontColor(ColorResource.textSecondary)
+          .borderRadius(10)
+          .padding({ left: 12, right: 12 })
+          .onChange((value: string) => {
+            this.inputValue = value;
+          })
+      }
+      .width('100%')
+      .padding({ top: 16, left: 24, right: 24, bottom: 20 })
+      
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
+      
+      // 按钮区域
+      Row({ space: 0 }) {
+        Button('取消')
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(0)
           .onClick(() => {
             this.controller.close();
           })
         
+        // 垂直分隔线
+        Divider()
+          .vertical(true)
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.3)
+          .height(48)
+        
         Button('确定')
           .layoutWeight(1)
-          .height(44)
-          .fontSize(16)
-          .backgroundColor(ColorResource.primaryColor)
-          .fontColor('#FFFFFF')
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(0)
           .enabled(this.inputValue.trim().length > 0)
+          .opacity(this.inputValue.trim().length > 0 ? 1 : 0.4)
           .onClick(() => {
             if (this.inputValue.trim().length > 0) {
               this.onConfirm(this.inputValue.trim());
@@ -472,13 +536,17 @@ struct RenameProjectDialog {
           })
       }
       .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
     }
-    .padding(24)
     .width('85%')
-    .constraintSize({ maxWidth: 480 }) // 限制最大宽度，避免在平板上过宽
+    .constraintSize({ maxWidth: 300 })
     .backgroundColor(ColorResource.backgroundPage)
-    .borderRadius(16)
+    .borderRadius(14)
+    .shadow({ 
+      radius: 24, 
+      color: 'rgba(0, 0, 0, 0.12)', 
+      offsetX: 0, 
+      offsetY: 4 
+    })
   }
 }
 

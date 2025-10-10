@@ -606,6 +606,7 @@ struct HomePage {
   // 画布背景相关状态
   private canvasController: CanvasController = new CanvasController();
   @State showCanvasBackground: boolean = false;
+  @State canvasOpacity: number = 1; // 画布透明度（用于平滑过渡）
 
   // 主题相关状态
   private configCallbackId: number = -1;
@@ -725,10 +726,10 @@ struct HomePage {
     this.loadProjects();
     // 初始化画布控制器回调
     this.initializeCanvasCallbacks();
-    // 如果有选中的项目，强制重新加载其详细数据以确保显示最新内容（包括画布状态）
+    // 如果有选中的项目，静默刷新其数据（不触发动画，避免闪烁）
     if (this.selectedProjectId) {
-      console.log(`[Home] onPageShow - 强制重新加载项目 ${this.selectedProjectId}`);
-      this.onSelectProject(this.selectedProjectId, true); // 强制刷新
+      console.log(`[Home] onPageShow - 静默刷新项目 ${this.selectedProjectId}`);
+      this.silentRefreshProject(this.selectedProjectId);
     }
     // 重新检测屏幕尺寸（可能发生旋转）
     this.updateScreenSize();
@@ -1031,6 +1032,42 @@ struct HomePage {
       this.showRetryOption();
     } finally {
       this.loadingService.setLoading('project_loading', false);
+    }
+  }
+
+  // 静默刷新项目数据（用于从编辑页返回，避免闪烁）
+  async silentRefreshProject(projectId: string) {
+    if (!this.storageService) return;
+    
+    try {
+      console.log(`[Home] Silently refreshing project: ${projectId}`);
+      
+      // 短暂降低画布透明度（准备更新）
+      this.canvasOpacity = 0.7;
+      
+      // 重新加载项目数据
+      const loadedProject = await this.storageService.getProject(projectId);
+      
+      if (loadedProject) {
+        // 静默更新项目数据（不清空，不触发动画）
+        this.selectedProjectDetail = loadedProject;
+        
+        console.log(`[Home] Project data silently updated: ${loadedProject.name}, Canvas state - Zoom: ${loadedProject.zoomScale}, Offset: (${loadedProject.canvasOffsetX}, ${loadedProject.canvasOffsetY})`);
+        
+        // 立即重新渲染画布
+        this.renderProjectCanvas();
+        
+        // 延迟50ms后恢复透明度，让渲染完成
+        setTimeout(() => {
+          this.canvasOpacity = 1;
+        }, 50);
+      } else {
+        console.error(`[Home] Project not found during silent refresh: ${projectId}`);
+        this.canvasOpacity = 1; // 恢复透明度
+      }
+    } catch (error) {
+      console.error(`[Home] Error during silent refresh:`, error);
+      this.canvasOpacity = 1; // 恢复透明度
     }
   }
 
@@ -2438,6 +2475,11 @@ struct HomePage {
       .backgroundColor(Color.Transparent)
       .position({ x: 0, y: 0 })
       .zIndex(-1) // 确保在背景层
+      .opacity(this.canvasOpacity) // 平滑过渡透明度
+      .animation({
+        duration: 150,
+        curve: Curve.EaseInOut
+      })
       .onReady(() => {
         if (this.selectedProjectDetail) {
           this.renderProjectCanvas();
@@ -3224,6 +3266,11 @@ struct HomePage {
             .height('100%')
             .backgroundColor(Color.Transparent)
             .borderRadius(ThemeConfig.radiusXLarge)
+            .opacity(this.canvasOpacity) // 平滑过渡透明度
+            .animation({
+              duration: 150,
+              curve: Curve.EaseInOut
+            })
             .onReady(() => {
               // Canvas准备就绪后立即渲染
               if (this.selectedProjectDetail) {

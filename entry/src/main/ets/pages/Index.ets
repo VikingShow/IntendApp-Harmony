@@ -802,7 +802,7 @@ struct Index {
         })
         .shadow({
           radius: 12,
-          color: this.isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)',
+          color: this.isDarkMode ? ColorResource.shadowColorMedium : ColorResource.shadowColorFaint,
           offsetX: 0,
           offsetY: 4
         })

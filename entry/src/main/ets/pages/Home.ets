@@ -37,6 +37,7 @@ import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import common from '@ohos.app.ability.common';
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { DashboardView } from '../components/DashboardView';
@@ -108,7 +109,7 @@ struct TaskNodeDetailDialog {
               .fontWeight(FontWeight.Medium)
           }
           .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .backgroundColor(this.isDarkMode ? 'rgba(255, 107, 107, 0.12)' : 'rgba(255, 69, 58, 0.08)')
+          .backgroundColor(ResponsiveColorConfig.getCriticalPathBadgeColor(this.isDarkMode))
           .borderRadius(10)
         }
       }
@@ -284,7 +285,7 @@ struct TaskNodeDetailDialog {
           .fontSize(17)
           .type(ButtonType.Normal)
           .backgroundColor(Color.Transparent)
-          .fontColor(this.isDarkMode ? '#FF6B6B' : '#FF453A')
+          .fontColor(ResponsiveColorConfig.getDeleteButtonColor(this.isDarkMode))
           .borderRadius(0)
           .onClick(() => {
             this.controller.close();
@@ -2891,7 +2892,11 @@ struct HomePage {
         .position({ x: 0, y: 0 })
         .zIndex(1000)
         .opacity(Math.min(this.pageTranslateY / 100, 0.98))
-        .shadow({ radius: 8, color: this.isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)', offsetY: 2 })
+        .shadow({ 
+          radius: 8, 
+          color: this.isDarkMode ? ColorResource.shadowColorRegular : ColorResource.shadowColorFaint, 
+          offsetY: 2 
+        })
       }
       
       // 顶部标题栏
@@ -3233,11 +3238,12 @@ struct HomePage {
         }
         
         // 半透明遮罩层（降低画布对比度，让Dashboard内容更清晰）
+        // 注意：透明度已降低，让背景画布更清晰可见
         Column()
           .width('100%')
           .height('100%')
-          .backgroundColor(this.isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.4)')
-          .backdropBlur(40)
+          .backgroundColor(ResponsiveColorConfig.getFloatingPanelBackgroundColor(this.isDarkMode))
+          .backdropBlur(30) // 降低模糊度，让背景更清晰
           .borderRadius(ThemeConfig.radiusXLarge)
           .hitTestBehavior(HitTestMode.Transparent) // 允许触摸事件穿透到画布
         
@@ -3254,7 +3260,7 @@ struct HomePage {
             .width(40)
             .height(40)
             .type(ButtonType.Circle)
-            .backgroundColor(this.isDarkMode ? 'rgba(50, 50, 50, 0.9)' : 'rgba(255, 255, 255, 0.9)')
+            .backgroundColor(ResponsiveColorConfig.getCardBackgroundColor(true, this.isDarkMode, this.screenWidth))
             .shadow(ThemeConfig.shadowSmall)
             .onClick(() => {
               try {
@@ -3336,13 +3342,18 @@ struct HomePage {
       }
       .width('90%')
       .height('75%')
-      .backgroundColor(this.isDarkMode ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.2)')
+      .backgroundColor(ResponsiveColorConfig.getOverlayColor(this.isDarkMode, 0.3))
       .backdropBlur(20)
       .borderRadius(ThemeConfig.radiusXLarge)
-      .shadow({ radius: 40, color: this.isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.15)', offsetX: 0, offsetY: 8 })
+      .shadow({ 
+        radius: 40, 
+        color: this.isDarkMode ? ColorResource.shadowColorStrong : ColorResource.shadowColorFaint, 
+        offsetX: 0, 
+        offsetY: 8 
+      })
       .border({
         width: 1.5,
-        color: this.isDarkMode ? 'rgba(80, 80, 80, 0.6)' : 'rgba(255, 255, 255, 0.6)',
+        color: ResponsiveColorConfig.getCardBorderColor(true, this.isDarkMode, this.screenWidth),
         radius: ThemeConfig.radiusXLarge
       })
       .clip(true)

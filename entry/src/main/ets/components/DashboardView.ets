@@ -34,6 +34,7 @@
 
 import { Project, TaskNode } from '../model/ProjectData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import router from '@ohos.router';
 import vibrator from '@ohos.vibrator';
 import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
@@ -454,13 +455,11 @@ export struct DashboardView {
     .layoutWeight(1)
     .height(this.isFloatingCard ? 70 : (this.isPhone ? 100 : 120))
     .padding(this.isFloatingCard ? 8 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor(this.isFloatingCard ? 
-      (this.isDarkMode ? 'rgba(50, 50, 50, 0.6)' : 'rgba(255, 255, 255, 0.6)') : 
-      ColorResource.transparent)
+    .backgroundColor(ResponsiveColorConfig.getStatCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
     .borderRadius(this.isFloatingCard ? 8 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.shadowMedium)
     .border(this.isFloatingCard ? 
-      { width: 1, color: this.isDarkMode ? 'rgba(100, 100, 100, 0.7)' : 'rgba(255, 255, 255, 0.7)', radius: 8 } : 
+      { width: 1, color: ResponsiveColorConfig.getStatCardBorderColor(this.isFloatingCard, this.isDarkMode, bgColor), radius: 8 } : 
       { width: 2, color: bgColor, radius: ThemeConfig.radiusLarge })
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
@@ -514,13 +513,11 @@ export struct DashboardView {
     }
     .width('100%')
     .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor(this.isFloatingCard ? 
-      (this.isDarkMode ? 'rgba(40, 40, 40, 0.5)' : 'rgba(255, 255, 255, 0.5)') : 
-      ColorResource.transparent)
+    .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
     .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
     .border(this.isFloatingCard ? 
-      { width: 1, color: this.isDarkMode ? 'rgba(80, 80, 80, 0.6)' : 'rgba(255, 255, 255, 0.6)', radius: 6 } : 
+      { width: 1, color: ResponsiveColorConfig.getTaskCardBorderColor(this.isFloatingCard, this.isDarkMode), radius: 6 } : 
       { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
   }
 }

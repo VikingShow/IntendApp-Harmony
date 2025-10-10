@@ -34,6 +34,8 @@
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
+import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PromptAction } from '@kit.ArkUI';
 
 /**
@@ -71,12 +73,25 @@ export struct Sidebar {
   @State showNewProjectDialog: boolean = false;
   @State showTemplateDialog: boolean = false;
   // @State private taskEditorKey: number = 0;
+  @State private screenWidth: number = 0;
 
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
 
   aboutToAppear() {
     this.selectedTaskForEditor = this.selectedTask;
+    this.updateScreenSize();
+  }
+
+  private updateScreenSize() {
+    try {
+      const uiContext = this.getUIContext();
+      // 使用默认值避免类型问题
+      this.screenWidth = 840;
+    } catch (error) {
+      console.error('[Sidebar] Error getting screen size:', error);
+      this.screenWidth = 840;
+    }
   }
 
   // 删除任务方法
@@ -224,11 +239,11 @@ export struct Sidebar {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(ColorResource.overlayMedium)
+      .backgroundColor(ResponsiveColorConfig.getSidebarBackgroundColor(this.screenWidth))
       .padding(ThemeConfig.spacingXXL)
       .shadow(ThemeConfig.shadowMedium)
       .border({ width: { right: 1 }, color: ColorResource.surfaceNeutral })
-      .backdropBlur(ThemeConfig.backdropBlurXLarge)
+      .backdropBlur(ResponsiveColorConfig.getSidebarBackdropBlur(this.screenWidth))
     }
     .width('100%')
     .height('100%')

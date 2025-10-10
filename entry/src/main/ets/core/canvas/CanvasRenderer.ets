@@ -322,7 +322,7 @@ export class CanvasRenderer {
       this.context.lineWidth = 2;
       this.context.stroke();
 
-      // 绘制进度环（完成度）
+      // 绘制外圈进度环（完成度）- 白色
       const completionProgress = this.getCompletionProgress(task);
       if (completionProgress > 0) {
         this.context.beginPath();
@@ -330,6 +330,25 @@ export class CanvasRenderer {
         const endAngle = startAngle + (Math.PI * 2 * completionProgress / 100);
         this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
         this.context.strokeStyle = '#FFFFFF';
+        this.context.lineWidth = 4;
+        this.context.stroke();
+      }
+
+      // 绘制内圈进度环（时间进度）- 半透明白色或黄色
+      const timeProgress = this.getTimeProgress(task);
+      if (timeProgress > 0) {
+        this.context.beginPath();
+        const startAngle = -Math.PI / 2; // 从12点钟方向开始
+        const endAngle = startAngle + (Math.PI * 2 * timeProgress / 100);
+        this.context.arc(centerX, centerY, CIRCLE_RADIUS - 10, startAngle, endAngle);
+        // 根据时间进度和完成进度的对比使用不同颜色
+        if (timeProgress > completionProgress + 10) {
+          // 时间进度远超完成进度 - 黄色警告
+          this.context.strokeStyle = this.isDarkMode ? 'rgba(255, 214, 10, 0.9)' : 'rgba(255, 204, 0, 0.9)';
+        } else {
+          // 正常进度 - 半透明白色
+          this.context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        }
         this.context.lineWidth = 3;
         this.context.stroke();
       }

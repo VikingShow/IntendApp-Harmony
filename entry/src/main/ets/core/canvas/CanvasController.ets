@@ -225,7 +225,7 @@ export class CanvasController {
         this.handleTouchMove(realTouchX, realTouchY);
         break;
       case TouchType.Up:
-        this.handleTouchUp();
+        this.handleTouchUp(realTouchX, realTouchY);
         break;
     }
   }
@@ -356,34 +356,28 @@ export class CanvasController {
     }
   }
 
-  private handleTouchUp(): void {
+  private handleTouchUp(touchX: number, touchY: number): void {
     // 如果正在拖拽节点，在抬起时创建命令（记录整个拖拽过程）
     if (this.state.isDraggingNode && this.state.selectedTask) {
       const finalX: number = this.state.selectedTask.x;
       const finalY: number = this.state.selectedTask.y;
       
-      // 计算移动距离（判断是点击还是拖拽）
-      const moveDistanceX = Math.abs(finalX - this.state.dragStartX);
-      const moveDistanceY = Math.abs(finalY - this.state.dragStartY);
-      const CLICK_THRESHOLD = 5; // 移动距离小于5像素认为是点击
+      // 基于触摸点的移动距离来判断是点击还是拖拽（更准确）
+      const touchMoveX = Math.abs(touchX - this.touchStartX);
+      const touchMoveY = Math.abs(touchY - this.touchStartY);
+      const CLICK_THRESHOLD = 10; // 触摸点移动距离小于10像素认为是点击
       
-      const isClick = (moveDistanceX < CLICK_THRESHOLD && moveDistanceY < CLICK_THRESHOLD);
+      const isClick = (touchMoveX < CLICK_THRESHOLD && touchMoveY < CLICK_THRESHOLD);
       
-      // 缩略模式下，如果是点击（移动距离很小），触发节点点击事件
-      if (this.state.renderMode === RenderMode.COMPACT && isClick) {
-        if (this.onTaskClick) {
-          this.onTaskClick(this.state.selectedTask);
-        }
-      } else if (!isClick) {
-        // 如果是拖拽（位置真的改变了），创建命令
+      console.log(`[CanvasController] Touch up - touchMove: (${touchMoveX}, ${touchMoveY}), isClick: ${isClick}, renderMode: ${this.state.renderMode}`);
+      
+      // 只有拖拽（位置真的改变了）才创建命令
+      if (!isClick) {
         if (this.onTaskMove) {
-          // 现在通过 ProjectManager 来创建命令
-          // ProjectManager 会从初始位置创建命令
-          // 我们需要传递一个特殊标记或者修改接口
-          // 暂时先调用，稍后修改 ProjectManager
           this.onTaskMove(this.state.selectedTask.id, finalX, finalY);
         }
       }
+      // 缩略模式下的点击不再触发特殊操作，因为取消了节点详情对话框
     }
     
     this.state.isDraggingCanvas = false;

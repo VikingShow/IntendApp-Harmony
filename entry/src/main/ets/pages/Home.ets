@@ -2491,12 +2491,8 @@ struct HomePage {
       // onTaskMoveImmediate（拖拽过程中实时更新位置）
       (taskId: string, x: number, y: number) => {
         this.handleTaskMoveImmediate(taskId, x, y);
-      },
-      // onTaskClick (用于缩略模式显示详情)
-      (task: TaskNode) => {
-        console.log('[Home] Task clicked in compact mode:', task.name);
-        this.showTaskDetailDialog(task);
       }
+      // 不再需要 onTaskClick 回调，因为取消了节点详情对话框
     );
   }
 

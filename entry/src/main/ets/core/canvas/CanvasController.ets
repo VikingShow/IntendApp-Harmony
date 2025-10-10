@@ -37,6 +37,21 @@ import { CanvasRenderer, RenderConfig, RenderMode } from './CanvasRenderer';
 import { image } from '@kit.ImageKit';
 
 /**
+ * 内容边界接口
+ * 定义画布内容的边界框
+ */
+interface ContentBounds {
+  /** 最小X坐标 */
+  minX: number;
+  /** 最小Y坐标 */
+  minY: number;
+  /** 最大X坐标 */
+  maxX: number;
+  /** 最大Y坐标 */
+  maxY: number;
+}
+
+/**
  * 画布状态接口
  * 定义画布控制器的所有状态信息
  */
@@ -568,11 +583,105 @@ export class CanvasController {
   }
 
   /**
+   * 计算项目内容的边界框（Canvas 坐标，包含所有可见节点）
+   */
+  private calculateContentBounds(project: Project): ContentBounds {
+    if (!project || project.tasks.length === 0) {
+      const bounds: ContentBounds = { minX: 0, minY: 0, maxX: 800, maxY: 600 };
+      return bounds;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    const NODE_WIDTH = 200;
+    const NODE_HEIGHT = 120;
+    const PADDING = 150; // 增加边距到 150px，确保有足够空间
+
+    console.log(`[CanvasController] ========== 开始计算边界 ==========`);
+    console.log(`[CanvasController] canvasOffset: X=${this.state.canvasOffsetX}, Y=${this.state.canvasOffsetY}`);
+    console.log(`[CanvasController] 任务数量: ${project.tasks.length}`);
+
+    // 遍历所有任务，计算在 Canvas 上的坐标
+    project.tasks.forEach((task, index) => {
+      // Canvas 坐标 = 任务坐标 + offset
+      const canvasX = task.x + this.state.canvasOffsetX;
+      const canvasY = task.y + this.state.canvasOffsetY;
+      const canvasRight = canvasX + NODE_WIDTH;
+      const canvasBottom = canvasY + NODE_HEIGHT;
+      
+      console.log(`[CanvasController] 任务${index} "${task.name}":`);
+      console.log(`  原始坐标: (${task.x}, ${task.y})`);
+      console.log(`  Canvas坐标: (${canvasX}, ${canvasY}) -> (${canvasRight}, ${canvasBottom})`);
+      
+      // 只考虑在 Canvas 可见范围内的节点（至少部分可见）
+      // 完全在 Canvas 外的节点不应该影响边界计算
+      const isVisible = canvasRight > 0 && canvasX < 3000 && canvasBottom > 0 && canvasY < 3000;
+      
+      if (isVisible) {
+        minX = Math.min(minX, canvasX);
+        minY = Math.min(minY, canvasY);
+        maxX = Math.max(maxX, canvasRight);
+        maxY = Math.max(maxY, canvasBottom);
+        console.log(`  ✓ 可见，更新边界`);
+      } else {
+        console.log(`  ✗ 不可见，跳过`);
+      }
+    });
+
+    console.log(`[CanvasController] 可见节点边界: minX=${minX}, minY=${minY}, maxX=${maxX}, maxY=${maxY}`);
+
+    // 如果没有可见节点，返回默认边界
+    if (minX === Infinity || minY === Infinity) {
+      console.warn(`[CanvasController] 没有可见节点，使用默认边界`);
+      const bounds: ContentBounds = { minX: 0, minY: 0, maxX: 3000, maxY: 3000 };
+      return bounds;
+    }
+
+    // 添加边距
+    minX = minX - PADDING;
+    minY = minY - PADDING;
+    maxX = maxX + PADDING;
+    maxY = maxY + PADDING;
+
+    console.log(`[CanvasController] 添加边距后: minX=${minX}, minY=${minY}, maxX=${maxX}, maxY=${maxY}`);
+
+    // 限制在 Canvas 范围内（0-3000）
+    minX = Math.max(0, minX);
+    minY = Math.max(0, minY);
+    maxX = Math.min(3000, maxX);
+    maxY = Math.min(3000, maxY);
+
+    // 最终检查
+    if (minX >= maxX) {
+      console.warn(`[CanvasController] ⚠️ minX >= maxX (${minX} >= ${maxX})，使用整个Canvas`);
+      minX = 0;
+      maxX = 3000;
+    }
+    if (minY >= maxY) {
+      console.warn(`[CanvasController] ⚠️ minY >= maxY (${minY} >= ${maxY})，使用整个Canvas`);
+      minY = 0;
+      maxY = 3000;
+    }
+
+    const bounds: ContentBounds = { minX, minY, maxX, maxY };
+    console.log(`[CanvasController] ========== 最终导出边界 ==========`);
+    console.log(`[CanvasController] 边界: (${bounds.minX}, ${bounds.minY}) -> (${bounds.maxX}, ${bounds.maxY})`);
+    console.log(`[CanvasController] 尺寸: ${bounds.maxX - bounds.minX} x ${bounds.maxY - bounds.minY}`);
+    return bounds;
+  }
+
+  /**
    * 获取 Canvas 的 PixelMap（用于导出图片）
+   * 保持当前深色/浅色模式，导出整个画布以避免黑色区域
    * 
+   * @param project 项目数据（暂不使用）
+   * @param selectedTaskId 当前选中的任务ID（暂不使用）
    * @returns Promise<PixelMap | null> Canvas 的像素图
    */
-  public async getCanvasPixelMap(): Promise<image.PixelMap | null> {
+  public async getCanvasPixelMap(project?: Project, selectedTaskId?: string): Promise<image.PixelMap | null> {
     try {
       const context = this.renderer.getContext();
       
@@ -581,8 +690,13 @@ export class CanvasController {
         return null;
       }
 
-      // 获取 Canvas 的 PixelMap
+      console.log(`[CanvasController] 当前模式: ${this.renderer.getDarkMode() ? '深色' : '浅色'}`);
+      console.log(`[CanvasController] 导出整个 Canvas（3000x3000）以避免黑色区域`);
+
+      // 导出整个 Canvas（3000x3000）
+      // 注意：Canvas 内部坐标系统是 3000x3000，直接导出可以避免像素坐标不一致的问题
       const pixelMap = await context.getPixelMap(0, 0, 3000, 3000);
+      
       console.log('[CanvasController] 成功获取 Canvas PixelMap');
       
       return pixelMap;

@@ -679,7 +679,7 @@ struct Index {
   
   // 展开缩放控制
   private showZoomControl(): void {
-    animateTo({
+    this.uiContext.animateTo({
       duration: 250,
       curve: Curve.EaseOut
     }, () => {
@@ -691,7 +691,7 @@ struct Index {
   
   // 收起缩放控制
   private hideZoomControl(): void {
-    animateTo({
+    this.uiContext.animateTo({
       duration: 300,
       curve: Curve.EaseIn
     }, () => {
@@ -875,7 +875,10 @@ struct Index {
           isHomePage: false,
           exportService: this.exportService,
           onGetCanvasPixelMap: async () => {
-            return await this.canvasController.getCanvasPixelMap();
+            return await this.canvasController.getCanvasPixelMap(
+              this.project ?? undefined,
+              this.selectedTask?.id
+            );
           },
           onUpdateProjectName: (newName) => {
             this.projectManager.getActions().updateProjectName(newName);

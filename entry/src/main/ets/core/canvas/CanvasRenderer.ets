@@ -108,12 +108,25 @@ export class CanvasRenderer {
     this.isDarkMode = isDark;
   }
 
+  /**
+   * 获取深色模式状态
+   * @returns 是否为深色模式
+   */
+  public getDarkMode(): boolean {
+    return this.isDarkMode;
+  }
+
   public getContext(): CanvasRenderingContext2D {
     return this.context;
   }
 
   public render(project: Project, config: RenderConfig): void {
     this.context.clearRect(0, 0, 3000, 3000);
+    
+    // 先填充背景色（在任何变换之前，确保整个 Canvas 都有背景）
+    const backgroundColor = this.isDarkMode ? '#000000' : '#FFFFFF';
+    this.context.fillStyle = backgroundColor;
+    this.context.fillRect(0, 0, 3000, 3000);
     
     // 保存上下文状态
     this.context.save();
@@ -122,7 +135,7 @@ export class CanvasRenderer {
     const scale = config.zoomScale || 1.0;
     this.context.scale(scale, scale);
     
-    // 先绘制网格背景
+    // 绘制网格
     this.renderGrid();
     
     if (!project) {
@@ -145,7 +158,7 @@ export class CanvasRenderer {
     const width = 3000;
     const height = 3000;
     
-    // 根据深色模式设置网格样式
+    // 根据深色模式设置网格样式（背景色已在 render() 中填充）
     const gridLineColor = this.isDarkMode ? '#1A1A1C' : '#E0E0E0';
     const gridLineFineColor = this.isDarkMode ? '#101012' : '#F0F0F0';
     

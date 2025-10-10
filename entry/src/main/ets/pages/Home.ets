@@ -276,6 +276,7 @@ struct TaskNodeDetailDialog {
       .borderRadius({ bottomLeft: 16, bottomRight: 16 })
     }
     .width('90%')
+    .constraintSize({ maxWidth: 540 }) // 限制最大宽度，避免在平板上过宽
     .backgroundColor(ColorResource.backgroundPage)
     .borderRadius(16)
   }
@@ -447,7 +448,7 @@ struct RenameProjectDialog {
       
       Row({ space: 12 }) {
         Button('取消')
-          .width('45%')
+          .layoutWeight(1)
           .height(44)
           .fontSize(16)
           .backgroundColor(ColorResource.surface)
@@ -457,7 +458,7 @@ struct RenameProjectDialog {
           })
         
         Button('确定')
-          .width('45%')
+          .layoutWeight(1)
           .height(44)
           .fontSize(16)
           .backgroundColor(ColorResource.primaryColor)
@@ -475,6 +476,7 @@ struct RenameProjectDialog {
     }
     .padding(24)
     .width('85%')
+    .constraintSize({ maxWidth: 480 }) // 限制最大宽度，避免在平板上过宽
     .backgroundColor(ColorResource.backgroundPage)
     .borderRadius(16)
   }
@@ -2244,7 +2246,7 @@ struct HomePage {
           List({ space: ThemeConfig.spacingS }) {
             ForEach(this.projectList, (meta: ProjectMeta) => {
               ListItem() {
-              Stack() {
+              Row() {
                 // 主要内容区域
                 Column({ space: ThemeConfig.spacingS }) {
                   Text(meta.name)
@@ -2261,56 +2263,30 @@ struct HomePage {
                     .fontWeight(ThemeConfig.fontWeightMedium)
                 }
                 .alignItems(HorizontalAlign.Start)
-                .width('100%')
+                .layoutWeight(1)
                 .padding({ 
                   top: ThemeConfig.spacingM,
                   bottom: ThemeConfig.spacingM,
-                  left: ThemeConfig.spacingL,
-                  right: this.selectedProjectId === meta.id ? 52 : ThemeConfig.spacingL
+                  left: ThemeConfig.spacingL
                 })
 
-                // 删除按钮 - 只在项目被选中时显示，浮动在右上角
-                if (this.selectedProjectId === meta.id) {
-                  Button() {
-                    Text('×')
-                      .fontSize(ThemeConfig.fontSizeL)
-                      .fontColor(Color.White)
-                      .fontWeight(ThemeConfig.fontWeightBold)
-                  }
-                  .width(36)
-                  .height(36)
-                  .type(ButtonType.Circle)
-                  .backgroundColor(this.hoveredDeleteId === meta.id ? ColorResource.errorColor : ColorResource.errorLight)
-                  .border({ 
-                    width: 2, 
-                    color: ColorResource.errorColor, 
-                    radius: 18 
-                  })
-                  .shadow(this.hoveredDeleteId === meta.id ? ThemeConfig.shadowMedium : ThemeConfig.shadowSmall)
-                  .scale({ x: this.deleteButtonScale, y: this.deleteButtonScale })
-                  .opacity(this.deleteButtonOpacity)
-                  .animation({
-                    duration: ThemeConfig.animationFast,
-                    curve: ThemeConfig.animationEaseInOut,
-                    iterations: 1,
-                    playMode: PlayMode.Normal
-                  })
-                  .position({ x: '100%', y: 8 })
-                  .translate({ x: -44, y: 0 })
-                  .onClick(() => this.deleteProject(meta.id))
-                  .onTouch((event: TouchEvent) => {
-                    if (event.type === TouchType.Down) {
-                      this.hoveredDeleteId = meta.id;
-                      this.startDeleteButtonPress();
-                    } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                      this.hoveredDeleteId = null;
-                      this.endDeleteButtonPress();
-                    }
-                  })
-                  .hitTestBehavior(HitTestMode.Block)
+                // 三点菜单按钮
+                Button() {
+                  Text('⋯')
+                    .fontSize(ThemeConfig.fontSizeXL)
+                    .fontColor(ColorResource.surfaceEmphasized)
+                    .rotate({ angle: 90 })
                 }
+                .width(40)
+                .height(40)
+                .type(ButtonType.Circle)
+                .backgroundColor(Color.Transparent)
+                .onClick(() => {
+                  // 显示菜单（编辑、删除）
+                  this.showProjectMenu(meta.id);
+                })
+                .hitTestBehavior(HitTestMode.Block)
               }
-              .alignContent(Alignment.TopStart)
               .width('100%')
               .backgroundColor(this.selectedProjectId === meta.id ? 
                                (this.showCanvasBackground ? ColorResource.hoverPrimaryLight : ColorResource.primaryUltraLight) :

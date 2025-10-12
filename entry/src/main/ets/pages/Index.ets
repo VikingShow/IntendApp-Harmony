@@ -257,9 +257,9 @@ struct Index {
     // 性能监控：输出统计信息
     const stats = this.performanceService.getPerformanceStats();
     console.log('[Performance] 页面性能统计:', {
-      总指标数: stats.totalMetrics,
-      总行为数: stats.totalActions,
-      平均指标: stats.averageMetrics
+      "总指标数": stats.totalMetrics,
+      "总行为数": stats.totalActions,
+      "平均指标": stats.averageMetrics
     });
 
     // 取消主题监听
@@ -624,18 +624,6 @@ struct Index {
     });
   }
   
-  // 重置缩放
-  private handleResetZoom(): void {
-    this.canvasController.getActions().resetZoom();
-    this.zoomScale = this.canvasController.getState().zoomScale;
-    this.drawGraph();
-    this.debouncedSaveCanvasPosition(); // 实时保存
-    this.promptAction.showToast({
-      message: '已重置缩放',
-      duration: 1000
-    });
-  }
-  
   // 计算滑块手柄位置（0-180px），100%在中间（y=90）
   private getSliderHandlePosition(): number {
     // 将缩放比例映射到位置，100%在中间
@@ -657,11 +645,6 @@ struct Index {
       const ratio = (this.zoomScale - minZoom) / (centerZoom - minZoom);
       return sliderHeight - (ratio * centerPos);
     }
-  }
-  
-  // 计算滑块填充高度（暂时不用）
-  private getSliderFillHeight(): number {
-    return 0;
   }
   
   // 处理滑块拖动

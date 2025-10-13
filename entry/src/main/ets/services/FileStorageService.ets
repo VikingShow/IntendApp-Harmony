@@ -31,6 +31,7 @@
 // import fs from '@ohos.file.fs';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { Project, TaskNode } from '../model/ProjectData';
+import { ProjectGroup, ProjectRef } from '../model/ProjectGroup';
 import util from '@ohos.util';
 
 /**
@@ -45,6 +46,21 @@ export interface ProjectMeta {
   /** 最后修改时间（时间戳） */
   lastModified: number;
   /** 项目分类 */
+  category: string;
+}
+
+/**
+ * 项目群元数据接口
+ * 用于项目群列表显示和快速检索，包含项目群的基本信息
+ */
+export interface ProjectGroupMeta {
+  /** 项目群唯一标识符 */
+  id: string;
+  /** 项目群名称 */
+  name: string;
+  /** 最后修改时间（时间戳） */
+  lastModified: number;
+  /** 项目群分类 */
   category: string;
 }
 
@@ -135,6 +151,32 @@ interface ImportData {
 }
 
 /**
+ * 项目群导出数据接口
+ * 用于项目群数据导出时的数据格式
+ */
+interface ProjectGroupExportData {
+  /** 数据版本号 */
+  version: string;
+  /** 导出时间（ISO字符串格式） */
+  exportTime: string;
+  /** 项目群数据 */
+  projectGroup: ProjectGroup;
+}
+
+/**
+ * 项目群导入数据接口
+ * 用于项目群数据导入时的数据格式
+ */
+interface ProjectGroupImportData {
+  /** 数据版本号（可选） */
+  version?: string;
+  /** 导出时间（可选） */
+  exportTime?: string;
+  /** 项目群数据 */
+  projectGroup: ProjectGroup;
+}
+
+/**
  * 文件系统存储服务类
  * 
  * 实现项目数据的文件系统存储功能，采用单例模式设计。
@@ -157,6 +199,12 @@ interface ImportData {
  * @version 1.0.0
  * @since 2024-01-01
  */
+interface GeneratedObjectLiteralInterface_1 {
+  version: string;
+  exportTime: string;
+  projectGroup: ProjectGroup;
+}
+
 export class FileStorageService {
   /** 单例实例 */
   private static instance: FileStorageService;
@@ -166,6 +214,10 @@ export class FileStorageService {
   private projectsDir: string;
   /** 项目元数据文件路径 */
   private metaFile: string;
+  /** 项目群文件存储目录路径 */
+  private projectGroupsDir: string;
+  /** 项目群元数据文件路径 */
+  private groupMetaFile: string;
 
   /**
    * 私有构造函数
@@ -178,6 +230,8 @@ export class FileStorageService {
     this.baseDir = baseDir;
     this.projectsDir = `${baseDir}/projects`;
     this.metaFile = `${baseDir}/project_meta.json`;
+    this.projectGroupsDir = `${baseDir}/project_groups`;
+    this.groupMetaFile = `${baseDir}/project_group_meta.json`;
     this.initializeDirectories();
   }
 
@@ -285,6 +339,16 @@ export class FileStorageService {
           }
         } catch (error) {
           console.log(`[FileStorageService] 项目目录可能已存在，继续初始化`);
+        }
+
+        // 确保项目群目录存在
+        try {
+          if (!fs.accessSync(this.projectGroupsDir)) {
+            console.log(`[FileStorageService] 创建项目群目录: ${this.projectGroupsDir}`);
+            fs.mkdirSync(this.projectGroupsDir, true);
+          }
+        } catch (error) {
+          console.log(`[FileStorageService] 项目群目录可能已存在，继续初始化`);
         }
 
         console.log('[FileStorageService] 目录初始化完成');
@@ -839,6 +903,346 @@ export class FileStorageService {
       console.error('[FileStorageService] 获取存储统计失败:', error);
       const defaultStats: StorageStats = { totalProjects: 0, totalSize: 0 };
       return defaultStats;
+    }
+  }
+
+  // ==================== 项目群管理方法 ====================
+
+  /**
+   * 获取项目群列表
+   */
+  public async getProjectGroupList(): Promise<ProjectGroupMeta[]> {
+    try {
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        if (!fs.accessSync(this.groupMetaFile)) {
+          console.log('[FileStorageService] 项目群元数据文件不存在，返回空列表');
+          return [];
+        }
+
+        const file = fs.openSync(this.groupMetaFile, fs.OpenMode.READ_ONLY);
+        const stat = fs.statSync(this.groupMetaFile);
+        const buffer = new ArrayBuffer(stat.size);
+        fs.readSync(file.fd, buffer);
+        fs.closeSync(file);
+
+        const decoder = new util.TextDecoder();
+        const content = decoder.decodeToString(new Uint8Array(buffer));
+        console.log(`[FileStorageService] 读取到的项目群元数据文件内容长度: ${content.length}`);
+
+        if (!content || content.trim() === '') {
+          console.log('[FileStorageService] 项目群元数据文件为空，返回空列表');
+          return [];
+        }
+
+        try {
+          const groupList = JSON.parse(content) as ProjectGroupMeta[];
+          console.log(`[FileStorageService] 加载项目群列表，共 ${groupList.length} 个项目群`);
+          return groupList;
+        } catch (parseError) {
+          console.error('[FileStorageService] 项目群元数据文件JSON解析失败:', parseError);
+          console.log('[FileStorageService] 尝试从项目群文件重建元数据列表...');
+          return await this.rebuildProjectGroupList();
+        }
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 getProjectGroupList()');
+        return [];
+      }
+    } catch (error) {
+      console.error('[FileStorageService] 获取项目群列表失败:', error);
+      return await this.rebuildProjectGroupList();
+    }
+  }
+
+  /**
+   * 从项目群文件重建元数据列表
+   */
+  private async rebuildProjectGroupList(): Promise<ProjectGroupMeta[]> {
+    try {
+      console.log('[FileStorageService] 开始重建项目群元数据列表...');
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        if (!fs.accessSync(this.projectGroupsDir)) {
+          console.log('[FileStorageService] 项目群目录不存在，返回空列表');
+          return [];
+        }
+
+        const groupList: ProjectGroupMeta[] = [];
+        const files = fs.listFileSync(this.projectGroupsDir);
+        console.log(`[FileStorageService] 在项目群目录中找到 ${files.length} 个文件`);
+
+        for (const fileName of files) {
+          if (fileName.endsWith('.json')) {
+            const groupId = fileName.replace('.json', '');
+            const groupFile = `${this.projectGroupsDir}/${fileName}`;
+
+            try {
+              const file = fs.openSync(groupFile, fs.OpenMode.READ_ONLY);
+              const stat = fs.statSync(groupFile);
+              const buffer = new ArrayBuffer(stat.size);
+              fs.readSync(file.fd, buffer);
+              fs.closeSync(file);
+
+              const decoder = new util.TextDecoder();
+              const content = decoder.decodeToString(new Uint8Array(buffer));
+
+              let groupData: Record<string, string | number | boolean | object>;
+              try {
+                groupData = JSON.parse(content);
+              } catch (parseError) {
+                console.error(`[FileStorageService] 项目群文件 ${fileName} JSON解析失败:`, parseError);
+                try {
+                  fs.unlinkSync(groupFile);
+                  console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+                } catch (deleteError) {
+                  console.error(`[FileStorageService] 删除文件失败:`, deleteError);
+                }
+                continue;
+              }
+
+              const groupMeta: ProjectGroupMeta = {
+                id: (groupData.id as string) || groupId,
+                name: (groupData.name as string) || '未命名项目群',
+                lastModified: (groupData.lastModified as number) || Date.now(),
+                category: (groupData.category as string) || '其他'
+              };
+
+              groupList.push(groupMeta);
+              console.log(`[FileStorageService] 重建项目群元数据: ${groupMeta.name} (${groupMeta.id})`);
+            } catch (error) {
+              console.error(`[FileStorageService] 读取项目群文件 ${fileName} 失败:`, error);
+              try {
+                fs.unlinkSync(groupFile);
+                console.log(`[FileStorageService] 已删除损坏的文件: ${fileName}`);
+              } catch (deleteError) {
+                console.error(`[FileStorageService] 删除文件失败:`, deleteError);
+              }
+            }
+          }
+        }
+
+        if (groupList.length > 0) {
+          await this.saveProjectGroupList(groupList);
+          console.log(`[FileStorageService] 重建完成，共 ${groupList.length} 个项目群`);
+        }
+
+        return groupList;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 rebuildProjectGroupList()');
+        return [];
+      }
+    } catch (error) {
+      console.error('[FileStorageService] 重建项目群列表失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 保存项目群列表
+   */
+  private async saveProjectGroupList(list: ProjectGroupMeta[]): Promise<void> {
+    try {
+      console.log(`[FileStorageService] 开始保存项目群列表，共 ${list.length} 个项目群`);
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        const content = JSON.stringify(list, null, 2);
+        const encoder = new util.TextEncoder();
+        const uint8Array = encoder.encodeInto(content);
+        const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+
+        try {
+          if (fs.accessSync(this.groupMetaFile)) {
+            fs.unlinkSync(this.groupMetaFile);
+          }
+        } catch (error) {
+          // 文件不存在，忽略错误
+        }
+
+        const file = fs.openSync(this.groupMetaFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+        fs.writeSync(file.fd, buffer);
+        fs.closeSync(file);
+
+        console.log(`[FileStorageService] 项目群列表已保存，共 ${list.length} 个项目群`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 saveProjectGroupList()');
+      }
+    } catch (error) {
+      console.error('[FileStorageService] 保存项目群列表失败:', error);
+      throw new Error(`保存项目群列表失败: ${error.message || '未知错误'}`);
+    }
+  }
+
+  /**
+   * 保存项目群
+   */
+  public async saveProjectGroup(group: ProjectGroup): Promise<void> {
+    try {
+      // 1. 更新项目群列表元数据
+      const list = await this.getProjectGroupList();
+      const groupMeta: ProjectGroupMeta = {
+        id: group.id,
+        name: group.name,
+        lastModified: Date.now(),
+        category: group.category || '其他'
+      };
+
+      const existingIndex = list.findIndex(g => g.id === group.id);
+      if (existingIndex !== -1) {
+        list[existingIndex] = groupMeta;
+      } else {
+        list.push(groupMeta);
+      }
+      await this.saveProjectGroupList(list);
+
+      // 2. 保存项目群数据到文件
+      const groupFile = `${this.projectGroupsDir}/${group.id}.json`;
+      const content = JSON.stringify(group, null, 2);
+      console.log(`[FileStorageService] 准备保存项目群 ${group.id}，JSON内容长度: ${content.length}`);
+      
+      const encoder = new util.TextEncoder();
+      const uint8Array = encoder.encode(content);
+      const buffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
+
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        try {
+          if (fs.accessSync(groupFile)) {
+            fs.unlinkSync(groupFile);
+          }
+        } catch (error) {
+          // 文件不存在，忽略错误
+        }
+
+        const file = fs.openSync(groupFile, fs.OpenMode.WRITE_ONLY | fs.OpenMode.CREATE);
+        fs.writeSync(file.fd, buffer);
+        fs.closeSync(file);
+
+        console.log(`[FileStorageService] 项目群 ${group.id} 已保存到文件`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 saveProjectGroup()');
+      }
+    } catch (error) {
+      console.error(`[FileStorageService] 保存项目群 ${group.id} 失败:`, error);
+      throw new Error(`保存项目群失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取项目群
+   */
+  public async getProjectGroup(groupId: string): Promise<ProjectGroup | null> {
+    try {
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        const groupFile = `${this.projectGroupsDir}/${groupId}.json`;
+
+        if (!fs.accessSync(groupFile)) {
+          console.log(`[FileStorageService] 项目群文件不存在: ${groupId}`);
+          return null;
+        }
+
+        const file = fs.openSync(groupFile, fs.OpenMode.READ_ONLY);
+        const stat = fs.statSync(groupFile);
+        const buffer = new ArrayBuffer(stat.size);
+        fs.readSync(file.fd, buffer);
+        fs.closeSync(file);
+
+        const decoder = new util.TextDecoder();
+        const content = decoder.decode(new Uint8Array(buffer));
+        const groupData = JSON.parse(content) as ProjectGroup;
+
+        // 转换回ProjectGroup对象
+        const group = new ProjectGroup(groupData.id, groupData.name);
+        group.lastModified = groupData.lastModified;
+        group.category = groupData.category || '其他';
+        group.projectRefs = groupData.projectRefs;
+        group.dependencies = groupData.dependencies;
+        group.canvasOffsetX = groupData.canvasOffsetX || 0;
+        group.canvasOffsetY = groupData.canvasOffsetY || 0;
+        group.zoomScale = groupData.zoomScale || 1.0;
+
+        console.log(`[FileStorageService] 项目群 ${groupId} 已从文件加载`);
+        return group;
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 getProjectGroup()');
+        return null;
+      }
+    } catch (error) {
+      console.error(`[FileStorageService] 获取项目群 ${groupId} 失败:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 删除项目群
+   */
+  public async deleteProjectGroup(groupId: string): Promise<void> {
+    try {
+      if(canIUse('SystemCapability.FileManagement.File.FileIO')){
+        // 1. 从项目群列表中移除
+        const list = await this.getProjectGroupList();
+        const filteredList = list.filter(g => g.id !== groupId);
+        await this.saveProjectGroupList(filteredList);
+
+        // 2. 删除项目群文件
+        const groupFile = `${this.projectGroupsDir}/${groupId}.json`;
+        if (fs.accessSync(groupFile)) {
+          fs.unlinkSync(groupFile);
+        }
+
+        console.log(`[FileStorageService] 项目群 ${groupId} 已删除`);
+      }else {
+        console.warn('[FileStorageService] 当前设备不支持 deleteProjectGroup()');
+      }
+    } catch (error) {
+      console.error(`[FileStorageService] 删除项目群 ${groupId} 失败:`, error);
+      throw new Error(`删除项目群失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 导出项目群数据
+   */
+  public async exportProjectGroup(groupId: string): Promise<string> {
+    try {
+      const group = await this.getProjectGroup(groupId);
+      if (!group) {
+        throw new Error('项目群不存在');
+      }
+      
+      const exportData: ProjectGroupExportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        projectGroup: group
+      };
+      
+      return JSON.stringify(exportData, null, 2);
+    } catch (error) {
+      console.error(`[FileStorageService] 导出项目群 ${groupId} 失败:`, error);
+      throw new Error(`导出项目群失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 导入项目群数据
+   */
+  public async importProjectGroup(importData: string): Promise<ProjectGroup> {
+    try {
+      const data = JSON.parse(importData) as ProjectGroupImportData;
+      if (!data.projectGroup) {
+        throw new Error('无效的导入数据格式');
+      }
+      
+      const group = data.projectGroup;
+      
+      // 生成新的项目群ID
+      group.id = `group_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      group.lastModified = Date.now();
+      
+      await this.saveProjectGroup(group);
+      
+      console.log(`[FileStorageService] 项目群已导入: ${group.id}`);
+      return group;
+    } catch (error) {
+      console.error('[FileStorageService] 导入项目群失败:', error);
+      throw new Error(`导入项目群失败: ${error.message}`);
     }
   }
 }

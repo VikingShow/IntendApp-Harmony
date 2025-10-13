@@ -1,6 +1,7 @@
 // File: entry/src/main/ets/services/StorageService.ets
-import { FileStorageService, ProjectMeta } from './FileStorageService';
+import { FileStorageService, ProjectMeta, ProjectGroupMeta } from './FileStorageService';
 import { Project } from '../model/ProjectData';
+import { ProjectGroup } from '../model/ProjectGroup';
 
 /**
  * 清理结果接口
@@ -95,10 +96,54 @@ export class StorageService {
   public async cleanupCorruptedFiles(): Promise<CleanupResult> {
     return await this.fileStorage.cleanupCorruptedFiles();
   }
+
+  // ==================== 项目群管理方法 ====================
+
+  /**
+   * 获取项目群列表
+   */
+  public async getProjectGroupList(): Promise<ProjectGroupMeta[]> {
+    return await this.fileStorage.getProjectGroupList();
+  }
+
+  /**
+   * 保存项目群
+   */
+  public async saveProjectGroup(group: ProjectGroup): Promise<void> {
+    return await this.fileStorage.saveProjectGroup(group);
+  }
+
+  /**
+   * 获取项目群
+   */
+  public async getProjectGroup(groupId: string): Promise<ProjectGroup | null> {
+    return await this.fileStorage.getProjectGroup(groupId);
+  }
+
+  /**
+   * 删除项目群
+   */
+  public async deleteProjectGroup(groupId: string): Promise<void> {
+    return await this.fileStorage.deleteProjectGroup(groupId);
+  }
+
+  /**
+   * 导出项目群数据
+   */
+  public async exportProjectGroup(groupId: string): Promise<string> {
+    return await this.fileStorage.exportProjectGroup(groupId);
+  }
+
+  /**
+   * 导入项目群数据
+   */
+  public async importProjectGroup(importData: string): Promise<ProjectGroup> {
+    return await this.fileStorage.importProjectGroup(importData);
+  }
 }
 
 // 导出接口供其他模块使用
-export { ProjectMeta } from './FileStorageService';
+export { ProjectMeta, ProjectGroupMeta } from './FileStorageService';
 
 // 定义StorageStats接口
 interface StorageStats {

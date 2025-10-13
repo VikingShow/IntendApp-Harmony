@@ -29,6 +29,7 @@
  */
 
 import { Project, TaskNode } from '../model/ProjectData';
+import { ProjectGroup, ProjectRef } from '../model/ProjectGroup';
 
 /**
  * 应用状态快照接口
@@ -82,6 +83,8 @@ export interface AppStateSnapshot {
 export class AppState {
   project: Project | null = null;
   selectedTask: TaskNode | null = null;
+  projectGroup: ProjectGroup | null = null;
+  selectedProjectRef: ProjectRef | null = null;
   isLoading: boolean = false;
   error: string | null = null;
   sidebarVisible: boolean = true;
@@ -118,6 +121,20 @@ export class AppState {
    */
   public setSelectedTask(task: TaskNode | null): void {
     this.selectedTask = task;
+  }
+
+  /**
+   * 设置项目群
+   */
+  public setProjectGroup(projectGroup: ProjectGroup | null): void {
+    this.projectGroup = projectGroup;
+  }
+
+  /**
+   * 设置选中的项目引用
+   */
+  public setSelectedProjectRef(projectRef: ProjectRef | null): void {
+    this.selectedProjectRef = projectRef;
   }
 
   /**

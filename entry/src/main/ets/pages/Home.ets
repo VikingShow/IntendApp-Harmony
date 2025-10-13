@@ -1502,7 +1502,7 @@ struct HomePage {
   @Builder
   Sidebar() {
     Column({ space: 0 }) {
-      // 顶部区域 - 项目列表标题和新建按钮
+      // 顶部区域 - 项目列表标题和按钮组
       Row() {
         // 项目列表标题
         Column() {
@@ -1517,6 +1517,30 @@ struct HomePage {
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+
+        // 项目群管理按钮 - 放在新增项目按钮左边
+        Button() {
+          Text('📂')
+            .fontSize(this.isPhone ? ThemeConfig.fontSizeXXL : ThemeConfig.fontSizeXXXL)
+        }
+        .accessibilityLevel('important')
+        .width(this.isPhone ? 52 : 60)
+        .height(this.isPhone ? 52 : 60)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.successColor)
+        .shadow(ThemeConfig.shadowMedium)
+        .border({ 
+          width: 2, 
+          color: ColorResource.successLight, 
+          radius: 30 
+        })
+        .onClick(() => {
+          // 跳转到项目群管理页面
+          this.getUIContext().getRouter().pushUrl({
+            url: 'pages/ProjectGroupView'
+          });
+        })
+        .margin({ right: 12 })
 
         // 新建项目按钮 - 现代化设计，增强视觉吸引力
         Stack() {
@@ -2202,7 +2226,30 @@ struct HomePage {
           .fontColor(ColorResource.surfaceDeep)
           .layoutWeight(1)
         
-        // 添加按钮
+        // 项目群管理按钮
+        Button() {
+          Text('📂')
+            .fontSize(ThemeConfig.fontSizeXXL)
+        }
+        .accessibilityLevel('important')
+        .width(52)
+        .height(52)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.successColor)
+        .shadow(ThemeConfig.shadowMedium)
+        .border({ 
+          width: 2, 
+          color: ColorResource.successLight, 
+          radius: 26
+        })
+        .onClick(() => {
+          // 跳转到项目群管理页面
+          this.getUIContext().getRouter().pushUrl({
+            url: 'pages/ProjectGroupView'
+          });
+        })
+        
+        // 添加项目按钮
         Stack() {
           // 进度环背景
           if (this.isLongPressing) {

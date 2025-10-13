@@ -2,11 +2,11 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "基于关键路径法的专业项目管理应用"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "EasyFlow - 融合CPM算法与可视化网络图的智能项目管理工具"
     },
     {
       "name": "EntryAbility_label",
@@ -14,7 +14,11 @@
     },
     {
       "name": "permission_reason",
-      "value": "需要访问文件系统以保存和加载项目数据"
+      "value": "需要访问文件系统以保存和加载项目数据、导入导出项目文件"
+    },
+    {
+      "name": "app_name",
+      "value": "EasyFlow"
     }
   ]
 }

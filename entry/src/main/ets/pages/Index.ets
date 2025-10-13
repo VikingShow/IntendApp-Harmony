@@ -1205,7 +1205,7 @@ struct Index {
           .border({ width: 2, color: ColorResource.primaryColor })
           .shadow(ThemeConfig.shadowLarge)
           .onClick(() => {
-            animateTo({
+            this.uiContext.animateTo({
               duration: 180,
               curve: Curve.EaseInOut
             }, () => {
@@ -1380,7 +1380,7 @@ struct Index {
                 : ColorResource.surfaceNeutral
             })
             .onClick(() => {
-              animateTo({
+              this.uiContext.animateTo({
                 duration: 180,
                 curve: Curve.EaseInOut
               }, () => {
@@ -1408,7 +1408,7 @@ struct Index {
             .borderRadius(18)
             .border({ width: 1, color: ColorResource.surfaceNeutral })
             .onClick(() => {
-              animateTo({
+              this.uiContext.animateTo({
                 duration: 180,
                 curve: Curve.EaseInOut
               }, () => {
@@ -1448,7 +1448,7 @@ struct Index {
           .border({ width: 2, color: ColorResource.primaryColor })
           .shadow(ThemeConfig.shadowLarge)
           .onClick(() => {
-            animateTo({
+            this.uiContext.animateTo({
               duration: 180,
               curve: Curve.EaseInOut
             }, () => {
@@ -1659,7 +1659,7 @@ struct Index {
                 : ColorResource.surfaceNeutral
             })
             .onClick(() => {
-              animateTo({
+              this.uiContext.animateTo({
                 duration: 180,
                 curve: Curve.EaseInOut
               }, () => {
@@ -1687,7 +1687,7 @@ struct Index {
             .borderRadius(16)
             .border({ width: 1, color: ColorResource.surfaceNeutral })
             .onClick(() => {
-              animateTo({
+              this.uiContext.animateTo({
                 duration: 180,
                 curve: Curve.EaseInOut
               }, () => {

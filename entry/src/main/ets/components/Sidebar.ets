@@ -565,7 +565,7 @@ export struct Sidebar {
                 .fontColor(ColorResource.textPrimary)
             }
             Button() {
-              Image(this.isEditingProjectName ? $r('app.media.ic_confirm') : $r('app.media.ic_edit'))
+              Image(this.isEditingProjectName ? $r('app.media.ic_confirm') : $r("app.media.ic_edit"))
                 .width(18)
                 .height(18)
                 .fillColor(this.isEditingProjectName ? ColorResource.textSuccess : ColorResource.textSecondary)

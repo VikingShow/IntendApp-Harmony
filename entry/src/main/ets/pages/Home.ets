@@ -2572,9 +2572,9 @@ struct HomePage {
 
           // 编辑按钮
           Button() {
-            Text('✎')
-              .fontSize(ThemeConfig.fontSizeL)
-              .fontColor(Color.White)
+            Image($r('app.media.ic_edit'))
+              .width(18)
+              .height(18)
           }
           .width(40)
           .height(40)

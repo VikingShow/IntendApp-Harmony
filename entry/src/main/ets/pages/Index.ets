@@ -58,6 +58,10 @@ import { PerformanceService } from '../services/PerformanceService';
 interface RouterParams {
   /** 项目ID，用于加载指定项目 */
   projectId?: string;
+  /** 渲染模式（从Dashboard传递，避免模式切换闪烁） */
+  renderMode?: string;
+  /** 是否为手机端（从Dashboard传递） */
+  isPhone?: boolean;
 }
 
 @Entry
@@ -133,6 +137,11 @@ struct Index {
   private zoomControlHideTimer: number = -1; // 自动隐藏定时器
 
   async aboutToAppear() {
+    // 从路由参数中提前获取renderMode信息（用于避免模式切换闪烁）
+    const routeParams = this.uiContext.getRouter().getParams() as RouterParams;
+    const renderModeFromDashboard = routeParams?.renderMode;
+    console.log(`[Index] aboutToAppear - renderMode from Dashboard: ${renderModeFromDashboard || 'not provided'}`);
+    
     // 初始化屏幕尺寸和设备类型
     this.updateScreenSize();
     
@@ -202,9 +211,11 @@ struct Index {
     }
     
     // 根据设备类型设置渲染模式（手机端使用缩略模式）
-    this.canvasRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
-    this.canvasController.setRenderMode(this.canvasRenderMode);
-    console.log(`[Index] aboutToAppear - screenWidth: ${this.screenWidth}, isPhone: ${this.isPhone}, setting renderMode to: ${this.canvasRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+    // 如果从Dashboard跳转过来，已经确定了正确的renderMode，无需切换
+    const targetRenderMode = this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL;
+    this.canvasRenderMode = targetRenderMode;
+    this.canvasController.setRenderMode(targetRenderMode);
+    console.log(`[Index] aboutToAppear - screenWidth: ${this.screenWidth}, isPhone: ${this.isPhone}, setting renderMode to: ${targetRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'} (from Dashboard: ${renderModeFromDashboard || 'not provided'})`);
     console.log(`[Index] aboutToAppear - canvasController.state.renderMode: ${this.canvasController.getState().renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
 
     // 初始化主题监听器

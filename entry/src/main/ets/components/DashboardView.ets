@@ -345,7 +345,12 @@ export struct DashboardView {
               
               this.getUIContext().getRouter().pushUrl({
                 url: 'pages/Index',
-                params: { projectId: this.project.id },
+                params: { 
+                  projectId: this.project.id,
+                  // 传递当前的renderMode，避免Index页面切换模式导致闪烁
+                  isPhone: this.isPhone,
+                  renderMode: this.isPhone ? 'COMPACT' : 'NORMAL'
+                },
                 animation: {
                   type: 'fade',
                   duration: 300

@@ -1,24 +1,24 @@
 // File: entry/src/main/ets/pages/ProjectGroupIndex.ets
 /**
- * 项目群编辑页面模块
+ * 项目集编辑页面模块（Program Management Index）
  *
- * 本页面是项目群管理的核心编辑界面，完全复用 Index.ets 的设计模式和代码结构。
+ * 本页面是项目集管理的核心编辑界面，完全复用 Index.ets 的设计模式和代码结构。
  * 采用适配器模式，将 ProjectGroup 映射为 Project 结构，从而复用现有的画布渲染和交互逻辑。
  * 
  * 架构层级：
- * - ProjectGroupHome.ets：项目群列表页面（类似 Home.ets）
- * - ProjectGroupIndex.ets：项目群编辑页面（类似 Index.ets）← 当前页面
+ * - ProjectGroupHome.ets：项目集列表页面（类似 Home.ets）
+ * - ProjectGroupIndex.ets：项目集编辑页面（类似 Index.ets）← 当前页面
  *
  * 主要功能：
- * 1. 项目群可视化：使用现有的 Canvas 2D 技术绘制项目网络图
+ * 1. 项目集可视化：使用现有的 Canvas 2D 技术绘制项目网络图
  * 2. 项目管理：支持项目的添加、删除、移动等操作
  * 3. 依赖关系：可视化创建和管理项目间的依赖关系
- * 4. 关键路径：计算和显示项目群的关键路径
+ * 4. 关键路径：计算和显示项目集的关键路径
  * 5. 交互操作：完全复用 Index.ets 的拖拽、点击、连接等交互
  *
  * 设计特点：
  * - 适配器模式：ProjectGroup → Project 映射
- * - 完全复用：复用 CanvasController、样式、交互逻辑
+ * - 完全复用：复用 CanvasController、Sidebar、样式、交互逻辑
  * - 统一体验：与项目管理页面保持一致的用户体验
  * - 两层导航：通过 ProjectGroupHome 进入本页面
  *
@@ -35,23 +35,26 @@ import { RenderMode } from '../core/canvas/CanvasRenderer';
 import { StorageService, ProjectMeta } from '../services/StorageService';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { PromptAction } from '@kit.ArkUI';
+import router from '@ohos.router';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import common from '@ohos.app.ability.common';
-import router from '@ohos.router';
 import { EventBus } from '../core/EventBus';
 import { AppState } from '../core/AppState';
+import { Sidebar } from '../components/Sidebar';
+import { ExportService } from '../services/ExportService';
+import { FileStorageService } from '../services/FileStorageService';
 
 /**
  * 路由参数接口
  */
 interface RouterParams {
-  /** 项目群ID，用于加载指定项目群 */
+  /** 项目集ID，用于加载指定项目集 */
   groupId?: string;
 }
 
 @Entry
 @Component
-struct ProjectGroupView {
+struct ProjectGroupIndex {
   // 页面转场动画配置
   pageTransition() {
     PageTransitionEnter({ duration: 300, curve: Curve.EaseInOut })
@@ -85,13 +88,14 @@ struct ProjectGroupView {
   
   private projectGroupService: ProjectGroupService = ProjectGroupService.getInstance();
   private storageService: StorageService | null = null;
+  private exportService: ExportService | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   private eventBus: EventBus = EventBus.getInstance();
   private appState: AppState = AppState.getInstance();
 
   async aboutToAppear() {
-    console.log('[ProjectGroupView] aboutToAppear');
+    console.log('[ProjectGroupIndex] aboutToAppear');
     
     // 初始化屏幕尺寸
     this.updateScreenSize();
@@ -101,7 +105,14 @@ struct ProjectGroupView {
       (this.uiContext.getHostContext() as common.UIAbilityContext).filesDir
     );
 
-    // 初始化项目群服务
+    // 初始化导出服务
+    const fileStorageService = FileStorageService.getInstance(
+      (this.uiContext.getHostContext() as common.UIAbilityContext).filesDir
+    );
+    this.exportService = ExportService.getInstance(fileStorageService);
+    this.exportService.setContext(this.uiContext.getHostContext() as common.UIAbilityContext);
+
+    // 初始化项目集服务
     await this.projectGroupService.initialize(
       (this.uiContext.getHostContext() as common.UIAbilityContext).filesDir
     );
@@ -132,13 +143,13 @@ struct ProjectGroupView {
     const groupId = params?.groupId;
 
     if (groupId) {
-      // 加载现有项目群
-      console.log(`[ProjectGroupView] Loading project group: ${groupId}`);
+      // 加载现有项目集
+      console.log(`[ProjectGroupIndex] Loading project group: ${groupId}`);
       await this.projectGroupService.getActions().loadProjectGroup(groupId);
       this.updateStateFromService();
     } else {
-      // 创建新项目群
-      console.log('[ProjectGroupView] Creating new project group');
+      // 创建新项目集
+      console.log('[ProjectGroupIndex] Creating new project group');
       await this.createNewProjectGroup();
     }
 
@@ -150,7 +161,7 @@ struct ProjectGroupView {
 
   aboutToDisappear() {
     this.canvasOpacity = 0;
-    // 保存项目群
+    // 保存项目集
     if (this.projectGroup) {
       this.projectGroupService.getActions().saveProjectGroup();
     }
@@ -164,7 +175,7 @@ struct ProjectGroupView {
       this.screenWidth = 840;
       this.isPhone = false;
     } catch (error) {
-      console.error('[ProjectGroupView] Error getting screen size:', error);
+      console.error('[ProjectGroupIndex] Error getting screen size:', error);
       this.screenWidth = 840;
       this.isPhone = false;
     }
@@ -174,13 +185,13 @@ struct ProjectGroupView {
    * 设置事件监听器
    */
   private setupEventListeners(): void {
-    // 监听项目群加载事件
+    // 监听项目集加载事件
     this.eventBus.on('project_group_loaded', () => {
       this.updateStateFromService();
       this.drawGraph();
     });
 
-    // 监听项目群保存事件
+    // 监听项目集保存事件
     this.eventBus.on('project_group_saved', () => {
       this.updateStateFromService();
       this.drawGraph();
@@ -203,24 +214,24 @@ struct ProjectGroupView {
   }
 
   /**
-   * 加载项目列表（用于添加到项目群）
+   * 加载项目列表（用于添加到项目集）
    */
   private async loadProjectList(): Promise<void> {
     if (this.storageService) {
       try {
         this.projectList = await this.storageService.getProjectList();
-        console.log(`[ProjectGroupView] Loaded ${this.projectList.length} projects`);
+        console.log(`[ProjectGroupIndex] Loaded ${this.projectList.length} projects`);
       } catch (error) {
-        console.error('[ProjectGroupView] Failed to load project list:', error);
+        console.error('[ProjectGroupIndex] Failed to load project list:', error);
       }
     }
   }
 
   /**
-   * 创建新项目群
+   * 创建新项目集
    */
   private async createNewProjectGroup(): Promise<void> {
-    await this.projectGroupService.getActions().createNewProjectGroup('新项目群');
+    await this.projectGroupService.getActions().createNewProjectGroup('新项目集');
     this.updateStateFromService();
     this.drawGraph();
   }
@@ -287,7 +298,7 @@ struct ProjectGroupView {
    * 画布 onReady 回调
    */
   private handleCanvasReady(): void {
-    console.log('[ProjectGroupView] Canvas ready');
+    console.log('[ProjectGroupIndex] Canvas ready');
     this.drawGraph();
   }
 
@@ -329,69 +340,22 @@ struct ProjectGroupView {
   }
 
   /**
-   * 返回主页
+   * 返回项目集列表
    */
   private handleBackToHome(): void {
     this.uiContext.getRouter().back();
   }
 
   /**
-   * 保存项目群
+   * 开始连接模式
    */
-  private async handleSave(): Promise<void> {
-    await this.projectGroupService.getActions().saveProjectGroup();
-    this.promptAction.showToast({ message: '项目群已保存' });
-  }
-
-  /**
-   * 添加项目到项目群
-   */
-  private handleAddProject(projectId: string, projectName: string): void {
-    const x = 200 + Math.random() * 100;
-    const y = 150 + Math.random() * 100;
-    this.projectGroupService.getActions().addProjectRef(projectId, projectName);
-    this.updateStateFromService();
-    this.drawGraph();
-  }
-
-  /**
-   * 删除项目引用
-   */
-  private handleDeleteProjectRef(): void {
-    if (!this.selectedProjectRef) return;
-
-    this.uiContext.showAlertDialog({
-      title: '确认删除',
-      message: '确定要从项目群中移除这个项目吗？（不会删除项目本身）',
-      primaryButton: {
-        value: '取消',
-        action: () => {}
-      },
-      secondaryButton: {
-        value: '移除',
-        fontColor: ColorResource.errorColor,
-        action: () => {
-          if (this.selectedProjectRef) {
-            this.projectGroupService.getActions().deleteProjectRef(this.selectedProjectRef.id);
-            this.updateStateFromService();
-            this.drawGraph();
-            this.promptAction.showToast({ message: '项目已移除' });
-          }
-        }
-      }
-    });
-  }
-
-  /**
-   * 打开选中的项目
-   */
-  private handleOpenProject(): void {
-    if (!this.selectedProjectRef) return;
-
-    this.uiContext.getRouter().pushUrl({
-      url: 'pages/Index',
-      params: { projectId: this.selectedProjectRef.id }
-    } as router.RouterOptions);
+  private handleStartConnecting(): void {
+    if (!this.selectedProjectRef) {
+      this.promptAction.showToast({ message: '请先选择一个项目' });
+      return;
+    }
+    this.canvasController.getActions().startConnecting(this.selectedProjectRef.id);
+    this.promptAction.showToast({ message: '连接模式：点击目标项目创建依赖' });
   }
 
   /**
@@ -439,7 +403,7 @@ struct ProjectGroupView {
 
   build() {
     Stack() {
-      // 展开/收起按钮 - 固定在左侧中间
+      // 展开/收起按钮 - 固定在左侧中间（复用 Index.ets 的设计）
       Button() {
         Text(this.sidebarVisible ? '<' : '>')
           .fontSize(18)
@@ -459,14 +423,106 @@ struct ProjectGroupView {
         this.sidebarVisible = !this.sidebarVisible
       })
 
-      // 侧边栏
-      if (this.sidebarVisible) {
-        this.SidebarContent()
+      // 侧边栏（完全复用 Sidebar 组件）
+      if (this.sidebarVisible && this.projectGroup) {
+        Sidebar({
+          project: this.convertProjectGroupToProject(this.projectGroup),
+          selectedTask: this.selectedProjectRef ? {
+            id: this.selectedProjectRef.id,
+            name: this.selectedProjectRef.name,
+            x: this.selectedProjectRef.x,
+            y: this.selectedProjectRef.y,
+            startDate: new Date(),
+            endDate: new Date(),
+            checklist: [],
+            isCritical: this.selectedProjectRef.isCritical,
+            earlyStart: this.selectedProjectRef.earlyStart,
+            earlyFinish: this.selectedProjectRef.earlyFinish,
+            lateStart: this.selectedProjectRef.lateStart,
+            lateFinish: this.selectedProjectRef.lateFinish
+          } : null,
+          isHomePage: false,
+          exportService: this.exportService,
+          onGetCanvasPixelMap: async () => {
+            const adaptedProject = this.convertProjectGroupToProject(this.projectGroup!);
+            return await this.canvasController.getCanvasPixelMap(
+              adaptedProject,
+              this.selectedProjectRef?.id
+            );
+          },
+          onUpdateProjectName: (newName) => {
+            this.projectGroupService.getActions().updateProjectGroupName(newName);
+          },
+          onAddTask: () => {
+            // 项目集中添加项目的逻辑会在下面的自定义面板中处理
+            this.promptAction.showToast({ message: '请从下方"可添加项目"区域选择项目' });
+          },
+          onUpdateTask: (taskId: string, updates) => {
+            const projectRef = this.projectGroup?.projectRefs.find(ref => ref.id === taskId);
+            if (projectRef && updates.name) {
+              projectRef.name = updates.name;
+              this.projectGroupService.getActions().saveProjectGroup();
+              this.drawGraph();
+            }
+          },
+          onUpdateChecklist: () => {
+            // 项目集层面不需要检查清单
+          },
+          onAddChecklistItem: () => {
+            // 项目集层面不需要检查清单
+          },
+          onDeleteChecklistItem: () => {
+            // 项目集层面不需要检查清单
+          },
+          onDeleteTask: (id) => {
+            this.projectGroupService.getActions().deleteProjectRef(id);
+            this.drawGraph();
+          },
+          onStartConnecting: () => this.handleStartConnecting(),
+          onSave: () => this.projectGroupService.getActions().saveProjectGroup(),
+          onBack: () => this.handleBackToHome(),
+          onCreateBlankProject: () => {},
+          onCreateProjectFromTemplate: () => {}
+        })
+          .width(380)
+          .height('100%')
+          .position({ x: 0, y: 0 })
+          .zIndex(150)
       }
 
-      // 画布区域
-      this.CanvasArea()
-      
+      // 画布（完全复用 Index.ets 的设计）
+      Stack() {
+        // 画布背景 - 格子纹效果
+        this.CanvasBackground()
+
+        Canvas(this.canvasController.getRenderer().getContext())
+          .height('100%')
+          .width('100%')
+          .backgroundColor(Color.Transparent)
+          .borderRadius(12)
+          .margin({
+            top: 16,
+            right: 16,
+            bottom: 16,
+            left: 16
+          })
+          .opacity(this.canvasOpacity)
+          .onReady(() => this.handleCanvasReady())
+          .onTouch((event: TouchEvent) => {
+            if (!this.projectGroup) return;
+            const adaptedProject = this.convertProjectGroupToProject(this.projectGroup);
+            this.canvasController.getActions().handleTouch(
+              event, 
+              adaptedProject, 
+              this.selectedProjectRef?.id || null
+            );
+            this.drawGraph();
+          })
+      }
+      .width('100%')
+      .height('100%')
+      .margin({ left: this.sidebarVisible ? 380 : 0 })
+
       // 顶部工具栏（复用 Index.ets 的设计）
       this.TopToolbar()
     }
@@ -476,234 +532,6 @@ struct ProjectGroupView {
     .padding({
       top: this.getUIContext().px2vp(this.topRectHeight)
     })
-  }
-
-  // 侧边栏内容
-  @Builder
-  SidebarContent() {
-    Column({ space: 0 }) {
-      // 顶部 - 项目群信息
-      Column({ space: ThemeConfig.spacingM }) {
-        Row({ space: ThemeConfig.spacingM }) {
-          Text('项目群管理')
-            .fontSize(ThemeConfig.fontSizeXXL)
-            .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ColorResource.surfaceDeep)
-            .layoutWeight(1)
-          
-          Button('返回')
-            .height(36)
-            .padding({ left: 16, right: 16 })
-            .backgroundColor(ColorResource.surfaceLight)
-            .fontColor(ColorResource.surfaceDeep)
-            .onClick(() => this.handleBackToHome())
-        }
-        .width('100%')
-
-        if (this.projectGroup) {
-          TextInput({ text: this.projectGroup.name })
-            .fontSize(ThemeConfig.fontSizeL)
-            .fontWeight(ThemeConfig.fontWeightMedium)
-            .backgroundColor(ColorResource.surface)
-            .onChange((value: string) => {
-              this.projectGroupService.getActions().updateProjectGroupName(value);
-            })
-        }
-      }
-      .width('100%')
-      .padding(ThemeConfig.spacingL)
-      .backgroundColor(ColorResource.surface)
-      .border({ width: { bottom: 1 }, color: ColorResource.borderDivider })
-
-      // 选中项目的详情（类似任务编辑器）
-      if (this.selectedProjectRef) {
-        Column({ space: ThemeConfig.spacingM }) {
-          Text('项目详情')
-            .fontSize(ThemeConfig.fontSizeL)
-            .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ColorResource.surfaceDeep)
-
-          Column({ space: ThemeConfig.spacingS }) {
-            Text(this.selectedProjectRef.name)
-              .fontSize(ThemeConfig.fontSizeXL)
-              .fontWeight(ThemeConfig.fontWeightBold)
-              .fontColor(ColorResource.primaryColor)
-            
-            Text(`ID: ${this.selectedProjectRef.id}`)
-              .fontSize(ThemeConfig.fontSizeS)
-              .fontColor(ColorResource.textMuted)
-          }
-          .width('100%')
-          .padding(ThemeConfig.spacingM)
-          .backgroundColor(ColorResource.surface)
-          .borderRadius(ThemeConfig.radiusMedium)
-
-          // 操作按钮
-          Row({ space: ThemeConfig.spacingM }) {
-            Button('打开项目')
-              .layoutWeight(1)
-              .backgroundColor(ColorResource.primaryColor)
-              .fontColor(Color.White)
-              .onClick(() => this.handleOpenProject())
-
-            Button('移除')
-              .layoutWeight(1)
-              .backgroundColor(ColorResource.errorLight)
-              .fontColor(ColorResource.errorColor)
-              .onClick(() => this.handleDeleteProjectRef())
-          }
-          .width('100%')
-        }
-        .width('100%')
-        .padding(ThemeConfig.spacingL)
-        .layoutWeight(1)
-      } else {
-        // 项目群中的项目列表
-        Column({ space: ThemeConfig.spacingM }) {
-          Text('项目群中的项目')
-            .fontSize(ThemeConfig.fontSizeL)
-            .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ColorResource.surfaceDeep)
-
-          if (this.projectGroup && this.projectGroup.projectRefs.length > 0) {
-            List({ space: ThemeConfig.spacingS }) {
-              ForEach(this.projectGroup.projectRefs, (projectRef: ProjectRef) => {
-                ListItem() {
-                  Row({ space: ThemeConfig.spacingM }) {
-                    Column({ space: 4 }) {
-                      Text(projectRef.name)
-                        .fontSize(ThemeConfig.fontSizeM)
-                        .fontWeight(ThemeConfig.fontWeightMedium)
-                        .fontColor(ColorResource.surfaceDeep)
-                    }
-                    .alignItems(HorizontalAlign.Start)
-                    .layoutWeight(1)
-                  }
-                  .width('100%')
-                  .padding(ThemeConfig.spacingM)
-                  .backgroundColor(this.selectedProjectRef?.id === projectRef.id 
-                    ? ColorResource.primaryUltraLight 
-                    : ColorResource.surface)
-                  .borderRadius(ThemeConfig.radiusMedium)
-                  .border({
-                    width: this.selectedProjectRef?.id === projectRef.id ? 2 : 1,
-                    color: this.selectedProjectRef?.id === projectRef.id 
-                      ? ColorResource.primaryColor 
-                      : ColorResource.borderDivider
-                  })
-                  .onClick(() => {
-                    this.projectGroupService.getActions().selectProjectRef(projectRef);
-                  })
-                }
-              })
-            }
-            .layoutWeight(1)
-          } else {
-            Column({ space: ThemeConfig.spacingM }) {
-              Text('项目群为空')
-                .fontSize(ThemeConfig.fontSizeM)
-                .fontColor(ColorResource.textMuted)
-              Text('从下方选择项目添加到项目群')
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontColor(ColorResource.textSubdued)
-            }
-            .width('100%')
-            .padding(ThemeConfig.spacingXL)
-            .justifyContent(FlexAlign.Center)
-          }
-        }
-        .width('100%')
-        .padding(ThemeConfig.spacingL)
-        .layoutWeight(1)
-      }
-
-      // 可添加的项目列表
-      Column({ space: ThemeConfig.spacingM }) {
-        Text('添加项目')
-          .fontSize(ThemeConfig.fontSizeL)
-          .fontWeight(ThemeConfig.fontWeightBold)
-          .fontColor(ColorResource.surfaceDeep)
-
-        if (this.projectList.length > 0) {
-          List({ space: ThemeConfig.spacingS }) {
-            ForEach(this.projectList, (project: ProjectMeta) => {
-              ListItem() {
-                Row({ space: ThemeConfig.spacingM }) {
-                  Column({ space: 4 }) {
-                    Text(project.name)
-                      .fontSize(ThemeConfig.fontSizeM)
-                      .fontWeight(ThemeConfig.fontWeightMedium)
-                      .fontColor(ColorResource.surfaceDeep)
-                  }
-                  .alignItems(HorizontalAlign.Start)
-                  .layoutWeight(1)
-
-                  Button('+')
-                    .width(32)
-                    .height(32)
-                    .type(ButtonType.Circle)
-                    .backgroundColor(ColorResource.primaryColor)
-                    .fontColor(Color.White)
-                    .onClick(() => this.handleAddProject(project.id, project.name))
-                }
-                .width('100%')
-                .padding(ThemeConfig.spacingM)
-                .backgroundColor(ColorResource.surfaceLight)
-                .borderRadius(ThemeConfig.radiusMedium)
-              }
-            })
-          }
-          .height(200)
-        }
-      }
-      .width('100%')
-      .padding(ThemeConfig.spacingL)
-      .backgroundColor(ColorResource.surface)
-      .border({ width: { top: 1 }, color: ColorResource.borderDivider })
-    }
-    .width(380)
-    .height('100%')
-    .position({ x: 0, y: 0 })
-    .zIndex(150)
-    .backgroundColor(ColorResource.backgroundPage)
-    .shadow(ThemeConfig.shadowLarge)
-  }
-
-  // 画布区域（完全复用 Index.ets 的设计）
-  @Builder
-  CanvasArea() {
-    Stack() {
-      // 画布背景 - 格子纹效果
-      this.CanvasBackground()
-
-      // 画布
-      Canvas(this.canvasController.getRenderer().getContext())
-        .height('100%')
-        .width('100%')
-        .backgroundColor(Color.Transparent)
-        .borderRadius(12)
-        .margin({
-          top: 16,
-          right: 16,
-          bottom: 16,
-          left: 16
-        })
-        .opacity(this.canvasOpacity)
-        .onReady(() => this.handleCanvasReady())
-        .onTouch((event: TouchEvent) => {
-          if (!this.projectGroup) return;
-          const adaptedProject = this.convertProjectGroupToProject(this.projectGroup);
-          this.canvasController.getActions().handleTouch(
-            event, 
-            adaptedProject, 
-            this.selectedProjectRef?.id || null
-          );
-          this.drawGraph();
-        })
-    }
-    .width('100%')
-    .height('100%')
-    .margin({ left: this.sidebarVisible ? 380 : 0 })
   }
 
   // 画布背景构建器 - 自适应背景灰色网格（复用 Index.ets 的设计）

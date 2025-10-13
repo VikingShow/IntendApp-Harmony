@@ -79,13 +79,13 @@ export class ResponsiveColorConfig {
         opacity: 0.95
       };
     } else {
-      // 平板/大屏：使用标准透明度
+      // 平板/大屏：使用更透明的毛玻璃效果，营造轻盈视觉
       return {
-        backgroundColor: isDarkMode ? 'rgba(28, 28, 30, 0.7)' : 'rgba(255, 255, 255, 0.75)',
-        borderColor: isDarkMode ? 'rgba(100, 100, 100, 0.6)' : 'rgba(215, 220, 225, 0.7)',
+        backgroundColor: isDarkMode ? 'rgba(28, 28, 32, 0.45)' : 'rgba(255, 255, 255, 0.75)',
+        borderColor: isDarkMode ? 'rgba(90, 90, 95, 0.35)' : 'rgba(215, 220, 225, 0.7)',
         textPrimaryColor: ColorResource.textPrimary,
         textSecondaryColor: ColorResource.textSecondary,
-        backdropBlur: 15,
+        backdropBlur: 20,
         opacity: 0.9
       };
     }
@@ -146,7 +146,8 @@ export class ResponsiveColorConfig {
       // 深色模式：使用深灰色背景，提升透明度以获得更轻盈的视觉效果
       return isDarkMode ? 'rgba(40, 40, 45, 0.25)' : 'rgba(255, 255, 255, 0.6)';
     }
-    return ColorResource.transparent;
+    // 平板端非浮动模式：深色模式下也使用轻度透明背景
+    return isDarkMode ? 'rgba(35, 35, 40, 0.15)' : ColorResource.transparent;
   }
 
   /**
@@ -166,7 +167,8 @@ export class ResponsiveColorConfig {
       // 深色模式：使用灰色边框，降低不透明度以配合更透明的背景
       return isDarkMode ? 'rgba(90, 90, 95, 0.4)' : 'rgba(220, 225, 230, 0.8)';
     }
-    return baseColor;
+    // 平板端非浮动模式：深色模式下使用更柔和的边框
+    return isDarkMode ? 'rgba(80, 80, 85, 0.25)' : baseColor;
   }
 
   /**
@@ -184,7 +186,8 @@ export class ResponsiveColorConfig {
       // 深色模式：使用深灰色背景，提升透明度以获得更轻盈的视觉效果
       return isDarkMode ? 'rgba(35, 35, 40, 0.20)' : 'rgba(255, 255, 255, 0.35)';
     }
-    return ColorResource.transparent;
+    // 平板端非浮动模式：深色模式下也使用轻度透明背景
+    return isDarkMode ? 'rgba(30, 30, 35, 0.12)' : ColorResource.transparent;
   }
 
   /**
@@ -202,7 +205,8 @@ export class ResponsiveColorConfig {
       // 深色模式：使用深灰色边框，降低不透明度以配合更透明的背景
       return isDarkMode ? 'rgba(70, 70, 75, 0.35)' : 'rgba(215, 220, 225, 0.7)';
     }
-    return ColorResource.surfaceNeutral;
+    // 平板端非浮动模式：深色模式下使用更柔和的边框
+    return isDarkMode ? 'rgba(65, 65, 70, 0.20)' : ColorResource.surfaceNeutral;
   }
 
   /**

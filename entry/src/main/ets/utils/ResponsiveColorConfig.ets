@@ -143,8 +143,8 @@ export class ResponsiveColorConfig {
   ): string | Resource {
     if (isFloating) {
       // 浅色模式：使用纯白色背景，保持透明度
-      // 深色模式：使用深灰色背景
-      return isDarkMode ? 'rgba(50, 50, 50, 0.45)' : 'rgba(255, 255, 255, 0.6)';
+      // 深色模式：使用深灰色背景，提升透明度以获得更轻盈的视觉效果
+      return isDarkMode ? 'rgba(40, 40, 45, 0.25)' : 'rgba(255, 255, 255, 0.6)';
     }
     return ColorResource.transparent;
   }
@@ -163,8 +163,8 @@ export class ResponsiveColorConfig {
   ): string | Resource {
     if (isFloating) {
       // 浅色模式：使用浅灰色边框，更柔和
-      // 深色模式：使用灰色边框
-      return isDarkMode ? 'rgba(100, 100, 100, 0.7)' : 'rgba(220, 225, 230, 0.8)';
+      // 深色模式：使用灰色边框，降低不透明度以配合更透明的背景
+      return isDarkMode ? 'rgba(90, 90, 95, 0.4)' : 'rgba(220, 225, 230, 0.8)';
     }
     return baseColor;
   }
@@ -181,8 +181,8 @@ export class ResponsiveColorConfig {
   ): string | Resource {
     if (isFloating) {
       // 浅色模式：使用纯白色背景，保持透明度
-      // 深色模式：使用深灰色背景
-      return isDarkMode ? 'rgba(40, 40, 40, 0.35)' : 'rgba(255, 255, 255, 0.35)';
+      // 深色模式：使用深灰色背景，提升透明度以获得更轻盈的视觉效果
+      return isDarkMode ? 'rgba(35, 35, 40, 0.20)' : 'rgba(255, 255, 255, 0.35)';
     }
     return ColorResource.transparent;
   }
@@ -199,8 +199,8 @@ export class ResponsiveColorConfig {
   ): string | Resource {
     if (isFloating) {
       // 浅色模式：使用浅灰色边框，更柔和
-      // 深色模式：使用深灰色边框
-      return isDarkMode ? 'rgba(80, 80, 80, 0.6)' : 'rgba(215, 220, 225, 0.7)';
+      // 深色模式：使用深灰色边框，降低不透明度以配合更透明的背景
+      return isDarkMode ? 'rgba(70, 70, 75, 0.35)' : 'rgba(215, 220, 225, 0.7)';
     }
     return ColorResource.surfaceNeutral;
   }

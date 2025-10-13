@@ -42,6 +42,7 @@ import { EventBus } from '../core/EventBus';
 import { AppState } from '../core/AppState';
 import { ExportService } from '../services/ExportService';
 import { FileStorageService } from '../services/FileStorageService';
+import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 
 /**
  * 路由参数接口
@@ -49,6 +50,14 @@ import { FileStorageService } from '../services/FileStorageService';
 interface RouterParams {
   /** 项目集ID，用于加载指定项目集 */
   groupId?: string;
+}
+
+/**
+ * 按钮配置接口（用于 ActionMenu）
+ */
+interface ActionMenuButton {
+  text: string;
+  color: string | Resource;
 }
 
 @Entry
@@ -88,6 +97,7 @@ struct ProjectGroupIndex {
   private projectGroupService: ProjectGroupService = ProjectGroupService.getInstance();
   private storageService: StorageService | null = null;
   private exportService: ExportService | null = null;
+  private templateService: TemplateService = TemplateService.getInstance();
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   private eventBus: EventBus = EventBus.getInstance();
@@ -298,7 +308,14 @@ struct ProjectGroupIndex {
    */
   private handleCanvasReady(): void {
     console.log('[ProjectGroupIndex] Canvas ready');
+    // 延迟渲染，确保所有组件已经初始化
+    setTimeout(() => {
     this.drawGraph();
+      // 确保画布透明度为1
+      if (this.canvasOpacity < 1) {
+        this.canvasOpacity = 1;
+      }
+    }, 50);
   }
 
   /**
@@ -450,7 +467,7 @@ struct ProjectGroupIndex {
       .height(48)
       .backgroundColor(ColorResource.overlayStrong)
       .borderRadius(8)
-      .position({ x: this.sidebarVisible ? 380 : 16, y: '50%' })
+      .position({ x: 16, y: '50%' })
       .translate({ x: 0, y: -24 })
       .zIndex(200)
       .backdropBlur(ThemeConfig.backdropBlurMedium)
@@ -470,11 +487,11 @@ struct ProjectGroupIndex {
     })
   }
 
-  // 画布背景构建器 - 自适应背景灰色网格（复用 Index.ets 的设计）
+  // 画布背景构建器 - 自适应背景灰色网格（完全复用 Index.ets 的设计）
   @Builder
   CanvasBackground() {
     Stack() {
-      // 背景色
+      // 背景色（支持深色模式）
       Column()
         .width('100%')
         .height('100%')
@@ -482,26 +499,47 @@ struct ProjectGroupIndex {
 
       // 网格线层
       Column() {
-        // 主要网格线
+        // 主要网格线 - 粗线
         Stack() {
           // 垂直线
-          ForEach(Array.from({ length: 8 }), (_: number, index: number) => {
+          ForEach(Array.from({ length: 8 }), (verticalItem: number, index: number) => {
             Line()
               .startPoint([index * 200, 0])
-              .endPoint([index * 200, 1600])
-              .stroke(ColorResource.surfaceEmphasized)
+              .endPoint([index * 200, '100%'])
+              .stroke(ColorResource.canvasGridLine)
               .strokeWidth(1)
-              .opacity(0.3)
           })
-          
+
           // 水平线
-          ForEach(Array.from({ length: 8 }), (_: number, index: number) => {
+          ForEach(Array.from({ length: 6 }), (horizontalItem: number, index: number) => {
             Line()
               .startPoint([0, index * 200])
-              .endPoint([1600, index * 200])
-              .stroke(ColorResource.surfaceEmphasized)
+              .endPoint(['100%', index * 200])
+              .stroke(ColorResource.canvasGridLine)
               .strokeWidth(1)
-              .opacity(0.3)
+          })
+        }
+        .width('100%')
+        .height('100%')
+
+        // 细网格线 - 细线
+        Stack() {
+          // 细垂直线
+          ForEach(Array.from({ length: 16 }), (thinVerticalItem: number, index: number) => {
+            Line()
+              .startPoint([index * 100, 0])
+              .endPoint([index * 100, '100%'])
+              .stroke(ColorResource.canvasGridLineFine)
+              .strokeWidth(0.5)
+          })
+
+          // 细水平线
+          ForEach(Array.from({ length: 12 }), (thinHorizontalItem: number, index: number) => {
+            Line()
+              .startPoint([0, index * 100])
+              .endPoint(['100%', index * 100])
+              .stroke(ColorResource.canvasGridLineFine)
+              .strokeWidth(0.5)
           })
         }
         .width('100%')
@@ -539,9 +577,9 @@ struct ProjectGroupIndex {
         // 新增项目按钮（项目集特色）
         Button({ type: ButtonType.Circle }) {
           Text('+')
-            .fontSize(ThemeConfig.fontSizeXL)
+              .fontSize(ThemeConfig.fontSizeXL)
             .fontColor(Color.White)
-            .fontWeight(ThemeConfig.fontWeightBold)
+              .fontWeight(ThemeConfig.fontWeightBold)
         }
         .width(52)
         .height(52)
@@ -581,8 +619,8 @@ struct ProjectGroupIndex {
         .shadow(ThemeConfig.shadowMedium)
         .border({ width: 2, color: ColorResource.infoColor, radius: 26 })
         .bindMenu(this.ExportMenu())
-      }
-      .width('100%')
+          }
+          .width('100%')
       .padding({ top: 8 })
 
       // --- 项目集信息 ---
@@ -611,7 +649,7 @@ struct ProjectGroupIndex {
               .fontSize(12)
               .fontColor(ColorResource.textSecondary)
           }
-          .layoutWeight(1)
+              .layoutWeight(1)
           .padding(12)
           .backgroundColor(ColorResource.primaryUltraLight)
           .borderRadius(12)
@@ -627,15 +665,15 @@ struct ProjectGroupIndex {
               .fontSize(12)
               .fontColor(ColorResource.textSecondary)
           }
-          .layoutWeight(1)
+              .layoutWeight(1)
           .padding(12)
           .backgroundColor(ColorResource.infoLight)
           .borderRadius(12)
           .border({ width: 1, color: ColorResource.infoColor })
+          }
+          .width('100%')
         }
         .width('100%')
-      }
-      .width('100%')
       .padding(16)
       .backgroundColor(ColorResource.surfaceLight)
       .borderRadius(ThemeConfig.radiusLarge)
@@ -668,10 +706,10 @@ struct ProjectGroupIndex {
         .padding({ bottom: 8 })
 
         // 项目列表滚动区域
-        if (this.projectGroup && this.projectGroup.projectRefs.length > 0) {
+          if (this.projectGroup && this.projectGroup.projectRefs.length > 0) {
           List({ space: 8 }) {
-            ForEach(this.projectGroup.projectRefs, (projectRef: ProjectRef) => {
-              ListItem() {
+              ForEach(this.projectGroup.projectRefs, (projectRef: ProjectRef) => {
+                ListItem() {
                 this.ProjectRefItem(projectRef)
               }
             })
@@ -724,8 +762,8 @@ struct ProjectGroupIndex {
         .fontSize(24)
 
       // 项目信息
-      Column({ space: 4 }) {
-        Text(projectRef.name)
+                    Column({ space: 4 }) {
+                      Text(projectRef.name)
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.selectedProjectRef?.id === projectRef.id 
@@ -742,7 +780,7 @@ struct ProjectGroupIndex {
             .fontWeight(FontWeight.Medium)
         }
       }
-      .layoutWeight(1)
+                    .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
       // 删除按钮
@@ -757,21 +795,21 @@ struct ProjectGroupIndex {
       .type(ButtonType.Circle)
       .backgroundColor(Color.Transparent)
       .onClick(() => this.handleDeleteProjectRef(projectRef))
-    }
-    .width('100%')
+                  }
+                  .width('100%')
     .padding(12)
-    .backgroundColor(this.selectedProjectRef?.id === projectRef.id 
-      ? ColorResource.primaryUltraLight 
+                  .backgroundColor(this.selectedProjectRef?.id === projectRef.id 
+                    ? ColorResource.primaryUltraLight 
       : ColorResource.surfaceLight)
     .borderRadius(12)
-    .border({
+                  .border({
       width: 2,
-      color: this.selectedProjectRef?.id === projectRef.id 
-        ? ColorResource.primaryColor 
+                    color: this.selectedProjectRef?.id === projectRef.id 
+                      ? ColorResource.primaryColor 
         : ColorResource.surfaceNeutral
-    })
-    .onClick(() => {
-      this.projectGroupService.getActions().selectProjectRef(projectRef);
+                  })
+                  .onClick(() => {
+                    this.projectGroupService.getActions().selectProjectRef(projectRef);
       this.drawGraph();
     })
   }
@@ -811,22 +849,241 @@ struct ProjectGroupIndex {
   private handleAddProject(): void {
     if (!this.projectGroup) return;
 
-    // 显示可添加项目的对话框
-    this.uiContext.showAlertDialog({
+    // 显示项目创建/选择菜单
+    this.promptAction.showActionMenu({
       title: '添加项目到项目集',
-      message: `当前项目集：${this.projectGroup.name}\n\n从现有项目中选择一个添加到此项目集`,
-      primaryButton: {
-        value: '取消',
-        action: () => {}
-      },
-      secondaryButton: {
-        value: '选择项目',
-        fontColor: ColorResource.primaryColor,
-        action: () => {
-          // TODO: 显示项目选择器
-          this.promptAction.showToast({ message: '项目选择功能开发中' });
+      buttons: [
+        {
+          text: '创建空白项目',
+          color: ColorResource.primaryColor
+        },
+        {
+          text: '从模板创建',
+          color: ColorResource.primaryColor
+        },
+        {
+          text: '选择已有项目',
+          color: ColorResource.infoColor
+        }
+      ]
+    }).then((result) => {
+      if (result.index === 0) {
+        // 创建空白项目
+        this.createBlankProjectForGroup();
+      } else if (result.index === 1) {
+        // 从模板创建
+        this.createProjectFromTemplateForGroup();
+      } else if (result.index === 2) {
+        // 选择已有项目
+        this.selectExistingProjectForGroup();
+      }
+    }).catch((error: Error) => {
+      console.error('[ProjectGroupIndex] ActionMenu error:', error);
+    });
+  }
+
+  /**
+   * 创建空白项目并添加到项目集
+   */
+  private async createBlankProjectForGroup(): Promise<void> {
+    if (!this.projectGroup || !this.storageService) return;
+
+    try {
+      this.promptAction.showToast({
+        message: '正在创建项目...',
+        duration: 1000
+      });
+
+      // 创建空白项目
+      const newProject = this.templateService.createProjectFromTemplate('blank', '新项目');
+      
+      // 保存项目
+      await this.storageService.saveProject(newProject);
+      
+      // 添加到项目集
+      this.projectGroupService.getActions().addProjectRef(
+        newProject.id,
+        newProject.name,
+        100,
+        100
+      );
+
+      // 刷新项目列表
+      await this.loadProjectList();
+      
+      this.promptAction.showToast({
+        message: `项目 "${newProject.name}" 已创建并添加到项目集`,
+        duration: 2000
+      });
+
+      this.drawGraph();
+    } catch (error) {
+      console.error('[ProjectGroupIndex] Create blank project error:', error);
+      this.promptAction.showToast({
+        message: '创建项目失败',
+        duration: 2000
+      });
+    }
+  }
+
+  /**
+   * 从模板创建项目并添加到项目集
+   */
+  private createProjectFromTemplateForGroup(): void {
+    // 显示模板分类选择
+    this.promptAction.showActionMenu({
+      title: '选择项目类型',
+      buttons: [
+        {
+          text: '软件开发',
+          color: ColorResource.projectDevelopment
+        },
+        {
+          text: '营销活动',
+          color: ColorResource.projectMarketing
+        },
+        {
+          text: '研究分析',
+          color: ColorResource.projectResearch
+        }
+      ]
+    }).then((result) => {
+      let category = '开发';
+      if (result.index === 0) category = '开发';
+      else if (result.index === 1) category = '营销';
+      else if (result.index === 2) category = '研究';
+
+      // 获取该分类的模板
+      const templates = this.templateService.getTemplatesByCategory(category);
+      if (templates.length === 0) {
+        this.promptAction.showToast({ message: '该分类下没有可用模板' });
+        return;
+      }
+
+      // 显示模板列表
+      this.showTemplateListForGroup(templates);
+    }).catch((error: Error) => {
+      console.error('[ProjectGroupIndex] Template category error:', error);
+    });
+  }
+
+  /**
+   * 显示模板列表并创建项目
+   */
+  private showTemplateListForGroup(templates: ProjectTemplate[]): void {
+    const maxTemplates = Math.min(templates.length, 3);
+    const buttons: ActionMenuButton[] = templates.slice(0, maxTemplates).map((t: ProjectTemplate): ActionMenuButton => ({
+      text: `${t.name} (${t.tasks.length}个任务)`,
+      color: ColorResource.primaryColor
+    }));
+
+    if (buttons.length === 0) return;
+
+    this.promptAction.showActionMenu({
+      title: '选择模板',
+      buttons: buttons.length === 1 ? [buttons[0]] :
+              buttons.length === 2 ? [buttons[0], buttons[1]] :
+              [buttons[0], buttons[1], buttons[2]]
+    }).then(async (result) => {
+      if (result.index < maxTemplates && this.projectGroup && this.storageService) {
+        const template: ProjectTemplate = templates[result.index];
+        
+        try {
+          this.promptAction.showToast({
+            message: '正在创建项目...',
+            duration: 1000
+          });
+
+          // 从模板创建项目
+          const newProject = this.templateService.createProjectFromTemplate(template.id, template.name);
+          
+          // 保存项目
+          await this.storageService.saveProject(newProject);
+          
+          // 添加到项目集
+          this.projectGroupService.getActions().addProjectRef(
+            newProject.id,
+            newProject.name,
+            100,
+            100
+          );
+
+          // 刷新项目列表
+          await this.loadProjectList();
+          
+          this.promptAction.showToast({
+            message: `项目 "${newProject.name}" 已创建并添加到项目集`,
+            duration: 2000
+          });
+
+          this.drawGraph();
+        } catch (error) {
+          console.error('[ProjectGroupIndex] Create project from template error:', error);
+          this.promptAction.showToast({
+            message: '创建项目失败',
+            duration: 2000
+          });
         }
       }
+    }).catch((error: Error) => {
+      console.error('[ProjectGroupIndex] Template selection error:', error);
+    });
+  }
+
+  /**
+   * 选择已有项目添加到项目集
+   */
+  private selectExistingProjectForGroup(): void {
+    if (!this.projectGroup) return;
+
+    // 过滤出未添加的项目
+    const availableProjects = this.projectList.filter((p: ProjectMeta) => 
+      !this.projectGroup!.projectRefs.some((ref: ProjectRef) => ref.id === p.id)
+    );
+
+    if (availableProjects.length === 0) {
+      this.promptAction.showToast({
+        message: '没有可添加的项目，所有项目都已在项目集中',
+        duration: 2000
+      });
+      return;
+    }
+
+    // 显示项目列表
+    const maxProjects = Math.min(availableProjects.length, 5);
+    const buttons: ActionMenuButton[] = availableProjects.slice(0, maxProjects).map((p: ProjectMeta): ActionMenuButton => ({
+      text: `${p.name} (${new Date(p.lastModified).toLocaleDateString()})`,
+      color: ColorResource.infoColor
+    }));
+
+    this.promptAction.showActionMenu({
+      title: '选择要添加的项目',
+      buttons: buttons.length === 1 ? [buttons[0]] :
+              buttons.length === 2 ? [buttons[0], buttons[1]] :
+              buttons.length === 3 ? [buttons[0], buttons[1], buttons[2]] :
+              buttons.length === 4 ? [buttons[0], buttons[1], buttons[2], buttons[3]] :
+              [buttons[0], buttons[1], buttons[2], buttons[3], buttons[4]]
+    }).then((result) => {
+      if (result.index < maxProjects) {
+        const selectedProject: ProjectMeta = availableProjects[result.index];
+        
+        // 添加项目引用到项目集
+        this.projectGroupService.getActions().addProjectRef(
+          selectedProject.id,
+          selectedProject.name,
+          100 + result.index * 50,
+          100 + result.index * 50
+        );
+
+        this.promptAction.showToast({
+          message: `已添加项目 "${selectedProject.name}"`,
+          duration: 2000
+        });
+
+        this.drawGraph();
+      }
+    }).catch((error: Error) => {
+      console.error('[ProjectGroupIndex] Project selection error:', error);
     });
   }
 

@@ -903,146 +903,229 @@ struct Index {
    */
   @Builder
   ZoomPanel() {
-    Column({ space: 6 }) {
-      // 放大按钮
-      Text('+')
-        .fontSize(18)
-        .fontColor(ColorResource.primaryColor)
-        .fontWeight(FontWeight.Bold)
-        .width(32)
-        .height(32)
-        .textAlign(TextAlign.Center)
-        .borderRadius(16)
-        .backgroundColor(ColorResource.surface)
-        .border({ width: 1, color: ColorResource.primaryColor })
-        .onClick(() => this.handleZoomIn())
-      
-      // 滑块容器
-      Stack() {
-        // 轨道
-        Column()
-          .width(3)
-          .height(120)
-          .backgroundColor(ColorResource.surfaceNeutral)
-          .borderRadius(1.5)
-          .position({ x: 6.5, y: 0 })
-        
-        // 中线（100%位置）
-        Line()
-          .width(8)
-          .height(1.5)
-          .backgroundColor(ColorResource.primaryColor)
-          .position({ x: 4, y: 60 })
-        
-        // 进度条
-        Column()
-          .width(3)
-          .height(Math.abs(60 - this.getSliderHandlePosition()))
-          .backgroundColor(ColorResource.primaryColor)
-          .borderRadius(1.5)
-          .position({ 
-            x: 6.5, 
-            y: Math.min(60, this.getSliderHandlePosition())
-          })
-        
-        // 滑块手柄
-        Column()
-          .width(16)
-          .height(16)
+    if (this.isPhone) {
+      // 手机端：横向布局，显示在工具栏上方
+      Row({ space: 6 }) {
+        // 缩小按钮
+        Text('−')
+          .fontSize(16)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .width(28)
+          .height(28)
+          .textAlign(TextAlign.Center)
+          .borderRadius(14)
           .backgroundColor(ColorResource.surface)
-          .borderRadius(8)
-          .border({ width: 2, color: ColorResource.primaryColor })
-          .scale({ 
-            x: this.sliderDragging ? 1.1 : 1,
-            y: this.sliderDragging ? 1.1 : 1
+          .border({ width: 1, color: ColorResource.primaryColor })
+          .onClick(() => this.handleZoomOut())
+        
+        // 百分比显示
+        Text(`${Math.round(this.zoomScale * 100)}%`)
+          .fontSize(11)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.surfaceNeutral })
+        
+        // 放大按钮
+        Text('+')
+          .fontSize(16)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .width(28)
+          .height(28)
+          .textAlign(TextAlign.Center)
+          .borderRadius(14)
+          .backgroundColor(ColorResource.surface)
+          .border({ width: 1, color: ColorResource.primaryColor })
+          .onClick(() => this.handleZoomIn())
+        
+        // 分隔线
+        Column()
+          .width(1)
+          .height(20)
+          .backgroundColor(ColorResource.surfaceNeutral)
+        
+        // 重置到100%按钮
+        Text('1:1')
+          .fontSize(11)
+          .fontColor(ColorResource.infoColor)
+          .fontWeight(FontWeight.Bold)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .borderRadius(12)
+          .backgroundColor(ColorResource.infoLight)
+          .border({ width: 1, color: ColorResource.infoColor })
+          .onClick(() => {
+            this.zoomScale = 1.0;
+            this.canvasController.getState().zoomScale = 1.0;
+            this.drawGraph();
+            this.debouncedSaveCanvasPosition();
+            this.promptAction.showToast({
+              message: '已重置缩放：100%',
+              duration: 1000
+            });
           })
-          .position({ x: 0, y: this.getSliderHandlePosition() })
       }
-      .width(16)
-      .height(120)
-      .gesture(
-        PanGesture()
-          .onActionStart(() => {
-            this.sliderDragging = true;
-            this.lastSliderPosition = this.getSliderHandlePosition();
-          })
-          .onActionUpdate((event: GestureEvent) => {
-            this.handleSliderDrag(event.offsetY);
-          })
-          .onActionEnd(() => {
-            this.sliderDragging = false;
-          })
-      )
-      .onClick((event: ClickEvent) => {
-        this.handleSliderClick(event.y);
+      .height(36)
+      .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+      .backgroundColor(ColorResource.surface)
+      .borderRadius(20)
+      .border({ width: 2, color: ColorResource.primaryColor })
+      .shadow(ThemeConfig.shadowLarge)
+      .position({ x: 0, y: 0 })
+      .translate({ x: 12, y: 12 })  // 从左侧打开，位于工具栏上方
+      .zIndex(98)  // 低于工具栏的zIndex
+      .transition({
+        type: TransitionType.All,
+        scale: { x: 0.8, y: 0.8 },
+        opacity: 0,
+        translate: { x: -30, y: -20 }  // 从左侧滑入的动画效果
       })
-      
-      // 百分比显示
-      Text(`${Math.round(this.zoomScale * 100)}%`)
-        .fontSize(11)
-        .fontColor(ColorResource.primaryColor)
-        .fontWeight(FontWeight.Bold)
-        .padding(6)
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(12)
-        .border({ width: 1, color: ColorResource.surfaceNeutral })
-      
-      // 缩小按钮
-      Text('−')
-        .fontSize(20)
-        .fontColor(ColorResource.primaryColor)
-        .fontWeight(FontWeight.Bold)
-        .width(32)
-        .height(32)
-        .textAlign(TextAlign.Center)
-        .borderRadius(16)
-        .backgroundColor(ColorResource.surface)
-        .border({ width: 1, color: ColorResource.primaryColor })
-        .onClick(() => this.handleZoomOut())
-      
-      // 分隔线
-      Column()
-        .width(24)
-        .height(1)
-        .backgroundColor(ColorResource.surfaceNeutral)
-      
-      // 重置到100%按钮
-      Text('1:1')
-        .fontSize(11)
-        .fontColor(ColorResource.infoColor)
-        .fontWeight(FontWeight.Bold)
-        .width(32)
-        .height(24)
-        .textAlign(TextAlign.Center)
-        .borderRadius(12)
-        .backgroundColor(ColorResource.infoLight)
-        .border({ width: 1, color: ColorResource.infoColor })
-        .onClick(() => {
-          this.zoomScale = 1.0;
-          this.canvasController.getState().zoomScale = 1.0;
-          this.drawGraph();
-          this.debouncedSaveCanvasPosition();
-          this.promptAction.showToast({
-            message: '已重置缩放：100%',
-            duration: 1000
-          });
+    } else {
+      // 其他设备：垂直布局，显示在工具栏旁边
+      Column({ space: 6 }) {
+        // 放大按钮
+        Text('+')
+          .fontSize(18)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .width(32)
+          .height(32)
+          .textAlign(TextAlign.Center)
+          .borderRadius(16)
+          .backgroundColor(ColorResource.surface)
+          .border({ width: 1, color: ColorResource.primaryColor })
+          .onClick(() => this.handleZoomIn())
+        
+        // 滑块容器
+        Stack() {
+          // 轨道
+          Column()
+            .width(3)
+            .height(120)
+            .backgroundColor(ColorResource.surfaceNeutral)
+            .borderRadius(1.5)
+            .position({ x: 6.5, y: 0 })
+          
+          // 中线（100%位置）
+          Line()
+            .width(8)
+            .height(1.5)
+            .backgroundColor(ColorResource.primaryColor)
+            .position({ x: 4, y: 60 })
+          
+          // 进度条
+          Column()
+            .width(3)
+            .height(Math.abs(60 - this.getSliderHandlePosition()))
+            .backgroundColor(ColorResource.primaryColor)
+            .borderRadius(1.5)
+            .position({ 
+              x: 6.5, 
+              y: Math.min(60, this.getSliderHandlePosition())
+            })
+          
+          // 滑块手柄
+          Column()
+            .width(16)
+            .height(16)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(8)
+            .border({ width: 2, color: ColorResource.primaryColor })
+            .scale({ 
+              x: this.sliderDragging ? 1.1 : 1,
+              y: this.sliderDragging ? 1.1 : 1
+            })
+            .position({ x: 0, y: this.getSliderHandlePosition() })
+        }
+        .width(16)
+        .height(120)
+        .gesture(
+          PanGesture()
+            .onActionStart(() => {
+              this.sliderDragging = true;
+              this.lastSliderPosition = this.getSliderHandlePosition();
+            })
+            .onActionUpdate((event: GestureEvent) => {
+              this.handleSliderDrag(event.offsetY);
+            })
+            .onActionEnd(() => {
+              this.sliderDragging = false;
+            })
+        )
+        .onClick((event: ClickEvent) => {
+          this.handleSliderClick(event.y);
         })
+        
+        // 百分比显示
+        Text(`${Math.round(this.zoomScale * 100)}%`)
+          .fontSize(11)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .padding(6)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.surfaceNeutral })
+        
+        // 缩小按钮
+        Text('−')
+          .fontSize(20)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+          .width(32)
+          .height(32)
+          .textAlign(TextAlign.Center)
+          .borderRadius(16)
+          .backgroundColor(ColorResource.surface)
+          .border({ width: 1, color: ColorResource.primaryColor })
+          .onClick(() => this.handleZoomOut())
+        
+        // 分隔线
+        Column()
+          .width(24)
+          .height(1)
+          .backgroundColor(ColorResource.surfaceNeutral)
+        
+        // 重置到100%按钮
+        Text('1:1')
+          .fontSize(11)
+          .fontColor(ColorResource.infoColor)
+          .fontWeight(FontWeight.Bold)
+          .width(32)
+          .height(24)
+          .textAlign(TextAlign.Center)
+          .borderRadius(12)
+          .backgroundColor(ColorResource.infoLight)
+          .border({ width: 1, color: ColorResource.infoColor })
+          .onClick(() => {
+            this.zoomScale = 1.0;
+            this.canvasController.getState().zoomScale = 1.0;
+            this.drawGraph();
+            this.debouncedSaveCanvasPosition();
+            this.promptAction.showToast({
+              message: '已重置缩放：100%',
+              duration: 1000
+            });
+          })
+      }
+      .width(48)
+      .padding({ top: 10, bottom: 10 })
+      .backgroundColor(ColorResource.surface)
+      .borderRadius(24)
+      .border({ width: 2, color: ColorResource.primaryColor })
+      .shadow(ThemeConfig.shadowLarge)
+      .position({ x: '100%', y: 68 })  // 工具栏下方（下调位置，避免重叠）
+      .translate({ x: -60, y: 0 })
+      .zIndex(99)
+      .transition({
+        type: TransitionType.All,
+        scale: { x: 0.8, y: 0.8 },
+        opacity: 0,
+        translate: { y: -20 }
+      })
     }
-    .width(48)
-    .padding({ top: 10, bottom: 10 })
-    .backgroundColor(ColorResource.surface)
-    .borderRadius(24)
-    .border({ width: 2, color: ColorResource.primaryColor })
-    .shadow(ThemeConfig.shadowLarge)
-    .position({ x: '100%', y: 68 })  // 工具栏下方（下调位置，避免重叠）
-    .translate({ x: -60, y: 0 })
-    .zIndex(99)
-    .transition({
-      type: TransitionType.All,
-      scale: { x: 0.8, y: 0.8 },
-      opacity: 0,
-      translate: { y: -20 }
-    })
   }
 
   /**
@@ -1050,268 +1133,501 @@ struct Index {
    */
   @Builder
   CollapsibleToolbar() {
-    Row() {
-      // 收起状态：只显示展开按钮
-      if (!this.toolbarExpanded) {
-        Button() {
-          Row({ space: 6 }) {
-            Text('⚡')
-              .fontSize(18)
-              .fontColor(ColorResource.primaryColor)
-          }
-          .padding({ left: 2, right: 2 })
-        }
-        .width(40)
-        .height(40)
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(20)
-        .border({ width: 2, color: ColorResource.primaryColor })
-        .shadow(ThemeConfig.shadowLarge)
-        .onClick(() => {
-          animateTo({
-            duration: 180,
-            curve: Curve.EaseInOut
-          }, () => {
-            this.toolbarExpanded = true;
-          });
-        })
-      }
-      
-      // 展开状态：显示所有工具按钮
-      if (this.toolbarExpanded) {
-        Row({ space: 8 }) {
-          // 撤销按钮 - 内联以确保响应式更新
+    // 手机端使用垂直布局，其他设备使用水平布局
+    if (this.isPhone) {
+      // 手机端：垂直布局
+      Column() {
+        // 收起状态：只显示展开按钮
+        if (!this.toolbarExpanded) {
           Button() {
             Row({ space: 4 }) {
-              Text('↶')
+              Text('⚡')
                 .fontSize(16)
-              Text('撤销')
-                .fontSize(12)
-                .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral
-          })
-          .enabled(this.canUndo)
-          .opacity(this.canUndo ? 1 : 0.5)
-          .onClick(() => {
-            if (this.commandHistory.undo()) {
-              this.updateUndoRedoState();
-              this.updateStateFromManager();
-              this.drawGraph();
-              this.projectManager.getActions().calculateCriticalPath();
-              const commandName = this.commandHistory.getLastRedoCommandName();
-              this.promptAction.showToast({
-                message: commandName ? `已撤销: ${commandName}` : '已撤销',
-                duration: 1500
-              });
-            }
-          })
-          
-          // 重做按钮 - 内联以确保响应式更新
-          Button() {
-            Row({ space: 4 }) {
-              Text('↷')
-                .fontSize(16)
-              Text('重做')
-                .fontSize(12)
-                .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral
-          })
-          .enabled(this.canRedo)
-          .opacity(this.canRedo ? 1 : 0.5)
-          .onClick(() => {
-            if (this.commandHistory.redo()) {
-              this.updateUndoRedoState();
-              this.updateStateFromManager();
-              this.drawGraph();
-              this.projectManager.getActions().calculateCriticalPath();
-              const commandName = this.commandHistory.getLastUndoCommandName();
-              this.promptAction.showToast({
-                message: commandName ? `已重做: ${commandName}` : '已重做',
-                duration: 1500
-              });
-            }
-          })
-          
-          // 分隔线
-          Column()
-            .width(1)
-            .height(24)
-            .backgroundColor(ColorResource.surfaceNeutral)
-            .margin({ left: 4, right: 4 })
-          
-          // 锁定/解锁按钮 - 内联以确保响应式更新
-          Button() {
-            Row({ space: 4 }) {
-              Text(this.canvasLock ? '🔓' : '🔒')
-                .fontSize(16)
-              Text(this.canvasLock ? '解锁' : '锁定')
-                .fontSize(12)
-                .fontColor(ColorResource.warningColor)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(this.canvasLock ? ColorResource.warningLight : ColorResource.surface)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: ColorResource.warningColor
-          })
-          .onClick(() => {
-            this.canvasController.getActions().toggleCanvasLock();
-            this.canvasLock = !this.canvasLock;
-          })
-          
-          // 重置按钮
-          Button() {
-            Row({ space: 4 }) {
-              Text('🔄')
-                .fontSize(16)
-              Text('重置')
-                .fontSize(12)
-                .fontColor(ColorResource.successColor)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(ColorResource.successLight)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: ColorResource.successColor
-          })
-          .onClick(() => {
-            this.canvasController.getActions().resetCanvas();
-            this.drawGraph();
-          })
-          
-          // 分隔线
-          Column()
-            .width(1)
-            .height(24)
-            .backgroundColor(ColorResource.surfaceNeutral)
-            .margin({ left: 4, right: 4 })
-          
-          // 缩略模式切换按钮
-          Button() {
-            Row({ space: 4 }) {
-              Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
-                .fontSize(16)
-              Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
-                .fontSize(12)
-                .fontColor(this.canvasRenderMode === RenderMode.COMPACT 
-                  ? ColorResource.primaryColor 
-                  : ColorResource.infoColor)
-                .fontWeight(FontWeight.Medium)
-            }
-          }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(this.canvasRenderMode === RenderMode.COMPACT 
-            ? ColorResource.primaryUltraLight 
-            : ColorResource.infoLight)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: this.canvasRenderMode === RenderMode.COMPACT 
-              ? ColorResource.primaryColor 
-              : ColorResource.infoColor
-          })
-          .onClick(() => {
-            this.toggleRenderMode();
-          })
-          
-          // 缩放按钮
-          Button() {
-            Row({ space: 4 }) {
-              Text('🔍')
-                .fontSize(16)
-              Text(`${Math.round(this.zoomScale * 100)}%`)
-                .fontSize(12)
                 .fontColor(ColorResource.primaryColor)
-                .fontWeight(FontWeight.Medium)
             }
+            .padding({ left: 2, right: 2 })
           }
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor(this.zoomPanelExpanded 
-            ? ColorResource.primaryUltraLight 
-            : ColorResource.surface)
-          .borderRadius(16)
-          .border({
-            width: 1.5,
-            color: this.zoomPanelExpanded 
-              ? ColorResource.primaryColor 
-              : ColorResource.surfaceNeutral
-          })
+          .width(36)
+          .height(36)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(18)
+          .border({ width: 2, color: ColorResource.primaryColor })
+          .shadow(ThemeConfig.shadowLarge)
           .onClick(() => {
             animateTo({
               duration: 180,
               curve: Curve.EaseInOut
             }, () => {
-              this.zoomPanelExpanded = !this.zoomPanelExpanded;
-            });
-          })
-          
-          // 分隔线
-          Column()
-            .width(1)
-            .height(24)
-            .backgroundColor(ColorResource.surfaceNeutral)
-            .margin({ left: 4, right: 4 })
-          
-          // 收起按钮
-          Button() {
-            Text('×')
-              .fontSize(20)
-              .fontColor(ColorResource.surfaceStrong)
-              .fontWeight(FontWeight.Bold)
-          }
-          .width(32)
-          .height(32)
-          .backgroundColor(ColorResource.surfaceLight)
-          .borderRadius(16)
-          .border({ width: 1, color: ColorResource.surfaceNeutral })
-          .onClick(() => {
-            animateTo({
-              duration: 180,
-              curve: Curve.EaseInOut
-            }, () => {
-              this.toolbarExpanded = false;
+              this.toolbarExpanded = true;
             });
           })
         }
-        .padding({ left: 12, right: 8, top: 6, bottom: 6 })
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(24)
-        .border({ width: 2, color: ColorResource.primaryColor })
-        .shadow(ThemeConfig.shadowLarge)
+        
+        // 展开状态：垂直排列所有工具按钮
+        if (this.toolbarExpanded) {
+          Column({ space: 6 }) {
+            // 撤销按钮 - 内联以确保响应式更新
+            Button() {
+              Text('↶')
+                .fontSize(18)
+                .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral
+            })
+            .enabled(this.canUndo)
+            .opacity(this.canUndo ? 1 : 0.5)
+            .onClick(() => {
+              if (this.commandHistory.undo()) {
+                this.updateUndoRedoState();
+                this.updateStateFromManager();
+                this.drawGraph();
+                this.projectManager.getActions().calculateCriticalPath();
+                const commandName = this.commandHistory.getLastRedoCommandName();
+                this.promptAction.showToast({
+                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                  duration: 1500
+                });
+              }
+            })
+            
+            // 重做按钮 - 内联以确保响应式更新
+            Button() {
+              Text('↷')
+                .fontSize(18)
+                .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral
+            })
+            .enabled(this.canRedo)
+            .opacity(this.canRedo ? 1 : 0.5)
+            .onClick(() => {
+              if (this.commandHistory.redo()) {
+                this.updateUndoRedoState();
+                this.updateStateFromManager();
+                this.drawGraph();
+                this.projectManager.getActions().calculateCriticalPath();
+                const commandName = this.commandHistory.getLastUndoCommandName();
+                this.promptAction.showToast({
+                  message: commandName ? `已重做: ${commandName}` : '已重做',
+                  duration: 1500
+                });
+              }
+            })
+            
+            // 分隔线
+            Row()
+              .width(24)
+              .height(1)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ top: 2, bottom: 2 })
+            
+            // 锁定/解锁按钮 - 内联以确保响应式更新
+            Button() {
+              Text(this.canvasLock ? '🔓' : '🔒')
+                .fontSize(18)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(this.canvasLock ? ColorResource.warningLight : ColorResource.surface)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: ColorResource.warningColor
+            })
+            .onClick(() => {
+              this.canvasController.getActions().toggleCanvasLock();
+              this.canvasLock = !this.canvasLock;
+            })
+            
+            // 重置按钮
+            Button() {
+              Text('🔄')
+                .fontSize(18)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(ColorResource.successLight)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: ColorResource.successColor
+            })
+            .onClick(() => {
+              this.canvasController.getActions().resetCanvas();
+              this.drawGraph();
+            })
+            
+            // 分隔线
+            Row()
+              .width(24)
+              .height(1)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ top: 2, bottom: 2 })
+            
+            // 缩略模式切换按钮
+            Button() {
+              Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
+                .fontSize(18)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(this.canvasRenderMode === RenderMode.COMPACT 
+              ? ColorResource.primaryUltraLight 
+              : ColorResource.infoLight)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: this.canvasRenderMode === RenderMode.COMPACT 
+                ? ColorResource.primaryColor 
+                : ColorResource.infoColor
+            })
+            .onClick(() => {
+              this.toggleRenderMode();
+            })
+            
+            // 缩放按钮
+            Button() {
+              Text('🔍')
+                .fontSize(18)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(this.zoomPanelExpanded 
+              ? ColorResource.primaryUltraLight 
+              : ColorResource.surface)
+            .borderRadius(18)
+            .border({
+              width: 1.5,
+              color: this.zoomPanelExpanded 
+                ? ColorResource.primaryColor 
+                : ColorResource.surfaceNeutral
+            })
+            .onClick(() => {
+              animateTo({
+                duration: 180,
+                curve: Curve.EaseInOut
+              }, () => {
+                this.zoomPanelExpanded = !this.zoomPanelExpanded;
+              });
+            })
+            
+            // 分隔线
+            Row()
+              .width(24)
+              .height(1)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ top: 2, bottom: 2 })
+            
+            // 收起按钮
+            Button() {
+              Text('×')
+                .fontSize(20)
+                .fontColor(ColorResource.surfaceStrong)
+                .fontWeight(FontWeight.Bold)
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(ColorResource.surfaceLight)
+            .borderRadius(18)
+            .border({ width: 1, color: ColorResource.surfaceNeutral })
+            .onClick(() => {
+              animateTo({
+                duration: 180,
+                curve: Curve.EaseInOut
+              }, () => {
+                this.toolbarExpanded = false;
+              });
+            })
+          }
+          .padding({ top: 2, bottom: 6, left: 6, right: 6 })
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(24)
+          .border({ width: 2, color: ColorResource.primaryColor })
+          .shadow(ThemeConfig.shadowLarge)
+        }
       }
+      .width('100%')
+      .justifyContent(FlexAlign.End)
+      .alignItems(HorizontalAlign.End)
+      .padding({ right: 12, top: 12 })
+      .position({ x: 0, y: 0 })
+    } else {
+      // 其他设备：水平布局（保持原样）
+      Row() {
+        // 收起状态：只显示展开按钮
+        if (!this.toolbarExpanded) {
+          Button() {
+            Row({ space: 6 }) {
+              Text('⚡')
+                .fontSize(18)
+                .fontColor(ColorResource.primaryColor)
+            }
+            .padding({ left: 2, right: 2 })
+          }
+          .width(40)
+          .height(40)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(20)
+          .border({ width: 2, color: ColorResource.primaryColor })
+          .shadow(ThemeConfig.shadowLarge)
+          .onClick(() => {
+            animateTo({
+              duration: 180,
+              curve: Curve.EaseInOut
+            }, () => {
+              this.toolbarExpanded = true;
+            });
+          })
+        }
+        
+        // 展开状态：显示所有工具按钮
+        if (this.toolbarExpanded) {
+          Row({ space: 8 }) {
+            // 撤销按钮 - 内联以确保响应式更新
+            Button() {
+              Row({ space: 4 }) {
+                Text('↶')
+                  .fontSize(16)
+                Text('撤销')
+                  .fontSize(12)
+                  .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral
+            })
+            .enabled(this.canUndo)
+            .opacity(this.canUndo ? 1 : 0.5)
+            .onClick(() => {
+              if (this.commandHistory.undo()) {
+                this.updateUndoRedoState();
+                this.updateStateFromManager();
+                this.drawGraph();
+                this.projectManager.getActions().calculateCriticalPath();
+                const commandName = this.commandHistory.getLastRedoCommandName();
+                this.promptAction.showToast({
+                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                  duration: 1500
+                });
+              }
+            })
+            
+            // 重做按钮 - 内联以确保响应式更新
+            Button() {
+              Row({ space: 4 }) {
+                Text('↷')
+                  .fontSize(16)
+                Text('重做')
+                  .fontSize(12)
+                  .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral
+            })
+            .enabled(this.canRedo)
+            .opacity(this.canRedo ? 1 : 0.5)
+            .onClick(() => {
+              if (this.commandHistory.redo()) {
+                this.updateUndoRedoState();
+                this.updateStateFromManager();
+                this.drawGraph();
+                this.projectManager.getActions().calculateCriticalPath();
+                const commandName = this.commandHistory.getLastUndoCommandName();
+                this.promptAction.showToast({
+                  message: commandName ? `已重做: ${commandName}` : '已重做',
+                  duration: 1500
+                });
+              }
+            })
+            
+            // 分隔线
+            Column()
+              .width(1)
+              .height(24)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ left: 4, right: 4 })
+            
+            // 锁定/解锁按钮 - 内联以确保响应式更新
+            Button() {
+              Row({ space: 4 }) {
+                Text(this.canvasLock ? '🔓' : '🔒')
+                  .fontSize(16)
+                Text(this.canvasLock ? '解锁' : '锁定')
+                  .fontSize(12)
+                  .fontColor(ColorResource.warningColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(this.canvasLock ? ColorResource.warningLight : ColorResource.surface)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: ColorResource.warningColor
+            })
+            .onClick(() => {
+              this.canvasController.getActions().toggleCanvasLock();
+              this.canvasLock = !this.canvasLock;
+            })
+            
+            // 重置按钮
+            Button() {
+              Row({ space: 4 }) {
+                Text('🔄')
+                  .fontSize(16)
+                Text('重置')
+                  .fontSize(12)
+                  .fontColor(ColorResource.successColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(ColorResource.successLight)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: ColorResource.successColor
+            })
+            .onClick(() => {
+              this.canvasController.getActions().resetCanvas();
+              this.drawGraph();
+            })
+            
+            // 分隔线
+            Column()
+              .width(1)
+              .height(24)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ left: 4, right: 4 })
+            
+            // 缩略模式切换按钮
+            Button() {
+              Row({ space: 4 }) {
+                Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
+                  .fontSize(16)
+                Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
+                  .fontSize(12)
+                  .fontColor(this.canvasRenderMode === RenderMode.COMPACT 
+                    ? ColorResource.primaryColor 
+                    : ColorResource.infoColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(this.canvasRenderMode === RenderMode.COMPACT 
+              ? ColorResource.primaryUltraLight 
+              : ColorResource.infoLight)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: this.canvasRenderMode === RenderMode.COMPACT 
+                ? ColorResource.primaryColor 
+                : ColorResource.infoColor
+            })
+            .onClick(() => {
+              this.toggleRenderMode();
+            })
+            
+            // 缩放按钮
+            Button() {
+              Row({ space: 4 }) {
+                Text('🔍')
+                  .fontSize(16)
+                Text(`${Math.round(this.zoomScale * 100)}%`)
+                  .fontSize(12)
+                  .fontColor(ColorResource.primaryColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .height(32)
+            .padding({ left: 10, right: 10 })
+            .backgroundColor(this.zoomPanelExpanded 
+              ? ColorResource.primaryUltraLight 
+              : ColorResource.surface)
+            .borderRadius(16)
+            .border({
+              width: 1.5,
+              color: this.zoomPanelExpanded 
+                ? ColorResource.primaryColor 
+                : ColorResource.surfaceNeutral
+            })
+            .onClick(() => {
+              animateTo({
+                duration: 180,
+                curve: Curve.EaseInOut
+              }, () => {
+                this.zoomPanelExpanded = !this.zoomPanelExpanded;
+              });
+            })
+            
+            // 分隔线
+            Column()
+              .width(1)
+              .height(24)
+              .backgroundColor(ColorResource.surfaceNeutral)
+              .margin({ left: 4, right: 4 })
+            
+            // 收起按钮
+            Button() {
+              Text('×')
+                .fontSize(20)
+                .fontColor(ColorResource.surfaceStrong)
+                .fontWeight(FontWeight.Bold)
+            }
+            .width(32)
+            .height(32)
+            .backgroundColor(ColorResource.surfaceLight)
+            .borderRadius(16)
+            .border({ width: 1, color: ColorResource.surfaceNeutral })
+            .onClick(() => {
+              animateTo({
+                duration: 180,
+                curve: Curve.EaseInOut
+              }, () => {
+                this.toolbarExpanded = false;
+              });
+            })
+          }
+          .padding({ left: 12, right: 8, top: 6, bottom: 6 })
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(24)
+          .border({ width: 2, color: ColorResource.primaryColor })
+          .shadow(ThemeConfig.shadowLarge)
+        }
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ right: 12, top: 12 })
+      .position({ x: 0, y: 0 })
     }
-    .width('100%')
-    .justifyContent(FlexAlign.End)
-    .padding({ right: 12, top: 12 })
-    .position({ x: 0, y: 0 })
   }
 
   build() {

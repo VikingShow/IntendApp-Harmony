@@ -369,9 +369,14 @@ struct Index {
       console.log(`[Index] project_loaded - setting renderMode to: ${correctRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
       // 画布位置已在 aboutToAppear 中恢复，这里只需要清除缓存并重新渲染
       this.canvasController.getRenderer().clearRenderCache();
-      this.drawGraph();
-      // 渲染完成后立即显示画布，无延迟
-      this.canvasOpacity = 1;
+      
+      // 延迟一帧渲染，确保renderMode已经生效
+      setTimeout(() => {
+        this.drawGraph();
+        // 渲染完成后立即显示画布
+        this.canvasOpacity = 1;
+        console.log(`[Index] project_loaded - Canvas rendered with correct renderMode`);
+      }, 16); // 延迟一帧（约16ms）
     });
 
     // 监听项目保存事件
@@ -1794,14 +1799,20 @@ struct Index {
               this.canvasController.setRenderMode(correctRenderMode);
               console.log(`[Index] Canvas onReady - setting renderMode to: ${correctRenderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
               
-              // 项目已加载，立即恢复画布位置并绘制
+              // 项目已加载，立即恢复画布位置
               this.restoreCanvasPosition();
               console.log(`[Index] After restore - zoomScale: ${this.canvasController.getState().zoomScale}, renderMode: ${this.canvasController.getState().renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}`);
+              
+              // 清除渲染缓存，确保使用最新的renderMode渲染
               this.canvasController.getRenderer().clearRenderCache();
-              this.drawGraph();
-              // 渲染完成后立即显示画布，无延迟
-              this.canvasOpacity = 1;
-              console.log(`[Index] Canvas now visible`);
+              
+              // 延迟一帧渲染，确保所有状态都已经正确设置
+              setTimeout(() => {
+                this.drawGraph();
+                // 渲染完成后立即显示画布
+                this.canvasOpacity = 1;
+                console.log(`[Index] Canvas now visible with correct renderMode`);
+              }, 16); // 延迟一帧（约16ms）
             }
             // 如果项目还没加载，等待 project_loaded 事件触发渲染
           })

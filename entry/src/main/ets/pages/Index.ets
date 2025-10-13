@@ -95,6 +95,10 @@ struct Index {
   @State isDarkMode: boolean = false;
   private performanceService: PerformanceService = PerformanceService.getInstance();
   
+  // 工具栏状态
+  @State toolbarExpanded: boolean = false;  // 工具栏是否展开
+  @State toolbarHoverIndex: number = -1;     // 当前悬停的按钮索引
+  
   // 响应式布局相关状态
   @State screenWidth: number = 0;
   @State isPhone: boolean = false;
@@ -895,6 +899,243 @@ struct Index {
     })
   }
 
+  /**
+   * 可伸缩工具栏组件
+   */
+  @Builder
+  CollapsibleToolbar() {
+    Row() {
+      // 收起状态：只显示展开按钮
+      if (!this.toolbarExpanded) {
+        Button() {
+          Row({ space: 6 }) {
+            Text('⚡')
+              .fontSize(18)
+              .fontColor(ColorResource.primaryColor)
+          }
+          .padding({ left: 2, right: 2 })
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(20)
+        .border({ width: 2, color: ColorResource.primaryColor })
+        .shadow(ThemeConfig.shadowLarge)
+        .onClick(() => {
+          animateTo({
+            duration: 300,
+            curve: Curve.EaseInOut
+          }, () => {
+            this.toolbarExpanded = true;
+          });
+        })
+      }
+      
+      // 展开状态：显示所有工具按钮
+      if (this.toolbarExpanded) {
+        Row({ space: 8 }) {
+          // 撤销按钮 - 内联以确保响应式更新
+          Button() {
+            Row({ space: 4 }) {
+              Text('↶')
+                .fontSize(16)
+              Text('撤销')
+                .fontSize(12)
+                .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral
+          })
+          .enabled(this.canUndo)
+          .opacity(this.canUndo ? 1 : 0.5)
+          .onClick(() => {
+            if (this.commandHistory.undo()) {
+              this.updateUndoRedoState();
+              this.updateStateFromManager();
+              this.drawGraph();
+              this.projectManager.getActions().calculateCriticalPath();
+              const commandName = this.commandHistory.getLastRedoCommandName();
+              this.promptAction.showToast({
+                message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                duration: 1500
+              });
+            }
+          })
+          
+          // 重做按钮 - 内联以确保响应式更新
+          Button() {
+            Row({ space: 4 }) {
+              Text('↷')
+                .fontSize(16)
+              Text('重做')
+                .fontSize(12)
+                .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral
+          })
+          .enabled(this.canRedo)
+          .opacity(this.canRedo ? 1 : 0.5)
+          .onClick(() => {
+            if (this.commandHistory.redo()) {
+              this.updateUndoRedoState();
+              this.updateStateFromManager();
+              this.drawGraph();
+              this.projectManager.getActions().calculateCriticalPath();
+              const commandName = this.commandHistory.getLastUndoCommandName();
+              this.promptAction.showToast({
+                message: commandName ? `已重做: ${commandName}` : '已重做',
+                duration: 1500
+              });
+            }
+          })
+          
+          // 分隔线
+          Column()
+            .width(1)
+            .height(24)
+            .backgroundColor(ColorResource.surfaceNeutral)
+            .margin({ left: 4, right: 4 })
+          
+          // 锁定/解锁按钮 - 内联以确保响应式更新
+          Button() {
+            Row({ space: 4 }) {
+              Text(this.canvasLock ? '🔓' : '🔒')
+                .fontSize(16)
+              Text(this.canvasLock ? '解锁' : '锁定')
+                .fontSize(12)
+                .fontColor(ColorResource.warningColor)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(this.canvasLock ? ColorResource.warningLight : ColorResource.surface)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: ColorResource.warningColor
+          })
+          .onClick(() => {
+            this.canvasController.getActions().toggleCanvasLock();
+            this.canvasLock = !this.canvasLock;
+          })
+          
+          // 重置按钮
+          Button() {
+            Row({ space: 4 }) {
+              Text('🔄')
+                .fontSize(16)
+              Text('重置')
+                .fontSize(12)
+                .fontColor(ColorResource.successColor)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(ColorResource.successLight)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: ColorResource.successColor
+          })
+          .onClick(() => {
+            this.canvasController.getActions().resetCanvas();
+            this.drawGraph();
+          })
+          
+          // 分隔线
+          Column()
+            .width(1)
+            .height(24)
+            .backgroundColor(ColorResource.surfaceNeutral)
+            .margin({ left: 4, right: 4 })
+          
+          // 缩略模式切换按钮
+          Button() {
+            Row({ space: 4 }) {
+              Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
+                .fontSize(16)
+              Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
+                .fontSize(12)
+                .fontColor(this.canvasRenderMode === RenderMode.COMPACT 
+                  ? ColorResource.primaryColor 
+                  : ColorResource.infoColor)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(this.canvasRenderMode === RenderMode.COMPACT 
+            ? ColorResource.primaryUltraLight 
+            : ColorResource.infoLight)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: this.canvasRenderMode === RenderMode.COMPACT 
+              ? ColorResource.primaryColor 
+              : ColorResource.infoColor
+          })
+          .onClick(() => {
+            this.toggleRenderMode();
+          })
+          
+          // 分隔线
+          Column()
+            .width(1)
+            .height(24)
+            .backgroundColor(ColorResource.surfaceNeutral)
+            .margin({ left: 4, right: 4 })
+          
+          // 收起按钮
+          Button() {
+            Text('×')
+              .fontSize(20)
+              .fontColor(ColorResource.surfaceStrong)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(32)
+          .height(32)
+          .backgroundColor(ColorResource.surfaceLight)
+          .borderRadius(16)
+          .border({ width: 1, color: ColorResource.surfaceNeutral })
+          .onClick(() => {
+            animateTo({
+              duration: 300,
+              curve: Curve.EaseInOut
+            }, () => {
+              this.toolbarExpanded = false;
+            });
+          })
+        }
+        .padding({ left: 12, right: 8, top: 6, bottom: 6 })
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(24)
+        .border({ width: 2, color: ColorResource.primaryColor })
+        .shadow(ThemeConfig.shadowLarge)
+      }
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.End)
+    .padding({ right: 12, top: 12 })
+    .position({ x: 0, y: 0 })
+  }
+
   build() {
     Stack() {
       // 展开/收起按钮 - 固定在左侧中间
@@ -1039,127 +1280,8 @@ struct Index {
             }
           })
 
-        // 右上角控制按钮
-        Column() {
-          Row() {
-            // 撤销按钮 - 现代化设计
-            Button() {
-              Text('↶ 撤销')
-                .fontSize(13)
-                .fontColor(this.canUndo ? ColorResource.errorColor : ColorResource.surfaceStrong)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width(75)
-            .height(36)
-            .backgroundColor(this.canUndo ? ColorResource.errorLight : ColorResource.surfaceLight)
-            .borderRadius(ThemeConfig.radiusMedium)
-            .border({
-              width: 2,
-              color: this.canUndo ? ColorResource.errorColor : ColorResource.surfaceNeutral,
-              radius: ThemeConfig.radiusMedium
-            })
-            .shadow(ThemeConfig.shadowMedium)
-            .margin({ right: 12, top: 12 })
-            .enabled(this.canUndo)
-            .opacity(this.canUndo ? 1 : 0.6)
-            .onClick(() => {
-              if (this.commandHistory.undo()) {
-                // 更新按钮状态
-                this.updateUndoRedoState();
-                // 刷新状态和画布
-                this.updateStateFromManager();
-                this.drawGraph();
-                // 重新计算关键路径
-                this.projectManager.getActions().calculateCriticalPath();
-                // 显示提示
-                const commandName = this.commandHistory.getLastRedoCommandName();
-                this.promptAction.showToast({
-                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
-                  duration: 1500
-                });
-              }
-            })
-
-            // 重做按钮 - 现代化设计
-            Button() {
-              Text('↷ 重做')
-                .fontSize(13)
-                .fontColor(this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceStrong)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width(75)
-            .height(36)
-            .backgroundColor(this.canRedo ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
-            .borderRadius(ThemeConfig.radiusMedium)
-            .border({
-              width: 2,
-              color: this.canRedo ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
-              radius: ThemeConfig.radiusMedium
-            })
-            .shadow(ThemeConfig.shadowMedium)
-            .margin({ right: 12, top: 12 })
-            .enabled(this.canRedo)
-            .opacity(this.canRedo ? 1 : 0.6)
-            .onClick(() => {
-              if (this.commandHistory.redo()) {
-                // 更新按钮状态
-                this.updateUndoRedoState();
-                // 刷新状态和画布
-                this.updateStateFromManager();
-                this.drawGraph();
-                // 重新计算关键路径
-                this.projectManager.getActions().calculateCriticalPath();
-                // 显示提示
-                const commandName = this.commandHistory.getLastUndoCommandName();
-                this.promptAction.showToast({
-                  message: commandName ? `已重做: ${commandName}` : '已重做',
-                  duration: 1500
-                });
-              }
-            })
-
-            Button() {
-              Text(this.canvasLock ? '🔓 解锁' : '🔒 锁定')
-                .fontSize(13)
-                .fontColor(ColorResource.primaryColor)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width(75)
-            .height(36)
-            .backgroundColor(ColorResource.primaryUltraLight)
-            .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: ColorResource.primaryColor, radius: ThemeConfig.radiusMedium })
-            .shadow(ThemeConfig.shadowMedium)
-            .margin({ right: 12, top: 12 })
-            .onClick(() => {
-              this.canvasController.getActions().toggleCanvasLock();
-              this.canvasLock = !this.canvasLock
-              // this.canvasController.getState().isCanvasLocked = !(this.canvasController.getState().isCanvasLocked);
-            })
-
-            Button() {
-              Text('🔄 复原')
-                .fontSize(13)
-                .fontColor(ColorResource.successColor)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width(70)
-            .height(36)
-            .backgroundColor(ColorResource.successLight)
-            .borderRadius(ThemeConfig.radiusMedium)
-            .border({ width: 2, color: ColorResource.successColor, radius: ThemeConfig.radiusMedium })
-            .shadow(ThemeConfig.shadowMedium)
-            .margin({ right: 12, top: 12 })
-            .onClick(() => {
-              this.canvasController.getActions().resetCanvas();
-              this.drawGraph();
-            })
-          }
-          .justifyContent(FlexAlign.End)
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.End)
-        .position({ x: 0, y: 0 })
+        // 右上角可伸缩工具栏
+        this.CollapsibleToolbar()
         
         // 右侧中间 - 极简缩放控制
         Column({ space: 8 }) {
@@ -1288,53 +1410,6 @@ struct Index {
         .position({ x: '100%', y: '50%' })
         .translate({ x: -60, y: -135 })
         .zIndex(100)
-        
-        // 右下角 - 渲染模式切换按钮
-        Button() {
-          Column({ space: 4 }) {
-            Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
-              .fontSize(20)
-            // Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
-            //   .fontSize(11)
-            //   .fontColor(ColorResource.textPrimary)
-            //   .fontWeight(ThemeConfig.fontWeightMedium)
-          }
-        }
-        .width(65)
-        .height(65)
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(ThemeConfig.radiusLarge)
-        .border({ 
-          width: 2, 
-          color: this.canvasRenderMode === RenderMode.COMPACT 
-            ? ColorResource.primaryColor 
-            : ColorResource.surfaceNeutral, 
-          radius: ThemeConfig.radiusLarge 
-        })
-        .shadow({
-          radius: 12,
-          color: this.isDarkMode ? ColorResource.shadowColorMedium : ColorResource.shadowColorFaint,
-          offsetX: 0,
-          offsetY: 4
-        })
-        .position({ x: '100%', y: '100%' })
-        .translate({ x: -85, y: -85 })
-        .zIndex(100)
-        .onClick(() => {
-          // 触发震动反馈
-          try {
-            vibrator.startVibration({
-              type: 'time',
-              duration: 15
-            }, {
-              usage: 'touch'
-            });
-          } catch (error) {
-            console.error('[Index] Vibration error:', error);
-          }
-          
-          this.toggleRenderMode();
-        })
       }
       .width('100%')
       .height('100%')

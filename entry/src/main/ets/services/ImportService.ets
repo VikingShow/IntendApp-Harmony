@@ -206,24 +206,23 @@ export class ImportService {
    */
   private async selectFile(): Promise<string | null> {
     try {
-      if (!canIUse('SystemCapability.FileManagement.UserFileService')) {
+      if (canIUse('SystemCapability.FileManagement.UserFileService')) {
+        // 创建文档选择器
+        const documentSelectOptions = new picker.DocumentSelectOptions();
+        documentSelectOptions.maxSelectNumber = 1; // 只选择一个文件
+
+        const documentPicker = new picker.DocumentViewPicker();
+        const result = await documentPicker.select(documentSelectOptions);
+
+        if (!result || result.length === 0) {
+          console.log('[ImportService] 用户取消了文件选择');
+          return null;
+        }
+        return result[0];
+      }else {
         console.warn('[ImportService] 设备不支持文件选择器');
         return null;
       }
-
-      // 创建文档选择器
-      const documentSelectOptions = new picker.DocumentSelectOptions();
-      documentSelectOptions.maxSelectNumber = 1; // 只选择一个文件
-
-      const documentPicker = new picker.DocumentViewPicker();
-      const result = await documentPicker.select(documentSelectOptions);
-
-      if (!result || result.length === 0) {
-        console.log('[ImportService] 用户取消了文件选择');
-        return null;
-      }
-
-      return result[0];
     } catch (error) {
       console.error('[ImportService] 文件选择失败:', error);
       return null;
@@ -237,62 +236,62 @@ export class ImportService {
     try {
       console.log(`[ImportService] 开始读取文件: ${fileUri}`);
       
-      if (!canIUse('SystemCapability.FileManagement.File.FileIO')) {
+      if (canIUse('SystemCapability.FileManagement.File.FileIO')) {
+        // 打开文件
+        console.log('[ImportService] 正在打开文件...');
+        const file = fs.openSync(fileUri, fs.OpenMode.READ_ONLY);
+        console.log(`[ImportService] 文件已打开，文件描述符: ${file.fd}`);
+
+        // 分块读取文件内容（避免预先知道文件大小）
+        console.log('[ImportService] 正在读取文件内容...');
+        const chunkSize = 1024 * 1024; // 每次读取 1MB
+        const chunks: Uint8Array[] = [];
+        let totalSize = 0;
+
+        try {
+          while (true) {
+            const buffer = new ArrayBuffer(chunkSize);
+            const bytesRead = fs.readSync(file.fd, buffer);
+
+            if (bytesRead <= 0) {
+              break; // 读取完成
+            }
+
+            // 只保存实际读取的字节
+            const chunk = new Uint8Array(buffer, 0, bytesRead);
+            chunks.push(chunk);
+            totalSize += bytesRead;
+
+            console.log(`[ImportService] 已读取 ${bytesRead} 字节，总计 ${totalSize} 字节`);
+
+            if (bytesRead < chunkSize) {
+              break; // 读取到文件末尾
+            }
+          }
+        } finally {
+          fs.closeSync(file);
+        }
+
+        console.log(`[ImportService] 文件内容读取完成，总大小: ${totalSize} 字节`);
+
+        // 合并所有块
+        const fullBuffer = new Uint8Array(totalSize);
+        let offset = 0;
+        for (const chunk of chunks) {
+          fullBuffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        // 解码为字符串
+        const decoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
+        const content = decoder.decodeToString(fullBuffer);
+        console.log(`[ImportService] 文件内容解码完成，长度: ${content.length} 字符`);
+
+        return content;
+      }else {
         console.warn('[ImportService] 设备不支持文件IO');
         return null;
       }
-
-      // 打开文件
-      console.log('[ImportService] 正在打开文件...');
-      const file = fs.openSync(fileUri, fs.OpenMode.READ_ONLY);
-      console.log(`[ImportService] 文件已打开，文件描述符: ${file.fd}`);
-      
-      // 分块读取文件内容（避免预先知道文件大小）
-      console.log('[ImportService] 正在读取文件内容...');
-      const chunkSize = 1024 * 1024; // 每次读取 1MB
-      const chunks: Uint8Array[] = [];
-      let totalSize = 0;
-      
-      try {
-        while (true) {
-          const buffer = new ArrayBuffer(chunkSize);
-          const bytesRead = fs.readSync(file.fd, buffer);
-          
-          if (bytesRead <= 0) {
-            break; // 读取完成
-          }
-          
-          // 只保存实际读取的字节
-          const chunk = new Uint8Array(buffer, 0, bytesRead);
-          chunks.push(chunk);
-          totalSize += bytesRead;
-          
-          console.log(`[ImportService] 已读取 ${bytesRead} 字节，总计 ${totalSize} 字节`);
-          
-          if (bytesRead < chunkSize) {
-            break; // 读取到文件末尾
-          }
-        }
-      } finally {
-        fs.closeSync(file);
-      }
-      
-      console.log(`[ImportService] 文件内容读取完成，总大小: ${totalSize} 字节`);
-
-      // 合并所有块
-      const fullBuffer = new Uint8Array(totalSize);
-      let offset = 0;
-      for (const chunk of chunks) {
-        fullBuffer.set(chunk, offset);
-        offset += chunk.length;
-      }
-
-      // 解码为字符串
-      const decoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
-      const content = decoder.decodeToString(fullBuffer);
-      console.log(`[ImportService] 文件内容解码完成，长度: ${content.length} 字符`);
-
-      return content;
     } catch (error) {
       console.error('[ImportService] 读取文件失败:', error);
       console.error(`[ImportService] 错误详情: ${JSON.stringify(error)}`);
@@ -311,7 +310,6 @@ export class ImportService {
       return null;
     }
   }
-
   /**
    * 检测文件格式
    */

@@ -40,7 +40,6 @@ import { BreakpointSystem } from '../utils/BreakpointSystem';
 import common from '@ohos.app.ability.common';
 import { EventBus } from '../core/EventBus';
 import { AppState } from '../core/AppState';
-import { Sidebar } from '../components/Sidebar';
 import { ExportService } from '../services/ExportService';
 import { FileStorageService } from '../services/FileStorageService';
 
@@ -403,94 +402,7 @@ struct ProjectGroupIndex {
 
   build() {
     Stack() {
-      // 展开/收起按钮 - 固定在左侧中间（复用 Index.ets 的设计）
-      Button() {
-        Text(this.sidebarVisible ? '<' : '>')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(ColorResource.surfaceDark)
-      }
-      .width(32)
-      .height(48)
-      .backgroundColor(ColorResource.overlayStrong)
-      .borderRadius(8)
-      .position({ x: 16, y: '50%' })
-      .translate({ x: 0, y: -24 })
-      .zIndex(200)
-      .backdropBlur(ThemeConfig.backdropBlurMedium)
-      .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 8 })
-      .onClick(() => {
-        this.sidebarVisible = !this.sidebarVisible
-      })
-
-      // 侧边栏（完全复用 Sidebar 组件）
-      if (this.sidebarVisible && this.projectGroup) {
-        Sidebar({
-          project: this.convertProjectGroupToProject(this.projectGroup),
-          selectedTask: this.selectedProjectRef ? {
-            id: this.selectedProjectRef.id,
-            name: this.selectedProjectRef.name,
-            x: this.selectedProjectRef.x,
-            y: this.selectedProjectRef.y,
-            startDate: new Date(),
-            endDate: new Date(),
-            checklist: [],
-            isCritical: this.selectedProjectRef.isCritical,
-            earlyStart: this.selectedProjectRef.earlyStart,
-            earlyFinish: this.selectedProjectRef.earlyFinish,
-            lateStart: this.selectedProjectRef.lateStart,
-            lateFinish: this.selectedProjectRef.lateFinish
-          } : null,
-          isHomePage: false,
-          exportService: this.exportService,
-          onGetCanvasPixelMap: async () => {
-            const adaptedProject = this.convertProjectGroupToProject(this.projectGroup!);
-            return await this.canvasController.getCanvasPixelMap(
-              adaptedProject,
-              this.selectedProjectRef?.id
-            );
-          },
-          onUpdateProjectName: (newName) => {
-            this.projectGroupService.getActions().updateProjectGroupName(newName);
-          },
-          onAddTask: () => {
-            // 项目集中添加项目的逻辑会在下面的自定义面板中处理
-            this.promptAction.showToast({ message: '请从下方"可添加项目"区域选择项目' });
-          },
-          onUpdateTask: (taskId: string, updates) => {
-            const projectRef = this.projectGroup?.projectRefs.find(ref => ref.id === taskId);
-            if (projectRef && updates.name) {
-              projectRef.name = updates.name;
-              this.projectGroupService.getActions().saveProjectGroup();
-              this.drawGraph();
-            }
-          },
-          onUpdateChecklist: () => {
-            // 项目集层面不需要检查清单
-          },
-          onAddChecklistItem: () => {
-            // 项目集层面不需要检查清单
-          },
-          onDeleteChecklistItem: () => {
-            // 项目集层面不需要检查清单
-          },
-          onDeleteTask: (id) => {
-            this.projectGroupService.getActions().deleteProjectRef(id);
-            this.drawGraph();
-          },
-          onStartConnecting: () => this.handleStartConnecting(),
-          onSave: () => this.projectGroupService.getActions().saveProjectGroup(),
-          onBack: () => this.handleBackToHome(),
-          onCreateBlankProject: () => {},
-          onCreateProjectFromTemplate: () => {}
-        })
-          .width(380)
-          .height('100%')
-          .position({ x: 0, y: 0 })
-          .zIndex(150)
-      }
-
-      // 画布（完全复用 Index.ets 的设计）
+      // 画布区域（全屏）
       Stack() {
         // 画布背景 - 格子纹效果
         this.CanvasBackground()
@@ -521,9 +433,33 @@ struct ProjectGroupIndex {
       }
       .width('100%')
       .height('100%')
-      .margin({ left: this.sidebarVisible ? 380 : 0 })
 
-      // 顶部工具栏（复用 Index.ets 的设计）
+      // 侧边栏（覆盖在画布上）
+      if (this.sidebarVisible && this.projectGroup) {
+        this.ProjectGroupSidebar()
+      }
+
+      // 展开/收起按钮 - 固定在左侧中间
+      Button() {
+        Text(this.sidebarVisible ? '<' : '>')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorResource.surfaceDark)
+      }
+      .width(32)
+      .height(48)
+      .backgroundColor(ColorResource.overlayStrong)
+      .borderRadius(8)
+      .position({ x: this.sidebarVisible ? 380 : 16, y: '50%' })
+      .translate({ x: 0, y: -24 })
+      .zIndex(200)
+      .backdropBlur(ThemeConfig.backdropBlurMedium)
+      .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 8 })
+      .onClick(() => {
+        this.sidebarVisible = !this.sidebarVisible
+      })
+
+      // 顶部工具栏
       this.TopToolbar()
     }
     .width('100%')
@@ -576,6 +512,343 @@ struct ProjectGroupIndex {
     }
     .width('100%')
     .height('100%')
+  }
+
+  // 项目集专用侧边栏
+  @Builder
+  ProjectGroupSidebar() {
+    Column({ space: 16 }) {
+      // --- 顶部操作栏 ---
+      Row({ space: 16 }) {
+        // 返回按钮
+        Button() {
+          Text('←')
+            .fontSize(ThemeConfig.fontSizeXL)
+            .fontColor(ColorResource.surfaceBold)
+            .fontWeight(ThemeConfig.fontWeightBold)
+        }
+        .width(52)
+        .height(52)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.surfaceLight)
+        .borderRadius(26)
+        .shadow(ThemeConfig.shadowMedium)
+        .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 26 })
+        .onClick(() => this.handleBackToHome())
+
+        // 新增项目按钮（项目集特色）
+        Button({ type: ButtonType.Circle }) {
+          Text('+')
+            .fontSize(ThemeConfig.fontSizeXL)
+            .fontColor(Color.White)
+            .fontWeight(ThemeConfig.fontWeightBold)
+        }
+        .width(52)
+        .height(52)
+        .backgroundColor(ColorResource.primaryColor)
+        .borderRadius(26)
+        .shadow(ThemeConfig.shadowLarge)
+        .border({ width: 2, color: ColorResource.primaryDark, radius: 26 })
+        .onClick(() => this.handleAddProject())
+
+        // 保存按钮
+        Button() {
+          Text('💾')
+            .fontSize(20)
+        }
+        .width(52)
+        .height(52)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.successLight)
+        .borderRadius(26)
+        .shadow(ThemeConfig.shadowMedium)
+        .border({ width: 2, color: ColorResource.successColor, radius: 26 })
+        .onClick(() => {
+          this.projectGroupService.getActions().saveProjectGroup();
+          this.promptAction.showToast({ message: '项目集已保存' });
+        })
+
+        // 导出按钮
+        Button() {
+          Text('📤')
+            .fontSize(20)
+        }
+        .width(52)
+        .height(52)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.infoLight)
+        .borderRadius(26)
+        .shadow(ThemeConfig.shadowMedium)
+        .border({ width: 2, color: ColorResource.infoColor, radius: 26 })
+        .bindMenu(this.ExportMenu())
+      }
+      .width('100%')
+      .padding({ top: 8 })
+
+      // --- 项目集信息 ---
+      Column({ space: 12 }) {
+        // 项目集名称
+        Row() {
+          Text(this.projectGroup?.name || '未命名项目集')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(ColorResource.textPrimary)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .padding({ top: 4, bottom: 4 })
+
+        // 统计信息卡片
+        Row({ space: 12 }) {
+          // 项目数量
+          Column({ space: 4 }) {
+            Text(`${this.projectGroup?.projectRefs.length || 0}`)
+              .fontSize(24)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(ColorResource.primaryColor)
+            Text('项目数')
+              .fontSize(12)
+              .fontColor(ColorResource.textSecondary)
+          }
+          .layoutWeight(1)
+          .padding(12)
+          .backgroundColor(ColorResource.primaryUltraLight)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.primaryLight })
+
+          // 依赖数量
+          Column({ space: 4 }) {
+            Text(`${this.projectGroup?.dependencies.length || 0}`)
+              .fontSize(24)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(ColorResource.infoColor)
+            Text('依赖关系')
+              .fontSize(12)
+              .fontColor(ColorResource.textSecondary)
+          }
+          .layoutWeight(1)
+          .padding(12)
+          .backgroundColor(ColorResource.infoLight)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.infoColor })
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding(16)
+      .backgroundColor(ColorResource.surfaceLight)
+      .borderRadius(ThemeConfig.radiusLarge)
+      .border({ width: 1, color: ColorResource.surfaceNeutral })
+
+      // --- 项目列表 ---
+      Column({ space: 8 }) {
+        // 列表标题
+        Row() {
+          Text('📋 项目列表')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorResource.textPrimary)
+          
+          Blank()
+
+          // 连接模式按钮
+          Button() {
+            Text('🔗')
+              .fontSize(14)
+          }
+          .width(32)
+          .height(32)
+          .type(ButtonType.Circle)
+          .backgroundColor(ColorResource.surfaceLight)
+          .border({ width: 1, color: ColorResource.surfaceNeutral })
+          .onClick(() => this.handleStartConnecting())
+        }
+        .width('100%')
+        .padding({ bottom: 8 })
+
+        // 项目列表滚动区域
+        if (this.projectGroup && this.projectGroup.projectRefs.length > 0) {
+          List({ space: 8 }) {
+            ForEach(this.projectGroup.projectRefs, (projectRef: ProjectRef) => {
+              ListItem() {
+                this.ProjectRefItem(projectRef)
+              }
+            })
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Auto)
+        } else {
+          Column({ space: 12 }) {
+            Text('📦')
+              .fontSize(48)
+              .opacity(0.3)
+            Text('暂无项目')
+              .fontSize(16)
+              .fontColor(ColorResource.textTertiary)
+            Text('点击上方 + 按钮添加项目')
+              .fontSize(13)
+              .fontColor(ColorResource.textTertiary)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+          .padding(40)
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding(16)
+      .backgroundColor(ColorResource.surface)
+      .borderRadius(ThemeConfig.radiusLarge)
+      .border({ width: 1, color: ColorResource.surfaceNeutral })
+    }
+    .width(380)
+    .height('100%')
+    .backgroundColor(ColorResource.overlayStrong)
+    .padding(ThemeConfig.spacingXXL)
+    .shadow(ThemeConfig.shadowMedium)
+    .border({ width: { right: 1 }, color: ColorResource.surfaceNeutral })
+    .backdropBlur(ThemeConfig.backdropBlurMedium)
+    .position({ x: 0, y: 0 })
+    .zIndex(150)
+  }
+
+  // 项目引用项组件
+  @Builder
+  ProjectRefItem(projectRef: ProjectRef) {
+    Row({ space: 12 }) {
+      // 项目图标
+      Text('📁')
+        .fontSize(24)
+
+      // 项目信息
+      Column({ space: 4 }) {
+        Text(projectRef.name)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.selectedProjectRef?.id === projectRef.id 
+            ? ColorResource.primaryColor 
+            : ColorResource.textPrimary)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 关键路径标识
+        if (projectRef.isCritical) {
+          Text('⭐ 关键路径')
+            .fontSize(11)
+            .fontColor(ColorResource.warningColor)
+            .fontWeight(FontWeight.Medium)
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      // 删除按钮
+      Button() {
+        Text('×')
+          .fontSize(18)
+          .fontColor(ColorResource.errorColor)
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .type(ButtonType.Circle)
+      .backgroundColor(Color.Transparent)
+      .onClick(() => this.handleDeleteProjectRef(projectRef))
+    }
+    .width('100%')
+    .padding(12)
+    .backgroundColor(this.selectedProjectRef?.id === projectRef.id 
+      ? ColorResource.primaryUltraLight 
+      : ColorResource.surfaceLight)
+    .borderRadius(12)
+    .border({
+      width: 2,
+      color: this.selectedProjectRef?.id === projectRef.id 
+        ? ColorResource.primaryColor 
+        : ColorResource.surfaceNeutral
+    })
+    .onClick(() => {
+      this.projectGroupService.getActions().selectProjectRef(projectRef);
+      this.drawGraph();
+    })
+  }
+
+  // 导出菜单
+  @Builder
+  ExportMenu() {
+    Menu() {
+      MenuItem({ 
+        content: '导出为 JSON',
+        labelInfo: '项目集数据文件'
+      })
+        .onChange(() => {
+          this.promptAction.showToast({ message: '导出功能开发中' });
+        })
+
+      MenuItem({ 
+        content: '导出为图片',
+        labelInfo: 'PNG/JPG 格式'
+      })
+        .onChange(async () => {
+          if (this.projectGroup) {
+            const adaptedProject = this.convertProjectGroupToProject(this.projectGroup);
+            const pixelMap = await this.canvasController.getCanvasPixelMap(
+              adaptedProject,
+              this.selectedProjectRef?.id
+            );
+            if (pixelMap && this.exportService) {
+              this.promptAction.showToast({ message: '正在导出图片...' });
+            }
+          }
+        })
+    }
+  }
+
+  // 添加项目到项目集
+  private handleAddProject(): void {
+    if (!this.projectGroup) return;
+
+    // 显示可添加项目的对话框
+    this.uiContext.showAlertDialog({
+      title: '添加项目到项目集',
+      message: `当前项目集：${this.projectGroup.name}\n\n从现有项目中选择一个添加到此项目集`,
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '选择项目',
+        fontColor: ColorResource.primaryColor,
+        action: () => {
+          // TODO: 显示项目选择器
+          this.promptAction.showToast({ message: '项目选择功能开发中' });
+        }
+      }
+    });
+  }
+
+  // 删除项目引用
+  private handleDeleteProjectRef(projectRef: ProjectRef): void {
+    this.uiContext.showAlertDialog({
+      title: '确认移除项目',
+      message: `确定要从项目集中移除"${projectRef.name}"吗？\n\n注意：这只会移除引用，不会删除实际项目。`,
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '移除',
+        fontColor: ColorResource.errorColor,
+        action: () => {
+          this.projectGroupService.getActions().deleteProjectRef(projectRef.id);
+          this.drawGraph();
+          this.promptAction.showToast({ message: '已移除项目' });
+        }
+      }
+    });
   }
 
   // 顶部工具栏（复用 Index.ets 的设计）

@@ -1034,7 +1034,7 @@ struct Index {
     .borderRadius(24)
     .border({ width: 2, color: ColorResource.primaryColor })
     .shadow(ThemeConfig.shadowLarge)
-    .position({ x: '100%', y: 56 })  // 工具栏下方
+    .position({ x: '100%', y: 68 })  // 工具栏下方（下调位置，避免重叠）
     .translate({ x: -60, y: 0 })
     .zIndex(99)
     .transition({
@@ -1069,7 +1069,7 @@ struct Index {
         .shadow(ThemeConfig.shadowLarge)
         .onClick(() => {
           animateTo({
-            duration: 300,
+            duration: 180,
             curve: Curve.EaseInOut
           }, () => {
             this.toolbarExpanded = true;
@@ -1266,7 +1266,7 @@ struct Index {
           })
           .onClick(() => {
             animateTo({
-              duration: 200,
+              duration: 180,
               curve: Curve.EaseInOut
             }, () => {
               this.zoomPanelExpanded = !this.zoomPanelExpanded;
@@ -1294,7 +1294,7 @@ struct Index {
           .border({ width: 1, color: ColorResource.surfaceNeutral })
           .onClick(() => {
             animateTo({
-              duration: 300,
+              duration: 180,
               curve: Curve.EaseInOut
             }, () => {
               this.toolbarExpanded = false;

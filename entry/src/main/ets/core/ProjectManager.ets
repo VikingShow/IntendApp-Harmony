@@ -370,7 +370,16 @@ export class ProjectManager {
     if (updates.name !== undefined) oldState.name = task.name;
     if (updates.startDate !== undefined) oldState.startDate = task.startDate;
     if (updates.endDate !== undefined) oldState.endDate = task.endDate;
-    if (updates.checklist !== undefined) oldState.checklist = task.checklist.slice();
+    if (updates.checklist !== undefined) {
+      // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+      oldState.checklist = task.checklist.map((item): ChecklistItem => {
+        return {
+          id: item.id,
+          text: item.text,
+          isCompleted: item.isCompleted
+        };
+      });
+    }
     if (updates.x !== undefined) oldState.x = task.x;
     if (updates.y !== undefined) oldState.y = task.y;
     if (updates.isCritical !== undefined) oldState.isCritical = task.isCritical;
@@ -438,7 +447,14 @@ export class ProjectManager {
       console.log(`[ProjectManager] Updating checklist for task ${taskId}`);
       console.log(`[ProjectManager] Before: ${updatedTask.checklist.length} items`);
       
-      updatedTask.checklist = checklist.slice();
+      // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+      updatedTask.checklist = checklist.map((item): ChecklistItem => {
+        return {
+          id: item.id,
+          text: item.text,
+          isCompleted: item.isCompleted
+        };
+      });
       
       console.log(`[ProjectManager] After: ${updatedTask.checklist.length} items`);
       
@@ -653,7 +669,14 @@ export class ProjectManager {
       name: task.name,
       startDate: task.startDate,
       endDate: task.endDate,
-      checklist: task.checklist.slice(),
+      // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+      checklist: task.checklist.map((item): ChecklistItem => {
+        return {
+          id: item.id,
+          text: item.text,
+          isCompleted: item.isCompleted
+        };
+      }),
       x: task.x,
       y: task.y,
       isCritical: task.isCritical,

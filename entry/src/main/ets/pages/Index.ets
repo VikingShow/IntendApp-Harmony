@@ -433,7 +433,14 @@ struct Index {
           name: updatedTask.name,
           startDate: updatedTask.startDate,
           endDate: updatedTask.endDate,
-          checklist: updatedTask.checklist.slice(),
+          // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+          checklist: updatedTask.checklist.map((item): ChecklistItem => {
+            return {
+              id: item.id,
+              text: item.text,
+              isCompleted: item.isCompleted
+            };
+          }),
           x: updatedTask.x,
           y: updatedTask.y,
           isCritical: updatedTask.isCritical,
@@ -1212,15 +1219,20 @@ struct Index {
             .opacity(this.canUndo ? 1 : 0.5)
             .onClick(() => {
               if (this.commandHistory.undo()) {
+                const commandName = this.commandHistory.getLastRedoCommandName();
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
                 // 撤销后刷新selectedTask，确保显示最新数据
                 this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
-                const commandName = this.commandHistory.getLastRedoCommandName();
                 this.promptAction.showToast({
-                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                  message: commandName ? `✓ 已撤销：${commandName}` : '✓ 已撤销操作',
+                  duration: 2000
+                });
+              } else {
+                this.promptAction.showToast({
+                  message: '没有可撤销的操作',
                   duration: 1500
                 });
               }
@@ -1244,15 +1256,20 @@ struct Index {
             .opacity(this.canRedo ? 1 : 0.5)
             .onClick(() => {
               if (this.commandHistory.redo()) {
+                const commandName = this.commandHistory.getLastUndoCommandName();
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
                 // 重做后刷新selectedTask，确保显示最新数据
                 this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
-                const commandName = this.commandHistory.getLastUndoCommandName();
                 this.promptAction.showToast({
-                  message: commandName ? `已重做: ${commandName}` : '已重做',
+                  message: commandName ? `✓ 已重做：${commandName}` : '✓ 已重做操作',
+                  duration: 2000
+                });
+              } else {
+                this.promptAction.showToast({
+                  message: '没有可重做的操作',
                   duration: 1500
                 });
               }
@@ -1450,15 +1467,20 @@ struct Index {
             .opacity(this.canUndo ? 1 : 0.5)
             .onClick(() => {
               if (this.commandHistory.undo()) {
+                const commandName = this.commandHistory.getLastRedoCommandName();
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
                 // 撤销后刷新selectedTask，确保显示最新数据
                 this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
-                const commandName = this.commandHistory.getLastRedoCommandName();
                 this.promptAction.showToast({
-                  message: commandName ? `已撤销: ${commandName}` : '已撤销',
+                  message: commandName ? `✓ 已撤销：${commandName}` : '✓ 已撤销操作',
+                  duration: 2000
+                });
+              } else {
+                this.promptAction.showToast({
+                  message: '没有可撤销的操作',
                   duration: 1500
                 });
               }
@@ -1487,15 +1509,20 @@ struct Index {
             .opacity(this.canRedo ? 1 : 0.5)
             .onClick(() => {
               if (this.commandHistory.redo()) {
+                const commandName = this.commandHistory.getLastUndoCommandName();
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
                 // 重做后刷新selectedTask，确保显示最新数据
                 this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
-                const commandName = this.commandHistory.getLastUndoCommandName();
                 this.promptAction.showToast({
-                  message: commandName ? `已重做: ${commandName}` : '已重做',
+                  message: commandName ? `✓ 已重做：${commandName}` : '✓ 已重做操作',
+                  duration: 2000
+                });
+              } else {
+                this.promptAction.showToast({
+                  message: '没有可重做的操作',
                   duration: 1500
                 });
               }

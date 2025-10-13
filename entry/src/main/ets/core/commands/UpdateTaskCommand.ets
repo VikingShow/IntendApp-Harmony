@@ -21,7 +21,7 @@
  */
 
 import { Command } from './Command';
-import { Project, TaskNode } from '../../model/ProjectData';
+import { Project, TaskNode, ChecklistItem } from '../../model/ProjectData';
 
 /**
  * 更新任务命令类
@@ -101,18 +101,66 @@ export class UpdateTaskCommand implements Command {
   getName(): string {
     const task = this.findTask();
     if (task) {
-      // 判断更新了哪些属性
-      const changedProps: string[] = [];
-      if (this.newState.name !== undefined) changedProps.push('名称');
-      if (this.newState.startDate !== undefined) changedProps.push('开始日期');
-      if (this.newState.endDate !== undefined) changedProps.push('结束日期');
+      // 判断更新了哪些属性，提供详细信息
+      const details: string[] = [];
       
-      if (changedProps.length > 0) {
-        return `更新任务 "${task.name}" 的${changedProps.join('、')}`;
+      // 名称变化
+      if (this.newState.name !== undefined && this.oldState.name !== undefined) {
+        details.push(`名称: "${this.oldState.name}" → "${this.newState.name}"`);
+      } else if (this.newState.name !== undefined) {
+        details.push(`名称: "${this.newState.name}"`);
       }
-      return `更新任务 "${task.name}"`;
+      
+      // 开始日期变化
+      if (this.newState.startDate !== undefined) {
+        const oldDate = this.oldState.startDate ? this.formatDate(this.oldState.startDate) : '';
+        const newDate = this.formatDate(this.newState.startDate);
+        if (oldDate) {
+          details.push(`开始: ${oldDate} → ${newDate}`);
+        } else {
+          details.push(`开始日期: ${newDate}`);
+        }
+      }
+      
+      // 结束日期变化
+      if (this.newState.endDate !== undefined) {
+        const oldDate = this.oldState.endDate ? this.formatDate(this.oldState.endDate) : '';
+        const newDate = this.formatDate(this.newState.endDate);
+        if (oldDate) {
+          details.push(`结束: ${oldDate} → ${newDate}`);
+        } else {
+          details.push(`结束日期: ${newDate}`);
+        }
+      }
+      
+      // 子任务变化
+      if (this.newState.checklist !== undefined) {
+        const oldCount = this.oldState.checklist?.length || 0;
+        const newCount = this.newState.checklist.length;
+        if (oldCount !== newCount) {
+          details.push(`子任务: ${oldCount} → ${newCount} 项`);
+        } else {
+          details.push(`子任务已更新 (${newCount} 项)`);
+        }
+      }
+      
+      if (details.length > 0) {
+        return `编辑"${task.name}": ${details.join(', ')}`;
+      }
+      return `编辑任务 "${task.name}"`;
     }
-    return `更新任务`;
+    return `编辑任务`;
+  }
+  
+  /**
+   * 格式化日期为简短字符串
+   * @param date 日期对象
+   * @returns 格式化后的日期字符串
+   */
+  private formatDate(date: Date): string {
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
   }
 
   /**
@@ -134,7 +182,16 @@ export class UpdateTaskCommand implements Command {
     if (state.endDate !== undefined) task.endDate = state.endDate;
     if (state.x !== undefined) task.x = state.x;
     if (state.y !== undefined) task.y = state.y;
-    if (state.checklist !== undefined) task.checklist = state.checklist.slice();
+    if (state.checklist !== undefined) {
+      // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+      task.checklist = state.checklist.map((item): ChecklistItem => {
+        return {
+          id: item.id,
+          text: item.text,
+          isCompleted: item.isCompleted
+        };
+      });
+    }
     if (state.isCritical !== undefined) task.isCritical = state.isCritical;
     if (state.earlyStart !== undefined) task.earlyStart = state.earlyStart;
     if (state.earlyFinish !== undefined) task.earlyFinish = state.earlyFinish;

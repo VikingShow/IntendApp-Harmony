@@ -121,6 +121,21 @@ export class DeleteTaskCommand implements Command {
    * @returns 命令描述
    */
   getName(): string {
+    const details: string[] = [];
+    
+    // 子任务数量
+    if (this.task.checklist && this.task.checklist.length > 0) {
+      details.push(`${this.task.checklist.length}个子任务`);
+    }
+    
+    // 依赖关系数量
+    if (this.relatedDependencies.length > 0) {
+      details.push(`${this.relatedDependencies.length}个依赖`);
+    }
+    
+    if (details.length > 0) {
+      return `删除"${this.task.name}" (含${details.join('、')})`;
+    }
     return `删除任务 "${this.task.name}"`;
   }
 }

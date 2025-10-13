@@ -182,7 +182,7 @@ export class ResponsiveColorConfig {
     if (isFloating) {
       // 浅色模式：使用纯白色背景，保持透明度
       // 深色模式：使用深灰色背景
-      return isDarkMode ? 'rgba(40, 40, 40, 0.35)' : 'rgba(255, 255, 255, 0.5)';
+      return isDarkMode ? 'rgba(40, 40, 40, 0.35)' : 'rgba(255, 255, 255, 0.35)';
     }
     return ColorResource.transparent;
   }

@@ -120,6 +120,7 @@ interface CsvRowData {
   completedChecklist: string;
   x: string;
   y: string;
+  predecessors?: string;  // 新增：前置任务列表（用分号分隔的任务ID）
 }
 
 /**
@@ -520,7 +521,7 @@ export class ImportService {
 
       const columns = this.parseCsvLine(line);
       
-      // 需要至少11列数据
+      // 需要至少11列数据（兼容旧格式），12列为新格式（包含前置任务）
       if (columns.length >= 11) {
         rows.push({
           taskId: columns[0],
@@ -533,7 +534,8 @@ export class ImportService {
           totalChecklist: columns[7],
           completedChecklist: columns[8],
           x: columns[9],
-          y: columns[10]
+          y: columns[10],
+          predecessors: columns.length >= 12 ? columns[11] : undefined  // 新增：前置任务列（可选）
         });
       }
     }
@@ -589,6 +591,9 @@ export class ImportService {
     project.category = '其他';
     project.lastModified = Date.now();
 
+    // 建立原始ID到新ID的映射
+    const oldIdToNewId = new Map<string, string>();
+
     // 转换任务列表
     project.tasks = rows.map((row, index) => {
       // 解析日期
@@ -615,8 +620,16 @@ export class ImportService {
       // 解析关键路径标志
       const isCritical = row.isCritical === '是' || row.isCritical.toLowerCase() === 'true';
 
+      // 生成新的任务ID
+      const newTaskId = `task_${Date.now()}_${index}`;
+      
+      // 记录原始ID到新ID的映射
+      if (row.taskId) {
+        oldIdToNewId.set(row.taskId, newTaskId);
+      }
+
       const task: TaskNode = {
-        id: `task_${Date.now()}_${index}`,
+        id: newTaskId,
         name: row.taskName || '未命名任务',
         startDate: startDate,
         endDate: endDate,
@@ -633,10 +646,41 @@ export class ImportService {
       return task;
     });
 
-    // CSV导入不包含依赖关系信息，保持为空
+    // 重建依赖关系
     project.dependencies = [];
+    
+    rows.forEach((row, index) => {
+      // 如果该行包含前置任务信息
+      if (row.predecessors && row.predecessors.trim().length > 0) {
+        const currentTaskId = project.tasks[index].id;
+        
+        // 前置任务ID列表（用分号分隔）
+        const predecessorIds = row.predecessors.split(';')
+          .map(id => id.trim())
+          .filter(id => id.length > 0);
+        
+        // 为每个前置任务创建依赖关系
+        predecessorIds.forEach(oldPredecessorId => {
+          // 将旧ID映射到新ID
+          const newPredecessorId = oldIdToNewId.get(oldPredecessorId);
+          
+          if (newPredecessorId) {
+            // 创建依赖关系：前置任务 -> 当前任务
+            const dependency: Dependency = {
+              fromId: newPredecessorId,
+              toId: currentTaskId
+            };
+            
+            project.dependencies.push(dependency);
+            console.log(`[ImportService] 创建依赖关系: ${newPredecessorId} -> ${currentTaskId}`);
+          } else {
+            console.warn(`[ImportService] 警告：找不到前置任务ID映射: ${oldPredecessorId}`);
+          }
+        });
+      }
+    });
 
-    console.log(`[ImportService] CSV转换完成: ${project.tasks.length} 个任务`);
+    console.log(`[ImportService] CSV转换完成: ${project.tasks.length} 个任务, ${project.dependencies.length} 个依赖关系`);
     return project;
   }
 

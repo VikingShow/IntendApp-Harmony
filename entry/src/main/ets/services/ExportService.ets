@@ -379,7 +379,8 @@ export class ExportService {
       '子任务总数',
       '已完成子任务',
       'X坐标',
-      'Y坐标'
+      'Y坐标',
+      '前置任务'  // 新增：依赖关系列
     ];
 
     // 构建 CSV 行
@@ -390,6 +391,14 @@ export class ExportService {
       const totalChecklist = task.checklist?.length || 0;
       const completedChecklist = task.checklist?.filter(item => item.isCompleted).length || 0;
       const progress = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
+
+      // 查找所有指向该任务的前置任务（fromId -> toId，这个任务是toId）
+      const predecessors = project.dependencies
+        .filter(dep => dep.toId === task.id)
+        .map(dep => dep.fromId);
+      
+      // 将前置任务ID列表用分号分隔
+      const predecessorStr = predecessors.length > 0 ? predecessors.join(';') : '';
 
       const row = [
         this.escapeCsvValue(task.id),
@@ -402,7 +411,8 @@ export class ExportService {
         totalChecklist.toString(),
         completedChecklist.toString(),
         task.x.toString(),
-        task.y.toString()
+        task.y.toString(),
+        this.escapeCsvValue(predecessorStr)  // 新增：前置任务列表
       ];
 
       rows.push(row.join(','));

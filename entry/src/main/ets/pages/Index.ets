@@ -98,6 +98,7 @@ struct Index {
   // 工具栏状态
   @State toolbarExpanded: boolean = false;  // 工具栏是否展开
   @State toolbarHoverIndex: number = -1;     // 当前悬停的按钮索引
+  @State zoomPanelExpanded: boolean = false; // 缩放面板是否展开
   
   // 响应式布局相关状态
   @State screenWidth: number = 0;
@@ -631,14 +632,12 @@ struct Index {
   // 计算滑块手柄位置（0-180px），100%在中间（y=90）
   private getSliderHandlePosition(): number {
     // 将缩放比例映射到位置，100%在中间
-    // 0px（顶部）= 300%
-    // 90px（中间）= 100%
-    // 180px（底部）= 30%
+    // 新面板：0px（顶部）= 300%, 60px（中间）= 100%, 120px（底部）= 30%
     const centerZoom = 1.0;  // 100%
     const maxZoom = 3.0;     // 300%
     const minZoom = 0.3;     // 30%
-    const centerPos = 90;    // 中间位置
-    const sliderHeight = 180;
+    const centerPos = 60;    // 中间位置（适配120高度的面板）
+    const sliderHeight = 120;
     
     if (this.zoomScale >= centerZoom) {
       // 100% - 300%，映射到 90px - 0px
@@ -655,13 +654,13 @@ struct Index {
   private handleSliderDrag(offsetY: number): void {
     // 计算新位置
     let newPosition = this.lastSliderPosition + offsetY;
-    newPosition = Math.max(0, Math.min(180, newPosition));
+    newPosition = Math.max(0, Math.min(120, newPosition));  // 适配120高度
     
     // 将位置映射回缩放比例，100%在中间
     const centerZoom = 1.0;  // 100%
     const maxZoom = 3.0;     // 300%
     const minZoom = 0.3;     // 30%
-    const centerPos = 90;    // 中间位置
+    const centerPos = 60;    // 中间位置（适配120高度）
     
     let newZoom: number;
     if (newPosition <= centerPos) {
@@ -698,15 +697,15 @@ struct Index {
     const centerZoom = 1.0;  // 100%
     const maxZoom = 3.0;     // 300%
     const minZoom = 0.3;     // 30%
-    const centerPos = 90;    // 中间位置
+    const centerPos = 60;    // 中间位置（适配120高度）
     
     let newZoom: number;
     if (clickY <= centerPos) {
-      // 0-90px -> 300%-100%
+      // 0-60px -> 300%-100%
       const ratio = clickY / centerPos;
       newZoom = maxZoom - (ratio * (maxZoom - centerZoom));
     } else {
-      // 90-180px -> 100%-30%
+      // 60-120px -> 100%-30%
       const ratio = (clickY - centerPos) / centerPos;
       newZoom = centerZoom - (ratio * (centerZoom - minZoom));
     }
@@ -896,6 +895,153 @@ struct Index {
       color: ColorResource.shadowColorSubtle,
       offsetX: 0,
       offsetY: 2
+    })
+  }
+
+  /**
+   * 缩放面板组件
+   */
+  @Builder
+  ZoomPanel() {
+    Column({ space: 6 }) {
+      // 放大按钮
+      Text('+')
+        .fontSize(18)
+        .fontColor(ColorResource.primaryColor)
+        .fontWeight(FontWeight.Bold)
+        .width(32)
+        .height(32)
+        .textAlign(TextAlign.Center)
+        .borderRadius(16)
+        .backgroundColor(ColorResource.surface)
+        .border({ width: 1, color: ColorResource.primaryColor })
+        .onClick(() => this.handleZoomIn())
+      
+      // 滑块容器
+      Stack() {
+        // 轨道
+        Column()
+          .width(3)
+          .height(120)
+          .backgroundColor(ColorResource.surfaceNeutral)
+          .borderRadius(1.5)
+          .position({ x: 6.5, y: 0 })
+        
+        // 中线（100%位置）
+        Line()
+          .width(8)
+          .height(1.5)
+          .backgroundColor(ColorResource.primaryColor)
+          .position({ x: 4, y: 60 })
+        
+        // 进度条
+        Column()
+          .width(3)
+          .height(Math.abs(60 - this.getSliderHandlePosition()))
+          .backgroundColor(ColorResource.primaryColor)
+          .borderRadius(1.5)
+          .position({ 
+            x: 6.5, 
+            y: Math.min(60, this.getSliderHandlePosition())
+          })
+        
+        // 滑块手柄
+        Column()
+          .width(16)
+          .height(16)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(8)
+          .border({ width: 2, color: ColorResource.primaryColor })
+          .scale({ 
+            x: this.sliderDragging ? 1.1 : 1,
+            y: this.sliderDragging ? 1.1 : 1
+          })
+          .position({ x: 0, y: this.getSliderHandlePosition() })
+      }
+      .width(16)
+      .height(120)
+      .gesture(
+        PanGesture()
+          .onActionStart(() => {
+            this.sliderDragging = true;
+            this.lastSliderPosition = this.getSliderHandlePosition();
+          })
+          .onActionUpdate((event: GestureEvent) => {
+            this.handleSliderDrag(event.offsetY);
+          })
+          .onActionEnd(() => {
+            this.sliderDragging = false;
+          })
+      )
+      .onClick((event: ClickEvent) => {
+        this.handleSliderClick(event.y);
+      })
+      
+      // 百分比显示
+      Text(`${Math.round(this.zoomScale * 100)}%`)
+        .fontSize(11)
+        .fontColor(ColorResource.primaryColor)
+        .fontWeight(FontWeight.Bold)
+        .padding(6)
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(12)
+        .border({ width: 1, color: ColorResource.surfaceNeutral })
+      
+      // 缩小按钮
+      Text('−')
+        .fontSize(20)
+        .fontColor(ColorResource.primaryColor)
+        .fontWeight(FontWeight.Bold)
+        .width(32)
+        .height(32)
+        .textAlign(TextAlign.Center)
+        .borderRadius(16)
+        .backgroundColor(ColorResource.surface)
+        .border({ width: 1, color: ColorResource.primaryColor })
+        .onClick(() => this.handleZoomOut())
+      
+      // 分隔线
+      Column()
+        .width(24)
+        .height(1)
+        .backgroundColor(ColorResource.surfaceNeutral)
+      
+      // 重置到100%按钮
+      Text('1:1')
+        .fontSize(11)
+        .fontColor(ColorResource.infoColor)
+        .fontWeight(FontWeight.Bold)
+        .width(32)
+        .height(24)
+        .textAlign(TextAlign.Center)
+        .borderRadius(12)
+        .backgroundColor(ColorResource.infoLight)
+        .border({ width: 1, color: ColorResource.infoColor })
+        .onClick(() => {
+          this.zoomScale = 1.0;
+          this.canvasController.getState().zoomScale = 1.0;
+          this.drawGraph();
+          this.debouncedSaveCanvasPosition();
+          this.promptAction.showToast({
+            message: '已重置缩放：100%',
+            duration: 1000
+          });
+        })
+    }
+    .width(48)
+    .padding({ top: 10, bottom: 10 })
+    .backgroundColor(ColorResource.surface)
+    .borderRadius(24)
+    .border({ width: 2, color: ColorResource.primaryColor })
+    .shadow(ThemeConfig.shadowLarge)
+    .position({ x: '100%', y: 56 })  // 工具栏下方
+    .translate({ x: -60, y: 0 })
+    .zIndex(99)
+    .transition({
+      type: TransitionType.All,
+      scale: { x: 0.8, y: 0.8 },
+      opacity: 0,
+      translate: { y: -20 }
     })
   }
 
@@ -1095,6 +1241,38 @@ struct Index {
             this.toggleRenderMode();
           })
           
+          // 缩放按钮
+          Button() {
+            Row({ space: 4 }) {
+              Text('🔍')
+                .fontSize(16)
+              Text(`${Math.round(this.zoomScale * 100)}%`)
+                .fontSize(12)
+                .fontColor(ColorResource.primaryColor)
+                .fontWeight(FontWeight.Medium)
+            }
+          }
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor(this.zoomPanelExpanded 
+            ? ColorResource.primaryUltraLight 
+            : ColorResource.surface)
+          .borderRadius(16)
+          .border({
+            width: 1.5,
+            color: this.zoomPanelExpanded 
+              ? ColorResource.primaryColor 
+              : ColorResource.surfaceNeutral
+          })
+          .onClick(() => {
+            animateTo({
+              duration: 200,
+              curve: Curve.EaseInOut
+            }, () => {
+              this.zoomPanelExpanded = !this.zoomPanelExpanded;
+            });
+          })
+          
           // 分隔线
           Column()
             .width(1)
@@ -1283,133 +1461,10 @@ struct Index {
         // 右上角可伸缩工具栏
         this.CollapsibleToolbar()
         
-        // 右侧中间 - 极简缩放控制
-        Column({ space: 8 }) {
-          // 收起状态：极简图标
-          if (!this.zoomControlExpanded) {
-            Text(`${Math.round(this.zoomScale * 100)}%`)
-              .fontSize(12)
-              .fontColor(ColorResource.primaryColor)
-              .fontWeight(FontWeight.Bold)
-              .padding(8)
-              .backgroundColor(ColorResource.surface)
-              .borderRadius(16)
-              .border({ width: 1, color: ColorResource.primaryColor })
-              .onClick(() => this.toggleZoomControl())
-              .opacity(this.zoomControlOpacity)
-          }
-          
-          // 展开状态：极简面板
-          if (this.zoomControlExpanded) {
-            Column({ space: 6 }) {
-              // 放大
-              Text('+')
-                .fontSize(18)
-                .fontColor(ColorResource.primaryColor)
-                .fontWeight(FontWeight.Bold)
-                .width(32)
-                .height(32)
-                .textAlign(TextAlign.Center)
-                .borderRadius(16)
-                .backgroundColor(ColorResource.surface)
-                .border({ width: 1, color: ColorResource.primaryColor })
-                .onClick(() => this.handleZoomIn())
-          
-              // 滑块
-              Stack() {
-                // 轨道 - 居中
-                Column()
-                  .width(3)
-                  .height(180)
-                  .backgroundColor(ColorResource.surfaceNeutral)
-                  .borderRadius(1.5)
-                  .position({ x: 6.5, y: 0 })
-                
-                // 中线 - 居中并向左延伸
-                Line()
-                  .width(8)
-                  .height(1.5)
-                  .backgroundColor(ColorResource.primaryColor)
-                  .position({ x: 4, y: 90 })
-                
-                // 进度 - 居中
-                Column()
-                  .width(3)
-                  .height(Math.abs(90 - this.getSliderHandlePosition()))
-                  .backgroundColor(ColorResource.primaryColor)
-                  .borderRadius(1.5)
-                  .position({ 
-                    x: 6.5, 
-                    y: Math.min(90, this.getSliderHandlePosition())
-                  })
-                
-                // 手柄 - 居中
-                Column()
-                  .width(16)
-                  .height(16)
-                  .backgroundColor(ColorResource.surface)
-                  .borderRadius(8)
-                  .border({ width: 2, color: ColorResource.primaryColor })
-                  .scale({ 
-                    x: this.sliderDragging ? 1.1 : 1,
-                    y: this.sliderDragging ? 1.1 : 1
-                  })
-                  .position({ x: 0, y: this.getSliderHandlePosition() })
-              }
-              .width(16)
-              .height(180)
-              .gesture(
-                PanGesture()
-                  .onActionStart(() => {
-                    this.sliderDragging = true;
-                    this.lastSliderPosition = this.getSliderHandlePosition();
-                  })
-                  .onActionUpdate((event: GestureEvent) => {
-                    this.handleSliderDrag(event.offsetY);
-                  })
-                  .onActionEnd(() => {
-                    this.sliderDragging = false;
-                  })
-              )
-              .onClick((event: ClickEvent) => {
-                this.handleSliderClick(event.y);
-              })
-            
-              // 百分比
-              Text(`${Math.round(this.zoomScale * 100)}%`)
-                .fontSize(11)
-                .fontColor(ColorResource.primaryColor)
-                .fontWeight(FontWeight.Bold)
-                .padding(6)
-                .backgroundColor(ColorResource.surface)
-                .borderRadius(12)
-                .border({ width: 1, color: ColorResource.surfaceNeutral })
-            
-              // 缩小
-              Text('−')
-                .fontSize(20)
-                .fontColor(ColorResource.primaryColor)
-                .fontWeight(FontWeight.Bold)
-                .width(32)
-                .height(32)
-                .textAlign(TextAlign.Center)
-                .borderRadius(16)
-                .backgroundColor(ColorResource.surface)
-                .border({ width: 1, color: ColorResource.primaryColor })
-                .onClick(() => this.handleZoomOut())
-            }
-            .width(48)
-            .height(310)
-            .backgroundColor(ColorResource.surface)
-            .borderRadius(24)
-            .padding({ top: 10, bottom: 10 })
-            .border({ width: 1, color: ColorResource.surfaceNeutral })
-            .opacity(this.zoomControlExpanded ? 1 : 0)
-          }
+        // 缩放面板（工具栏下方弹出）
+        if (this.zoomPanelExpanded) {
+          this.ZoomPanel()
         }
-        .position({ x: '100%', y: '50%' })
-        .translate({ x: -60, y: -135 })
-        .zIndex(100)
       }
       .width('100%')
       .height('100%')

@@ -36,6 +36,7 @@ import { LoadingService } from '../services/LoadingService';
 import { TemplateService, ProjectTemplate } from '../services/TemplateService';
 import { PermissionService } from '../services/PermissionService';
 import { DataMigrationService } from '../services/DataMigrationService';
+import { ImportService } from '../services/ImportService';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import common from '@ohos.app.ability.common';
@@ -262,6 +263,7 @@ struct HomePage {
   private templateService: TemplateService = TemplateService.getInstance();
   private permissionService: PermissionService | null = null;
   private migrationService: DataMigrationService | null = null;
+  private importService: ImportService | null = null;
   private errorHandler: ErrorHandler | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
@@ -305,6 +307,9 @@ struct HomePage {
     this.migrationService = DataMigrationService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
     // 注入uiContext
     // this.migrationService.setContext(this.uiContext);
+    
+    // 初始化导入服务
+    this.importService = ImportService.getInstance(this.storageService);
 
     // 检查并执行数据迁移
     await this.checkAndMigrateData();
@@ -963,6 +968,10 @@ struct HomePage {
         {
           text: '选择模板',
           color: ColorResource.primaryColor
+        },
+        {
+          text: '导入项目',
+          color: ColorResource.projectDevelopment
         }
       ]
     }).then((result) => {
@@ -972,6 +981,9 @@ struct HomePage {
       } else if (result.index === 1) {
         // 选择模板
         this.showTemplateSelectionDialog();
+      } else if (result.index === 2) {
+        // 导入项目
+        this.importProject();
       }
     }).catch((error: Error) => {
       console.error('ActionMenu error:', error);
@@ -1265,6 +1277,83 @@ struct HomePage {
         }
       }
     });
+  }
+
+  // 导入项目
+  async importProject() {
+    if (!this.importService) {
+      this.handleError(new Error("导入服务未初始化"), "importProject");
+      return;
+    }
+
+    try {
+      console.log('[Home] 开始导入项目...');
+
+      // 显示导入进度提示
+      this.promptAction.showToast({
+        message: '正在选择文件...',
+        duration: 1000
+      });
+
+      // 执行导入
+      const result = await this.importService.importProject();
+
+      if (result.success && result.project) {
+        console.log(`[Home] 项目导入成功: ${result.project.id}`);
+
+        // 显示成功提示
+        let message = `项目 "${result.project.name}" 导入成功！`;
+        if (result.warnings && result.warnings.length > 0) {
+          message += `\n${result.warnings.join('\n')}`;
+        }
+        this.promptAction.showToast({
+          message: message,
+          duration: 3000
+        });
+
+        // 刷新项目列表
+        console.log('[Home] 开始刷新项目列表...');
+        await this.loadProjects();
+        console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
+
+        // 设置新导入的项目为选中状态
+        this.selectedProjectId = result.project.id;
+        this.selectedProjectDetail = result.project;
+        console.log(`[Home] 设置选中项目: ${result.project.id}`);
+
+        // 延迟导航到编辑页面
+        setTimeout(() => {
+          if (result.project) {
+            this.getUIContext().getRouter().pushUrl({
+              url: 'pages/Index',
+              params: { projectId: result.project.id },
+              animation: {
+                type: 'fade',
+                duration: 300
+              }
+            } as router.RouterOptions);
+          }
+        }, 500);
+      } else {
+        // 导入失败或取消
+        if (result.error) {
+          console.error('[Home] 项目导入失败:', result.error);
+          this.promptAction.showToast({
+            message: result.error,
+            duration: 3000
+          });
+        } else {
+          console.log('[Home] 用户取消了导入操作');
+        }
+      }
+    } catch (error) {
+      console.error('[Home] 导入项目失败:', error);
+      this.promptAction.showToast({
+        message: '导入项目失败，请重试',
+        duration: 2000
+      });
+      this.handleError(error as Error, "importProject");
+    }
   }
 
 

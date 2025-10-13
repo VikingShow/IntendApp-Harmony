@@ -1,0 +1,232 @@
+{
+  "version": "1.0",
+  "exportTime": "2025-01-13T10:30:00.000Z",
+  "project": {
+    "id": "project_sample_001",
+    "name": "示例项目 - 软件开发流程",
+    "category": "开发",
+    "lastModified": 1705142400000,
+    "tasks": [
+      {
+        "id": "task_001",
+        "name": "需求分析",
+        "startDate": "2025-01-01T00:00:00.000Z",
+        "endDate": "2025-01-05T23:59:59.999Z",
+        "x": 100,
+        "y": 100,
+        "isCritical": true,
+        "checklist": [
+          {
+            "id": "check_001_1",
+            "text": "收集用户需求",
+            "isCompleted": true
+          },
+          {
+            "id": "check_001_2",
+            "text": "编写需求文档",
+            "isCompleted": true
+          },
+          {
+            "id": "check_001_3",
+            "text": "需求评审",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 0,
+        "earlyFinish": 5,
+        "lateStart": 0,
+        "lateFinish": 5
+      },
+      {
+        "id": "task_002",
+        "name": "系统设计",
+        "startDate": "2025-01-06T00:00:00.000Z",
+        "endDate": "2025-01-12T23:59:59.999Z",
+        "x": 350,
+        "y": 100,
+        "isCritical": true,
+        "checklist": [
+          {
+            "id": "check_002_1",
+            "text": "架构设计",
+            "isCompleted": true
+          },
+          {
+            "id": "check_002_2",
+            "text": "数据库设计",
+            "isCompleted": false
+          },
+          {
+            "id": "check_002_3",
+            "text": "接口设计",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 5,
+        "earlyFinish": 12,
+        "lateStart": 5,
+        "lateFinish": 12
+      },
+      {
+        "id": "task_003",
+        "name": "前端开发",
+        "startDate": "2025-01-13T00:00:00.000Z",
+        "endDate": "2025-01-25T23:59:59.999Z",
+        "x": 100,
+        "y": 250,
+        "isCritical": false,
+        "checklist": [
+          {
+            "id": "check_003_1",
+            "text": "UI 组件开发",
+            "isCompleted": false
+          },
+          {
+            "id": "check_003_2",
+            "text": "页面路由实现",
+            "isCompleted": false
+          },
+          {
+            "id": "check_003_3",
+            "text": "状态管理",
+            "isCompleted": false
+          },
+          {
+            "id": "check_003_4",
+            "text": "API 集成",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 12,
+        "earlyFinish": 25,
+        "lateStart": 15,
+        "lateFinish": 28
+      },
+      {
+        "id": "task_004",
+        "name": "后端开发",
+        "startDate": "2025-01-13T00:00:00.000Z",
+        "endDate": "2025-01-25T23:59:59.999Z",
+        "x": 350,
+        "y": 250,
+        "isCritical": true,
+        "checklist": [
+          {
+            "id": "check_004_1",
+            "text": "数据库实现",
+            "isCompleted": false
+          },
+          {
+            "id": "check_004_2",
+            "text": "API 接口开发",
+            "isCompleted": false
+          },
+          {
+            "id": "check_004_3",
+            "text": "业务逻辑实现",
+            "isCompleted": false
+          },
+          {
+            "id": "check_004_4",
+            "text": "单元测试",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 12,
+        "earlyFinish": 25,
+        "lateStart": 12,
+        "lateFinish": 25
+      },
+      {
+        "id": "task_005",
+        "name": "集成测试",
+        "startDate": "2025-01-26T00:00:00.000Z",
+        "endDate": "2025-01-30T23:59:59.999Z",
+        "x": 600,
+        "y": 175,
+        "isCritical": true,
+        "checklist": [
+          {
+            "id": "check_005_1",
+            "text": "功能测试",
+            "isCompleted": false
+          },
+          {
+            "id": "check_005_2",
+            "text": "性能测试",
+            "isCompleted": false
+          },
+          {
+            "id": "check_005_3",
+            "text": "安全测试",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 25,
+        "earlyFinish": 30,
+        "lateStart": 25,
+        "lateFinish": 30
+      },
+      {
+        "id": "task_006",
+        "name": "部署上线",
+        "startDate": "2025-01-31T00:00:00.000Z",
+        "endDate": "2025-02-02T23:59:59.999Z",
+        "x": 850,
+        "y": 175,
+        "isCritical": true,
+        "checklist": [
+          {
+            "id": "check_006_1",
+            "text": "环境准备",
+            "isCompleted": false
+          },
+          {
+            "id": "check_006_2",
+            "text": "生产部署",
+            "isCompleted": false
+          },
+          {
+            "id": "check_006_3",
+            "text": "监控配置",
+            "isCompleted": false
+          }
+        ],
+        "earlyStart": 30,
+        "earlyFinish": 33,
+        "lateStart": 30,
+        "lateFinish": 33
+      }
+    ],
+    "dependencies": [
+      {
+        "fromId": "task_001",
+        "toId": "task_002"
+      },
+      {
+        "fromId": "task_002",
+        "toId": "task_003"
+      },
+      {
+        "fromId": "task_002",
+        "toId": "task_004"
+      },
+      {
+        "fromId": "task_003",
+        "toId": "task_005"
+      },
+      {
+        "fromId": "task_004",
+        "toId": "task_005"
+      },
+      {
+        "fromId": "task_005",
+        "toId": "task_006"
+      }
+    ],
+    "canvasOffsetX": 0,
+    "canvasOffsetY": 0,
+    "zoomScale": 1.0
+  }
+}
+

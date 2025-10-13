@@ -1,9 +1,13 @@
-// File: entry/src/main/ets/pages/ProjectGroupView.ets
+// File: entry/src/main/ets/pages/ProjectGroupIndex.ets
 /**
  * 项目群编辑页面模块
  *
  * 本页面是项目群管理的核心编辑界面，完全复用 Index.ets 的设计模式和代码结构。
  * 采用适配器模式，将 ProjectGroup 映射为 Project 结构，从而复用现有的画布渲染和交互逻辑。
+ * 
+ * 架构层级：
+ * - ProjectGroupHome.ets：项目群列表页面（类似 Home.ets）
+ * - ProjectGroupIndex.ets：项目群编辑页面（类似 Index.ets）← 当前页面
  *
  * 主要功能：
  * 1. 项目群可视化：使用现有的 Canvas 2D 技术绘制项目网络图
@@ -16,6 +20,7 @@
  * - 适配器模式：ProjectGroup → Project 映射
  * - 完全复用：复用 CanvasController、样式、交互逻辑
  * - 统一体验：与项目管理页面保持一致的用户体验
+ * - 两层导航：通过 ProjectGroupHome 进入本页面
  *
  * @author EasyFlow开发团队
  * @version 1.0.0
@@ -459,12 +464,8 @@ struct ProjectGroupView {
         this.SidebarContent()
       }
 
-      // 右侧内容区
-      Column() {
-        this.CanvasArea()
-      }
-      .layoutWeight(1)
-      .margin({ left: this.sidebarVisible ? 380 : 0 })
+      // 画布区域
+      this.CanvasArea()
       
       // 顶部工具栏（复用 Index.ets 的设计）
       this.TopToolbar()
@@ -672,11 +673,21 @@ struct ProjectGroupView {
   @Builder
   CanvasArea() {
     Stack() {
+      // 画布背景 - 格子纹效果
+      this.CanvasBackground()
+
       // 画布
       Canvas(this.canvasController.getRenderer().getContext())
-        .width('100%')
         .height('100%')
-        .backgroundColor(ColorResource.backgroundSecondary)
+        .width('100%')
+        .backgroundColor(Color.Transparent)
+        .borderRadius(12)
+        .margin({
+          top: 16,
+          right: 16,
+          bottom: 16,
+          left: 16
+        })
         .opacity(this.canvasOpacity)
         .onReady(() => this.handleCanvasReady())
         .onTouch((event: TouchEvent) => {
@@ -689,6 +700,51 @@ struct ProjectGroupView {
           );
           this.drawGraph();
         })
+    }
+    .width('100%')
+    .height('100%')
+    .margin({ left: this.sidebarVisible ? 380 : 0 })
+  }
+
+  // 画布背景构建器 - 自适应背景灰色网格（复用 Index.ets 的设计）
+  @Builder
+  CanvasBackground() {
+    Stack() {
+      // 背景色
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(ColorResource.surface)
+
+      // 网格线层
+      Column() {
+        // 主要网格线
+        Stack() {
+          // 垂直线
+          ForEach(Array.from({ length: 8 }), (_: number, index: number) => {
+            Line()
+              .startPoint([index * 200, 0])
+              .endPoint([index * 200, 1600])
+              .stroke(ColorResource.surfaceEmphasized)
+              .strokeWidth(1)
+              .opacity(0.3)
+          })
+          
+          // 水平线
+          ForEach(Array.from({ length: 8 }), (_: number, index: number) => {
+            Line()
+              .startPoint([0, index * 200])
+              .endPoint([1600, index * 200])
+              .stroke(ColorResource.surfaceEmphasized)
+              .strokeWidth(1)
+              .opacity(0.3)
+          })
+        }
+        .width('100%')
+        .height('100%')
+      }
+      .width('100%')
+      .height('100%')
     }
     .width('100%')
     .height('100%')

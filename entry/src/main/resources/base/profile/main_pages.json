@@ -2,6 +2,7 @@
   "src": [
     "pages/Home",
     "pages/Index",
-    "pages/ProjectGroupView"
+    "pages/ProjectGroupHome",
+    "pages/ProjectGroupIndex"
   ]
 }

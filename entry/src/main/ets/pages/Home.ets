@@ -1537,7 +1537,7 @@ struct HomePage {
         .onClick(() => {
           // 跳转到项目群管理页面
           this.getUIContext().getRouter().pushUrl({
-            url: 'pages/ProjectGroupView'
+            url: 'pages/ProjectGroupHome'
           });
         })
         .margin({ right: 12 })
@@ -2245,7 +2245,7 @@ struct HomePage {
         .onClick(() => {
           // 跳转到项目群管理页面
           this.getUIContext().getRouter().pushUrl({
-            url: 'pages/ProjectGroupView'
+            url: 'pages/ProjectGroupHome'
           });
         })
         

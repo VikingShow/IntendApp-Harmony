@@ -1358,11 +1358,11 @@ struct Index {
           .shadow(ThemeConfig.shadowLarge)
         }
       }
-      .width('100%')
       .justifyContent(FlexAlign.End)
       .alignItems(HorizontalAlign.End)
       .padding({ right: 12, top: 12 })
-      .position({ x: 0, y: 0 })
+      .position({ x: '100%', y: 0 })
+      .translate({ x: '-100%', y: 0 })
     } else {
       // 其他设备：水平布局（保持原样）
       Row() {
@@ -1623,10 +1623,10 @@ struct Index {
           .shadow(ThemeConfig.shadowLarge)
         }
       }
-      .width('100%')
       .justifyContent(FlexAlign.End)
       .padding({ right: 12, top: 12 })
-      .position({ x: 0, y: 0 })
+      .position({ x: '100%', y: 0 })
+      .translate({ x: '-100%', y: 0 })
     }
   }
 

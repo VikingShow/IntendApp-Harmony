@@ -421,6 +421,34 @@ struct Index {
     this.selectedTask = state.selectedTask;
   }
 
+  // 刷新选中任务，从project中重新获取最新数据
+  private refreshSelectedTask() {
+    if (this.selectedTask && this.project) {
+      const taskId = this.selectedTask.id;
+      const updatedTask = this.project.tasks.find(t => t.id === taskId);
+      if (updatedTask) {
+        // 创建新的引用以触发响应式更新（手动复制所有属性）
+        this.selectedTask = {
+          id: updatedTask.id,
+          name: updatedTask.name,
+          startDate: updatedTask.startDate,
+          endDate: updatedTask.endDate,
+          checklist: updatedTask.checklist.slice(),
+          x: updatedTask.x,
+          y: updatedTask.y,
+          isCritical: updatedTask.isCritical,
+          earlyStart: updatedTask.earlyStart,
+          earlyFinish: updatedTask.earlyFinish,
+          lateStart: updatedTask.lateStart,
+          lateFinish: updatedTask.lateFinish
+        };
+        // 同步更新AppState
+        this.projectManager.getActions().selectTask(this.selectedTask);
+        console.log(`[Index] refreshSelectedTask: 已刷新任务 ${taskId} 的数据`);
+      }
+    }
+  }
+
   // 保存画布位置和缩放到项目中
   private saveCanvasPosition() {
     if (!this.project) return;
@@ -1186,6 +1214,8 @@ struct Index {
               if (this.commandHistory.undo()) {
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
+                // 撤销后刷新selectedTask，确保显示最新数据
+                this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 const commandName = this.commandHistory.getLastRedoCommandName();
@@ -1216,6 +1246,8 @@ struct Index {
               if (this.commandHistory.redo()) {
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
+                // 重做后刷新selectedTask，确保显示最新数据
+                this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 const commandName = this.commandHistory.getLastUndoCommandName();
@@ -1420,6 +1452,8 @@ struct Index {
               if (this.commandHistory.undo()) {
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
+                // 撤销后刷新selectedTask，确保显示最新数据
+                this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 const commandName = this.commandHistory.getLastRedoCommandName();
@@ -1455,6 +1489,8 @@ struct Index {
               if (this.commandHistory.redo()) {
                 this.updateUndoRedoState();
                 this.updateStateFromManager();
+                // 重做后刷新selectedTask，确保显示最新数据
+                this.refreshSelectedTask();
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 const commandName = this.commandHistory.getLastUndoCommandName();

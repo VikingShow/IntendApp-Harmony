@@ -211,6 +211,12 @@ struct ProjectGroupIndex {
       this.updateStateFromService();
       this.drawGraph();
     });
+
+    // 监听项目引用更新事件（用于节点移动后刷新画布）
+    this.eventBus.on('project_ref_updated', () => {
+      this.updateStateFromService();
+      this.drawGraph();
+    });
   }
 
   /**
@@ -939,19 +945,19 @@ struct ProjectGroupIndex {
           color: ColorResource.projectDevelopment
         },
         {
-          text: '营销活动',
-          color: ColorResource.projectMarketing
+          text: 'UI/UX设计',
+          color: ColorResource.projectDesign
         },
         {
-          text: '研究分析',
-          color: ColorResource.projectResearch
+          text: '营销活动',
+          color: ColorResource.projectMarketing
         }
       ]
     }).then((result) => {
-      let category = '开发';
-      if (result.index === 0) category = '开发';
-      else if (result.index === 1) category = '营销';
-      else if (result.index === 2) category = '研究';
+      let category = 'development';
+      if (result.index === 0) category = 'development';
+      else if (result.index === 1) category = 'design';
+      else if (result.index === 2) category = 'marketing';
 
       // 获取该分类的模板
       const templates = this.templateService.getTemplatesByCategory(category);

@@ -1,9 +1,9 @@
 {
   "app": {
-    "bundleName": "com.example.easyflow",
-    "vendor": "Example",
-    "versionCode": 1000000,
-    "versionName": "1.0.0",
+    "bundleName": "com.sowrjam.easyflow",
+    "vendor": "SowrJam",
+    "versionCode": 1000102,
+    "versionName": "1.1.2",
     "icon": "$media:app_layered_image",
     "label": "$string:app_name",
     "minCompatibleVersionCode": 1000000

@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B4A9AF81847E99C1BF684E3DBE7F655542C6BA7549EE55D551771E7E5C7E79C3975F4555C150492",
-          "profile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p7b",
+          "storeFile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/easyflow.p12",
+          "storePassword": "00000018A3E16D3D22383974AC780A85D5A795EDC6C9E2D62FBF0AD63570CBBC96B15EF8F8333B2C",
+          "keyAlias": "1asyflow",
+          "keyPassword": "000000188DB428B12B63866BA4436F08610CE10D072123B6975901498664EE48433BC4C81BDFEF61",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p12",
-          "storePassword": "0000001B212A3BD149A155F4ED65EA3C3404DEFD55B6AAC87C81D1E6A8533BEE01AD8FD7D5229C7FEF4A9A"
+          "profile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204Release.p7b",
+          "certpath": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204.cer"
         }
       }
     ],

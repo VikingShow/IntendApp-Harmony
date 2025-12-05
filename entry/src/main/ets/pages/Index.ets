@@ -50,6 +50,7 @@ import { AppState } from '../core/AppState';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PerformanceService } from '../services/PerformanceService';
+import { CalendarService } from '../services/CalendarService';
 
 /**
  * 路由参数接口
@@ -98,6 +99,7 @@ struct Index {
   private configCallbackId: number = -1;
   @State isDarkMode: boolean = false;
   private performanceService: PerformanceService = PerformanceService.getInstance();
+  private calendarService: CalendarService = CalendarService.getInstance();
   
   // 工具栏状态
   @State toolbarExpanded: boolean = false;  // 工具栏是否展开
@@ -1753,25 +1755,56 @@ struct Index {
           onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
             this.projectManager.getActions().updateTask(taskId, updates);
           },
-          onUpdateChecklist: (taskId, checklist) => {
-            this.projectManager.getActions().updateChecklist(taskId, checklist);
-          },
-          onAddChecklistItem: (taskId, text) => {
-            const newItem: ChecklistItem = {
-              id: `item_${Date.now()}`,
-              text: text,
-              isCompleted: false
-            };
-            this.projectManager.getActions().addChecklistItem(taskId, newItem);
-          },
-          onDeleteChecklistItem: (taskId, itemId) => {
-            this.projectManager.getActions().deleteChecklistItem(taskId, itemId);
-          },
-          onDeleteTask: (id) => {
-            this.projectManager.getActions().deleteTask(id);
-          },
-          onStartConnecting: () => this.handleStartConnecting(),
-          onSave: () => this.projectManager.getActions().saveProject(),
+            onUpdateChecklist: (taskId, checklist) => {
+              this.projectManager.getActions().updateChecklist(taskId, checklist);
+            },
+            onAddChecklistItem: (taskId, text) => {
+              const newItem: ChecklistItem = {
+                id: `item_${Date.now()}`,
+                text: text,
+                isCompleted: false
+              };
+              this.projectManager.getActions().addChecklistItem(taskId, newItem);
+            },
+            onDeleteChecklistItem: (taskId, itemId) => {
+              this.projectManager.getActions().deleteChecklistItem(taskId, itemId);
+            },
+            onDeleteTask: (id) => {
+              this.projectManager.getActions().deleteTask(id);
+            },
+            onStartConnecting: () => this.handleStartConnecting(),
+            onAddReminder: async (task: TaskNode) => {
+              if (!this.permissionService) {
+                this.promptAction.showToast({
+                  message: '权限服务未初始化，无法创建提醒',
+                  duration: 2000
+                });
+                return;
+              }
+
+              const granted: boolean = await this.permissionService.requestReminderPermission();
+              if (!granted) {
+                this.promptAction.showToast({
+                  message: '未获得日历提醒权限，无法创建系统提醒',
+                  duration: 3000
+                });
+                return;
+              }
+
+              const id = await this.calendarService.addTaskReminder(task);
+              if (id !== null) {
+                this.promptAction.showToast({
+                  message: `已为任务 "${task.name}" 创建日历提醒`,
+                  duration: 2000
+                });
+              } else {
+                this.promptAction.showToast({
+                  message: '创建日历提醒失败，可能是当前设备不支持该功能',
+                  duration: 3000
+                });
+              }
+            },
+            onSave: () => this.projectManager.getActions().saveProject(),
           onBack: () => this.handleBackToHome(),
           onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),
           onCreateProjectFromTemplate: (templateId, projectName) =>

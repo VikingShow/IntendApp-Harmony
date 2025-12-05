@@ -6,9 +6,9 @@
         "type": "HarmonyOS",
         "material": {
           "storeFile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/easyflow.p12",
-          "storePassword": "00000018A3E16D3D22383974AC780A85D5A795EDC6C9E2D62FBF0AD63570CBBC96B15EF8F8333B2C",
+          "storePassword": "00000018B3C7571672C7CE420143CDDC4196643C2B8BC61E4865934988D1CED0C50110E326402BFF",
           "keyAlias": "1asyflow",
-          "keyPassword": "000000188DB428B12B63866BA4436F08610CE10D072123B6975901498664EE48433BC4C81BDFEF61",
+          "keyPassword": "00000018FC28575B8954C0D1DEA3C7318F21A7AAA2CF4C494A57CBAD69DDC74FA95308F2897BB5D1",
           "signAlg": "SHA256withECDSA",
           "profile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204Release.p7b",
           "certpath": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204.cer"

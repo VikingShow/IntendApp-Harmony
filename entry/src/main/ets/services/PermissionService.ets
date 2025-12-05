@@ -110,6 +110,23 @@ export class PermissionService {
   }
 
   /**
+   * 申请日历提醒权限
+   */
+  public async requestReminderPermission(): Promise<boolean> {
+    const permission = 'ohos.permission.PUBLISH_AGENT_REMINDER';
+    console.log('[PermissionService] 开始申请日历提醒权限...');
+
+    try {
+      const result = await this.requestPermission(permission);
+      console.log(`[PermissionService] 日历提醒权限申请结果: ${result}`);
+      return result;
+    } catch (error) {
+      console.error('[PermissionService] 申请日历提醒权限失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 显示权限被拒绝的消息
    */
   private showPermissionDeniedMessage(permission: string): void {

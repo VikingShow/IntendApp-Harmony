@@ -80,6 +80,9 @@ export struct TaskEditor {
   };
   onDeleteChecklistItem: (taskId: string, itemId: string) => void = () => {
   };
+  // 为当前任务添加日历提醒的回调（由父组件实现具体逻辑）
+  onAddReminder: (task: TaskNode) => void = () => {
+  };
 
   aboutToAppear() {
     this.localTask = this.task;
@@ -367,15 +370,26 @@ export struct TaskEditor {
                }
              }
 
-            // 工期显示
+            // 工期显示与日历提醒
             Row({ space: 8 }) {
               Text(`工期: ${this.getDuration()} 天`)
                 .fontSize(13)
                 .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)
+              if (this.localTask) {
+                CommonButton({
+                  text: '添加日历提醒',
+                  type: 'secondary',
+                  buttonSize: 'small',
+                  onButtonClick: () => {
+                    this.onAddReminder(this.localTask!);
+                  }
+                })
+                  .width(140)
+              }
             }
             .width('100%')
-            .justifyContent(FlexAlign.End)
+            .justifyContent(FlexAlign.SpaceBetween)
           }
           .padding(ThemeConfig.spacingXL)
           .backgroundColor(ColorResource.transparent)

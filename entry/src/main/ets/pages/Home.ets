@@ -51,6 +51,7 @@ import router from '@ohos.router';
 import { ErrorHandler } from '../core/ErrorHandler';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
+import { AIService } from '../services/AIService';
 
 /**
  * ActionMenu按钮接口
@@ -72,6 +73,7 @@ struct RenameProjectDialog {
   projectName: string = '';
   onConfirm: (newName: string) => void = () => {};
   @State inputValue: string = '';
+
 
   aboutToAppear() {
     this.inputValue = this.projectName;
@@ -174,6 +176,170 @@ struct RenameProjectDialog {
   }
 }
 
+@CustomDialog
+struct AIGenerateDialog {
+  controller: CustomDialogController;
+  apiKey: string = '';
+  baseUrl: string = 'https://api.deepseek.com';
+  onConfirm: (apiKey: string, baseUrl: string, prompt: string) => void = () => {};
+  @State inputApiKey: string = '';
+  @State inputBaseUrl: string = '';
+  @State inputPrompt: string = '';
+
+  aboutToAppear() {
+    this.inputApiKey = this.apiKey;
+    this.inputBaseUrl = this.baseUrl;
+  }
+
+  build() {
+    Column({ space: 0 }) {
+      // 标题区域
+      Column({ space: 4 }) {
+        Text('AI 生成导图')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary)
+          .textAlign(TextAlign.Center)
+          .width('100%')
+        Text('使用你自己的 AI Key 生成项目导图')
+          .fontSize(12)
+          .fontColor(ColorResource.textSecondary)
+          .textAlign(TextAlign.Center)
+          .width('100%')
+      }
+      .width('100%')
+      .padding({ top: 24, left: 24, right: 24, bottom: 16 })
+
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
+
+      // 内容区域
+      Column({ space: 12 }) {
+        // API Key
+        Column({ space: 6 }) {
+          Text('API Key（必填）')
+            .fontSize(12)
+            .fontColor(ColorResource.textSecondary)
+          TextInput({ text: this.inputApiKey, placeholder: '请输入 AI API Key（例如 DeepSeek Key）' })
+            .width('100%')
+            .height(44)
+            .fontSize(16)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(10)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string) => {
+              this.inputApiKey = value;
+            })
+        }
+
+        // Base URL
+        Column({ space: 6 }) {
+          Text('Base URL（可选）')
+            .fontSize(12)
+            .fontColor(ColorResource.textSecondary)
+          TextInput({ text: this.inputBaseUrl, placeholder: '默认为 https://api.deepseek.com' })
+            .width('100%')
+            .height(44)
+            .fontSize(14)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(10)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string) => {
+              this.inputBaseUrl = value;
+            })
+        }
+
+        // Prompt 描述
+        Column({ space: 6 }) {
+          Text('导图描述（必填）')
+            .fontSize(12)
+            .fontColor(ColorResource.textSecondary)
+          TextInput({ text: this.inputPrompt, placeholder: '请描述你要生成的项目/思维导图，例如：开发一款待办应用的完整项目计划' })
+            .width('100%')
+            .height(80)
+            .fontSize(14)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(10)
+            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+            .onChange((value: string) => {
+              this.inputPrompt = value;
+            })
+        }
+      }
+      .width('100%')
+      .padding({ top: 16, left: 24, right: 24, bottom: 20 })
+
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
+
+      // 按钮区域
+      Row({ space: 0 }) {
+        Button('取消')
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(0)
+          .onClick(() => {
+            this.controller.close();
+          })
+
+        // 垂直分隔线
+        Divider()
+          .vertical(true)
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.3)
+          .height(48)
+
+        Button('生成导图')
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(0)
+          .enabled(this.inputApiKey.trim().length > 0 && this.inputPrompt.trim().length > 0)
+          .opacity(this.inputApiKey.trim().length > 0 && this.inputPrompt.trim().length > 0 ? 1 : 0.4)
+          .onClick(() => {
+            const key = this.inputApiKey.trim();
+            const base =
+              this.inputBaseUrl.trim().length > 0
+                ? this.inputBaseUrl.trim()
+                : this.baseUrl;
+            const prompt = this.inputPrompt.trim();
+            if (key.length > 0 && prompt.length > 0) {
+              this.onConfirm(key, base, prompt);
+              this.controller.close();
+            }
+          })
+      }
+      .width('100%')
+    }
+    .width('85%')
+    .constraintSize({ maxWidth: 320 })
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(14)
+    .shadow({
+      radius: 24,
+      color: 'rgba(0, 0, 0, 0.12)',
+      offsetX: 0,
+      offsetY: 4
+    })
+  }
+}
+
+
 
 @Entry
 @Component
@@ -258,6 +424,11 @@ struct HomePage {
   // 画布渲染模式（手机端默认使用缩略模式）
   @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
 
+  // AI相关
+  @State aiApiKey: string = '';
+  @State aiBaseUrl: string = 'https://api.deepseek.com';
+
+
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
   private templateService: TemplateService = TemplateService.getInstance();
@@ -267,6 +438,8 @@ struct HomePage {
   private errorHandler: ErrorHandler | null = null;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+  private aiService: AIService = AIService.getInstance();
+
 
   async aboutToAppear() {
     // 初始化屏幕尺寸
@@ -372,6 +545,67 @@ struct HomePage {
     }
     // 重新检测屏幕尺寸（可能发生旋转）
     this.updateScreenSize();
+  }
+
+  private aiDialogController: CustomDialogController | null = null;
+
+  private showAIGenerateDialog() {
+    if (this.aiDialogController) {
+      this.aiDialogController.close();
+      this.aiDialogController = null;
+    }
+
+    this.aiDialogController = new CustomDialogController({
+      builder: AIGenerateDialog({
+        apiKey: this.aiApiKey,
+        baseUrl: this.aiBaseUrl,
+        onConfirm: async (apiKey: string, baseUrl: string, prompt: string) => {
+          this.aiApiKey = apiKey.trim();
+          this.aiBaseUrl = baseUrl.trim().length > 0 ? baseUrl.trim() : 'https://api.deepseek.com';
+          await this.createProjectWithAI(prompt);
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.aiDialogController.open();
+  }
+
+  private async createProjectWithAI(prompt: string) {
+    if (!this.storageService) {
+      this.promptAction.showToast({ message: '存储服务未初始化' });
+      return;
+    }
+    if (!prompt || prompt.trim().length === 0) {
+      this.promptAction.showToast({ message: '请先输入你想生成的项目描述' });
+      return;
+    }
+
+    this.aiService.setConfig(this.aiApiKey, this.aiBaseUrl);
+
+    this.promptAction.showToast({ message: '正在调用 AI 生成导图...', duration: 1500 });
+
+    const project = await this.aiService.generateProjectFromPrompt(prompt);
+    if (!project) {
+      this.promptAction.showToast({ message: 'AI 生成失败，请检查 API Key / BaseURL 后重试', duration: 3000 });
+      return;
+    }
+
+    await this.storageService.saveProject(project);
+    this.promptAction.showToast({ message: `项目 "${project.name}" 已创建`, duration: 2000 });
+
+    await this.loadProjects();
+    this.selectedProjectId = project.id;
+    this.selectedProjectDetail = project;
+
+    setTimeout(() => {
+      this.uiContext.getRouter().pushUrl({
+        url: 'pages/Index',
+        params: { projectId: project.id }
+      });
+    }, 500);
   }
 
   aboutToDisappear() {
@@ -972,7 +1206,9 @@ struct HomePage {
         {
           text: '导入项目',
           color: ColorResource.projectDevelopment
-        }
+        },
+        { text: 'AI 生成导图',
+          color: ColorResource.secondaryColor }
       ]
     }).then((result) => {
       if (result.index === 0) {
@@ -984,8 +1220,11 @@ struct HomePage {
       } else if (result.index === 2) {
         // 导入项目
         this.importProject();
+      } else if (result.index === 3) {
+        this.showAIGenerateDialog();
       }
-    }).catch((error: Error) => {
+
+  }).catch((error: Error) => {
       console.error('ActionMenu error:', error);
     });
   }

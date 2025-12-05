@@ -326,6 +326,7 @@ export struct Sidebar {
   // 新增回调
   onSave: () => void = () => {};
   onBack: () => void = () => {};
+  onAddReminder: (task: TaskNode) => void = () => {};
 
   private saveProjectName() {
     if (this.tempProjectName.trim() === '') {
@@ -344,22 +345,27 @@ export struct Sidebar {
         if (this.project) {
           if (this.selectedTaskForEditor === null) {
             this.ProjectView()
-          } else {
-            TaskEditor({
-              task: this.selectedTaskForEditor,
-              onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
-                this.onUpdateTask(taskId, updates);
-              },
-              onUpdateChecklist: this.onUpdateChecklist,
-              onAddChecklistItem: this.onAddChecklistItem,
-              onDeleteChecklistItem: this.onDeleteChecklistItem,
-              onDeleteTask: this.onDeleteTask,
-              onStartConnecting: this.onStartConnecting,
-              onBack: () => {
-                this.selectedTaskForEditor = null;
-              }
-            })
-          }
+            } else {
+              TaskEditor({
+                task: this.selectedTaskForEditor,
+                onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
+                  this.onUpdateTask(taskId, updates);
+                },
+                onUpdateChecklist: this.onUpdateChecklist,
+                onAddChecklistItem: this.onAddChecklistItem,
+                onDeleteChecklistItem: this.onDeleteChecklistItem,
+                onDeleteTask: this.onDeleteTask,
+                onStartConnecting: this.onStartConnecting,
+                onAddReminder: (task: TaskNode) => {
+                  // 由父页面通过 onUpdateTask / 外部服务真正创建提醒
+                  // 这里仅保留回调链路，具体实现放在页面层
+                  console.log('[Sidebar] onAddReminder triggered for task', task.id); this.onAddReminder(task);
+                },
+                onBack: () => {
+                  this.selectedTaskForEditor = null;
+                }
+              })
+            }
         } else {
           // 项目加载中或加载失败时显示的内容 - 现代化毛玻璃设计
           Column({ space: ThemeConfig.spacingXL }) {

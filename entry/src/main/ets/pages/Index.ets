@@ -46,6 +46,7 @@ import { PromptAction } from '@kit.ArkUI';
 import vibrator from '@ohos.vibrator';
 import { CommandHistory } from '../core/CommandHistory';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import { AppState } from '../core/AppState';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
@@ -118,6 +119,11 @@ struct Index {
   
   // 画布透明度（用于避免闪烁）
   @State canvasOpacity: number = 0;
+
+  // 选中任务的快捷操作条状态
+  @State showTaskQuickActions: boolean = false;
+  @State quickActionsX: number = 0;
+  @State quickActionsY: number = 0;
   
   // 渲染节流相关
   private isRendering: boolean = false;
@@ -404,6 +410,7 @@ struct Index {
     eventBus.on('task_selected', (...args: EventArgs[]) => {
       const task = args[0] as TaskNode | null;
       this.updateStateFromManager();
+      this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
       this.drawGraph();
     });
 
@@ -412,6 +419,7 @@ struct Index {
       const task = args[0] as TaskNode;
       this.updateStateFromManager();
       this.updateUndoRedoState();
+       this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
       this.drawGraph();
     });
 
@@ -420,6 +428,7 @@ struct Index {
       const taskId = args[0] as string;
       this.updateStateFromManager();
       this.updateUndoRedoState();
+      this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
       this.drawGraph();
     });
 
@@ -427,6 +436,7 @@ struct Index {
     eventBus.on('critical_path_calculated', (...args: EventArgs[]) => {
       const project = args[0] as Project;
       this.updateStateFromManager();
+      this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
       this.drawGraph();
     });
   }
@@ -437,6 +447,54 @@ struct Index {
     // 直接赋值，依赖@State的响应式机制
     this.project = state.project;
     this.selectedTask = state.selectedTask;
+  }
+
+  // 根据当前选中任务和画布状态更新快捷操作条位置
+  private updateTaskQuickActionsPositionFromTask(task: TaskNode | null): void {
+    if (!task || !this.project) {
+      if (this.showTaskQuickActions) {
+        this.showTaskQuickActions = false;
+      }
+      return;
+    }
+
+    const canvasState = this.canvasController.getState();
+    const zoom = canvasState.zoomScale || 1.0;
+    const offsetX = canvasState.canvasOffsetX;
+    const offsetY = canvasState.canvasOffsetY;
+
+    // 计算锚点（节点底部中心）
+    let anchorX: number;
+    let anchorY: number;
+    const CANVAS_MARGIN = 16; // 与 Canvas 组件的 margin 保持一致
+
+    if (this.canvasRenderMode === RenderMode.COMPACT) {
+      // 紧凑模式下按小圆圈计算
+      const centerX = task.x + offsetX + 100;
+      const centerY = task.y + offsetY + 60;
+      const circleRadius = 24;
+      anchorX = centerX;
+      // 快捷条整体较高，这里只在圆圈下方留很小的间距，主要由内部 padding 控制
+      anchorY = centerY + circleRadius;
+    } else {
+      // 普通模式下按卡片底部中心计算
+      const NODE_WIDTH = 200;
+      const NODE_HEIGHT = 120;
+      anchorX = task.x + offsetX + NODE_WIDTH / 2;
+      // 与节点底部保持紧凑的竖向间距
+      anchorY = task.y + offsetY + NODE_HEIGHT;
+    }
+
+    // 转换为屏幕坐标（考虑缩放和 Canvas 外层 margin）
+    // TaskQuickActionsBar 一排 4 个 40vp 圆按钮 + 3 个 8vp 间距 + 左右各 10vp padding ≈ 204vp
+    // 为了在视觉上稍微向左收一点，这里比精确一半再多减去 8vp
+    const QUICK_BAR_HALF_WIDTH = 110;
+    const screenX = anchorX * zoom + CANVAS_MARGIN - QUICK_BAR_HALF_WIDTH;
+    const screenY = anchorY * zoom + CANVAS_MARGIN;
+
+    this.quickActionsX = screenX;
+    this.quickActionsY = screenY;
+    this.showTaskQuickActions = true;
   }
 
   // 刷新选中任务，从project中重新获取最新数据
@@ -616,6 +674,10 @@ struct Index {
 
   // 渲染画布（增强节流优化 + 性能监控）
   private drawGraph(): void {
+    // 同步最新的项目与选中任务状态，确保快捷操作条位置始终使用最新数据
+    this.updateStateFromManager();
+    this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
+
     const now = Date.now();
     
     // 节流检查：如果距离上次渲染时间太短，延迟处理
@@ -873,6 +935,143 @@ struct Index {
     this.canRedo = this.commandHistory.canRedo();
   }
 
+  // 编辑当前选中任务：打开侧边栏
+  private handleEditSelectedTask(): void {
+    if (!this.selectedTask) {
+      return;
+    }
+    this.sidebarVisible = true;
+    this.projectManager.getActions().selectTask(this.selectedTask);
+  }
+
+  // 删除当前选中任务
+  private handleDeleteSelectedTask(): void {
+    if (!this.selectedTask) {
+      return;
+    }
+    const taskId = this.selectedTask.id;
+    this.projectManager.getActions().deleteTask(taskId);
+    this.showTaskQuickActions = false;
+  }
+
+  // 复制当前任务并在位置上稍微错开
+  private handleDuplicateSelectedTask(): void {
+    if (!this.selectedTask || !this.project) {
+      return;
+    }
+
+    const baseTaskId = this.selectedTask.id;
+    const state = this.projectManager.getState();
+    const project = state.project;
+    if (!project) {
+      return;
+    }
+
+    const existingIds = new Set(project.tasks.map(t => t.id));
+
+    this.projectManager.getActions().addTask();
+
+    this.updateStateFromManager();
+    const latestProject = this.projectManager.getState().project;
+    if (!latestProject) {
+      return;
+    }
+
+    const newTask = latestProject.tasks.find(t => !existingIds.has(t.id));
+    const baseTask = latestProject.tasks.find(t => t.id === baseTaskId);
+    if (!newTask || !baseTask) {
+      return;
+    }
+
+    const OFFSET = 40;
+    const updates: Partial<TaskNode> = {
+      name: baseTask.name,
+      startDate: baseTask.startDate,
+      endDate: baseTask.endDate,
+      checklist: baseTask.checklist.map((item): ChecklistItem => {
+        return {
+          id: `item_${Date.now()}_${item.id}`,
+          text: item.text,
+          isCompleted: item.isCompleted
+        };
+      }),
+      x: baseTask.x + OFFSET,
+      y: baseTask.y + OFFSET,
+      isCritical: baseTask.isCritical,
+      earlyStart: baseTask.earlyStart,
+      earlyFinish: baseTask.earlyFinish,
+      lateStart: baseTask.lateStart,
+      lateFinish: baseTask.lateFinish
+    };
+
+    this.projectManager.getActions().updateTask(newTask.id, updates);
+
+    // 使用最新项目中的任务对象作为选中项，避免对象展开
+    const updatedProjectAfterDuplicate = this.projectManager.getState().project;
+    if (updatedProjectAfterDuplicate) {
+      const updatedTask = updatedProjectAfterDuplicate.tasks.find(t => t.id === newTask.id);
+      if (updatedTask) {
+        this.projectManager.getActions().selectTask(updatedTask);
+      }
+    }
+
+    this.promptAction.showToast({
+      message: '任务已复制',
+      duration: 1200
+    });
+  }
+
+  // 在当前任务附近新增一个空白任务
+  private handleAddTaskNearSelected(): void {
+    if (!this.selectedTask || !this.project) {
+      return;
+    }
+
+    const baseTaskId = this.selectedTask.id;
+    const state = this.projectManager.getState();
+    const project = state.project;
+    if (!project) {
+      return;
+    }
+
+    const existingIds = new Set(project.tasks.map(t => t.id));
+
+    this.projectManager.getActions().addTask();
+
+    this.updateStateFromManager();
+    const latestProject = this.projectManager.getState().project;
+    if (!latestProject) {
+      return;
+    }
+
+    const newTask = latestProject.tasks.find(t => !existingIds.has(t.id));
+    const baseTask = latestProject.tasks.find(t => t.id === baseTaskId);
+    if (!newTask || !baseTask) {
+      return;
+    }
+
+    const OFFSET = 60;
+    const updates: Partial<TaskNode> = {
+      x: baseTask.x + OFFSET,
+      y: baseTask.y + OFFSET
+    };
+
+    this.projectManager.getActions().updateTask(newTask.id, updates);
+
+    const updatedProjectAfterAdd = this.projectManager.getState().project;
+    if (updatedProjectAfterAdd) {
+      const updatedTask = updatedProjectAfterAdd.tasks.find(t => t.id === newTask.id);
+      if (updatedTask) {
+        this.projectManager.getActions().selectTask(updatedTask);
+      }
+    }
+
+    this.promptAction.showToast({
+      message: '已在附近创建新任务',
+      duration: 1200
+    });
+  }
+
   // 画布背景构建器 - 自适应背景灰色网格
   @Builder
   CanvasBackground() {
@@ -949,6 +1148,77 @@ struct Index {
       offsetX: 0,
       offsetY: 2
     })
+  }
+
+  // 选中任务时悬浮显示的快捷操作条（编辑 / 复制 / 删除 / 新增）
+  @Builder
+  TaskQuickActionsBar() {
+    if (this.showTaskQuickActions && this.selectedTask) {
+      Row({ space: 8 }) {
+        // 编辑
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_edit'))
+            .width(18)
+            .height(18)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(ColorResource.primaryColor)
+        .shadow(ThemeConfig.shadowMedium)
+        .onClick(() => {
+          this.handleEditSelectedTask();
+        })
+
+        // 复制
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_copy'))
+            .width(18)
+            .height(18)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .shadow(ThemeConfig.shadowSmall)
+        .onClick(() => {
+          this.handleDuplicateSelectedTask();
+        })
+
+        // 删除
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_delete'))
+            .width(18)
+            .height(18)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(this.isDarkMode ? ColorResource.errorColor : ColorResource.errorLight)
+        .shadow(ThemeConfig.shadowMedium)
+        .onClick(() => {
+          this.handleDeleteSelectedTask();
+        })
+
+        // 新增
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_add'))
+            .width(20)
+            .height(20)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .shadow(ThemeConfig.shadowSmall)
+        .onClick(() => {
+          this.handleAddTaskNearSelected();
+        })
+      }
+      .padding({ left: 10, right: 10, top: 2, bottom: 8 })
+      // 使用响应式颜色，适配深色 / 浅色模式的浮动面板背景
+      .backgroundColor(ResponsiveColorConfig.getFloatingPanelBackgroundColor(this.isDarkMode))
+      .borderRadius(24)
+      .shadow(ThemeConfig.shadowLarge)
+      .position({ x: this.quickActionsX, y: this.quickActionsY })
+      .zIndex(160)
+    }
   }
 
   /**
@@ -1891,6 +2161,9 @@ struct Index {
               this.debouncedSaveCanvasPosition();
             }
           })
+
+        // 选中任务时的快捷操作条（跟随节点悬浮显示）
+        this.TaskQuickActionsBar()
 
         // 右上角可伸缩工具栏
         this.CollapsibleToolbar()

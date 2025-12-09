@@ -61,10 +61,8 @@
         }
       },
       {
-        "name": "ohos.permission.VIBRATE"
-      },
-      {
-        "name": "ohos.permission.PUBLISH_AGENT_REMINDER",
+        "name": "ohos.permission.VIBRATE",
+        "reason": "$string:permission_reason",
         "usedScene": {
           "abilities": [
             "EntryAbility"
@@ -74,6 +72,27 @@
       },
       {
         "name": "ohos.permission.INTERNET",
+        "reason": "$string:permission_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.READ_CALENDAR",
+        "reason": "$string:permission_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.WRITE_CALENDAR",
+        "reason": "$string:permission_reason",
         "usedScene": {
           "abilities": [
             "EntryAbility"

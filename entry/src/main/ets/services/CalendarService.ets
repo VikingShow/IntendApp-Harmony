@@ -1,41 +1,23 @@
 // File: entry/src/main/ets/services/CalendarService.ets
 /**
- * 日历提醒服务模块
+ * 日历日程服务模块
  *
- * 使用 HarmonyOS 提供的 reminderAgentManager 能力，在系统提醒中心创建任务提醒。
- * 设计目标：
- * - 封装与系统提醒的交互逻辑，对上层只暴露简单的 API
- * - 默认使用任务的开始日期作为提醒时间，如无则回退为当前时间 + 5 分钟
- * - 只返回结果，由调用方决定如何提示用户
- *
- * 注意事项：
- * - 需要在模块配置中声明权限：ohos.permission.PUBLISH_AGENT_REMINDER
+ * 使用 HarmonyOS Calendar Kit 提供的 calendarManager 能力，
+ * 在系统日历中为任务创建对应的日程（带提醒）。
  */
 
 import { TaskNode } from '../model/ProjectData';
-import reminderAgentManager from '@ohos.reminderAgentManager';
-
-interface CalendarReminderDateTime {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: number;
-}
-
-interface CalendarReminderRequest {
-  reminderType: reminderAgentManager.ReminderType;
-  title: string;
-  content: string;
-  dateTime: CalendarReminderDateTime;
-}
+import { calendarManager } from '@kit.CalendarKit';
+import { calendarMgr } from '../entryability/EntryAbility';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 /**
- * 日历提醒服务
+ * 日历服务
  */
 export class CalendarService {
   private static instance: CalendarService;
+  private calendar: calendarManager.Calendar | null = null;
+  private calendarInitialized: boolean = false;
 
   /**
    * 获取单例实例
@@ -51,53 +33,86 @@ export class CalendarService {
   private constructor() {}
 
   /**
-   * 为指定任务创建日历系统提醒
+   * 确保日历账户已创建并返回对应 Calendar 对象
+   */
+  private async ensureCalendar(): Promise<calendarManager.Calendar | null> {
+    if (this.calendarInitialized && this.calendar) {
+      return this.calendar;
+    }
+
+    if (!calendarMgr) {
+      console.error('[CalendarService] calendarMgr not ready.');
+      return null;
+    }
+
+    // 指定日历账户信息
+    const calendarAccount: calendarManager.CalendarAccount = {
+      name: 'EasyFlowCalendar',
+      type: calendarManager.CalendarType.LOCAL,
+      displayName: 'EasyFlow'
+    };
+
+    // 日历配置信息：开启提醒并设置颜色
+    const config: calendarManager.CalendarConfig = {
+      enableReminder: true,
+      color: '#4A90E2'
+    };
+
+    try {
+      const calendar = await calendarMgr.createCalendar(calendarAccount);
+      console.info('[CalendarService] Succeeded in creating calendar:', JSON.stringify(calendar));
+
+      await calendar.setConfig(config);
+      console.info('[CalendarService] Succeeded in setting calendar config');
+
+      this.calendar = calendar;
+      this.calendarInitialized = true;
+      return this.calendar;
+    } catch (error) {
+      const err = error as BusinessError;
+      console.error(`[CalendarService] Failed to create calendar. Code: ${err.code}, message: ${err.message}`);
+      this.calendar = null;
+      this.calendarInitialized = false;
+      return null;
+    }
+  }
+
+  /**
+   * 为指定任务创建系统日历日程（带提醒）
    *
    * @param task 任务对象（至少包含名称和开始/结束时间）
-   * @returns 提醒 ID，失败时返回 null
+   * @returns 日程 ID，失败时返回 null
    */
   public async addTaskReminder(task: TaskNode): Promise<number | null> {
     try {
-      const now: Date = new Date();
-
-      // 优先使用任务开始时间；如已过期，则使用结束时间；都不合适则使用当前时间 + 5 分钟
-      let fireTime: Date = task.startDate;
-      if (fireTime.getTime() <= now.getTime() && task.endDate.getTime() > now.getTime()) {
-        fireTime = task.endDate;
-      }
-      if (fireTime.getTime() <= now.getTime()) {
-        fireTime = new Date(now.getTime() + 5 * 60 * 1000);
+      const calendar = await this.ensureCalendar();
+      if (!calendar) {
+        console.error('[CalendarService] Calendar not available.');
+        return null;
       }
 
-      const dateTime: CalendarReminderDateTime = {
-        year: fireTime.getFullYear(),
-        // 月份从 1 开始
-        month: fireTime.getMonth() + 1,
-        day: fireTime.getDate(),
-        hour: fireTime.getHours(),
-        minute: fireTime.getMinutes(),
-        second: fireTime.getSeconds()
-      };
+      const startTime = task.startDate.getTime();
+      const endTime = task.endDate.getTime();
 
-      const reminderReq: CalendarReminderRequest = {
-        reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
+      const event: calendarManager.Event = {
+        // 日程标题
         title: task.name,
-        content: '来自 EasyFlow 的任务提醒',
-        dateTime: dateTime
+        // 日程类型
+        type: calendarManager.EventType.NORMAL,
+        // 日程开始/结束时间
+        startTime: startTime,
+        endTime: endTime,
+        // 距离开始时间提前 10 分钟提醒
+        reminderTime: [10]
       };
 
-      console.log('[CalendarService] Publishing calendar reminder:', JSON.stringify(reminderReq));
-
-      const reminderId: number = await reminderAgentManager.publishReminder(
-        reminderReq as reminderAgentManager.ReminderRequestCalendar
-      );
-
-      console.log('[CalendarService] Reminder published, id =', reminderId);
-      return reminderId;
+      const eventId: number = await calendar.addEvent(event);
+      console.info(`[CalendarService] Succeeded in adding event, id = ${eventId}`);
+      return eventId;
     } catch (error) {
-      console.error('[CalendarService] Failed to publish reminder:', error);
+      const err = error as BusinessError;
+      console.error(`[CalendarService] Failed to add event. Code: ${err.code}, message: ${err.message}`);
       return null;
     }
   }
 }
-

@@ -2044,32 +2044,15 @@ struct Index {
             },
             onStartConnecting: () => this.handleStartConnecting(),
             onAddReminder: async (task: TaskNode) => {
-              if (!this.permissionService) {
-                this.promptAction.showToast({
-                  message: '权限服务未初始化，无法创建提醒',
-                  duration: 2000
-                });
-                return;
-              }
-
-              const granted: boolean = await this.permissionService.requestReminderPermission();
-              if (!granted) {
-                this.promptAction.showToast({
-                  message: '未获得日历提醒权限，无法创建系统提醒',
-                  duration: 3000
-                });
-                return;
-              }
-
               const id = await this.calendarService.addTaskReminder(task);
               if (id !== null) {
                 this.promptAction.showToast({
-                  message: `已为任务 "${task.name}" 创建日历提醒`,
+                  message: `已为任务 "${task.name}" 创建日程并添加提醒`,
                   duration: 2000
                 });
               } else {
                 this.promptAction.showToast({
-                  message: '创建日历提醒失败，可能是当前设备不支持该功能',
+                  message: '创建日程失败，请检查设备是否支持日历服务',
                   duration: 3000
                 });
               }

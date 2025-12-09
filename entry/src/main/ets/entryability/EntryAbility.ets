@@ -3,8 +3,13 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { calendarManager } from '@kit.CalendarKit';
+import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
 
 const DOMAIN = 0x0000;
+
+// 全局日历管理器，用于在其它模块中创建日程
+export let calendarMgr: calendarManager.CalendarManager | null = null;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -63,6 +68,24 @@ export default class EntryAbility extends UIAbility {
         let bottomRectHeight = data.area.bottomRect.height;
         AppStorage.setOrCreate('bottomRectHeight', bottomRectHeight);
       }
+    });
+
+    // 初始化日历管理器：请求日历读写权限并创建 CalendarManager
+    const calendarPermissions: string[] = [
+      'ohos.permission.READ_CALENDAR',
+      'ohos.permission.WRITE_CALENDAR'
+    ];
+    const atManager = abilityAccessCtrl.createAtManager();
+    atManager.requestPermissionsFromUser(this.context, calendarPermissions as never[]).then((result) => {
+      hilog.info(DOMAIN, 'Calendar', 'Calendar permissions granted: %{public}s', JSON.stringify(result));
+      try {
+        calendarMgr = calendarManager.getCalendarManager(this.context);
+        hilog.info(DOMAIN, 'Calendar', '%{public}s', 'CalendarManager initialized');
+      } catch (error) {
+        hilog.error(DOMAIN, 'Calendar', 'Failed to get CalendarManager: %{public}s', JSON.stringify(error));
+      }
+    }).catch((error: BusinessError) => {
+      hilog.error(DOMAIN, 'Calendar', 'Failed to request calendar permissions. Code: %{public}d, message: %{public}s', error.code, error.message);
     });
   }
 

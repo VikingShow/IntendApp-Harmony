@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storeFile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/easyflow.p12",
-          "storePassword": "00000018B3C7571672C7CE420143CDDC4196643C2B8BC61E4865934988D1CED0C50110E326402BFF",
-          "keyAlias": "1asyflow",
-          "keyPassword": "00000018FC28575B8954C0D1DEA3C7318F21A7AAA2CF4C494A57CBAD69DDC74FA95308F2897BB5D1",
+          "certpath": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A00C61697E2D21A7B519ED6A141598014D58A8314D883D520C1F684F9DE6FA631D65D5F9B93BA",
+          "profile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p7b",
           "signAlg": "SHA256withECDSA",
-          "profile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204Release.p7b",
-          "certpath": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/1204.cer"
+          "storeFile": "C:\\Users\\SowrJam\\.ohos\\config\\default_EasyFlow_BnVVGIyWQYf1O8ViAPsR3FJcWvZ5t6TqzFBos4k3-M8=.p12",
+          "storePassword": "0000001A5805C3C07F793F7C1132E308707F71AFF8C0342F30ECD4B02FCC8B7118EC2E58E0B0F46F9576"
         }
       }
     ],

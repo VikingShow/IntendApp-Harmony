@@ -1,4 +1,4 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -30,6 +30,8 @@ export default class EntryAbility extends UIAbility {
     });
 
     let windowClass: window.Window = windowStage.getMainWindowSync();
+    AppStorage.setOrCreate('windowClass', windowClass);
+
     let isLayoutFullScreen = true;
     windowClass.setWindowLayoutFullScreen(isLayoutFullScreen).then(() => {
       console.info('Succeeded in setting the window layout to full-screen mode.');
@@ -37,33 +39,16 @@ export default class EntryAbility extends UIAbility {
       console.error(`Failed to set the window layout to full-screen mode. Code is ${err.code}, message is ${err.message}`);
     });
 
-    // let windowClass: window.Window | undefined = undefined;
     windowStage.getMainWindow((err: BusinessError, data) => {
       const errCode: number = err.code;
       if (errCode) {
         console.error(`Failed to obtain the main window. Cause code: ${err.code}, message: ${err.message}`);
         return;
       }
-    windowClass = data;
-    let SystemBarProperties: window.SystemBarProperties = {
-      statusBarColor: ThemeConfig.transparent.toString(),
-      navigationBarColor: ThemeConfig.transparent.toString(),
-    };
-    try {
-      let promise = windowClass.setWindowSystemBarProperties(SystemBarProperties);
-      promise.then(() => {
-        console.info('Succeeded in setting the system bar properties.');
-      }).catch((err: BusinessError) => {
-        console.error(`Failed to set the system bar properties. Cause code: ${err.code}, message: ${err.message}`);
-      });
-    } catch (exception) {
-      console.error(`Failed to set the system bar properties. Cause code: ${exception.code}, message: ${exception.message}`);
-    }
-  });
-    // let type = window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR; // 此处以导航条避让为例
-    // let avoidArea = windowClass.getWindowAvoidArea(type);
-    // let bottomRectHeight = avoidArea.bottomRect.height; // 获取到导航区域的高度
-    // AppStorage.setOrCreate('bottomRectHeight', bottomRectHeight);
+      windowClass = data;
+      AppStorage.setOrCreate('windowClass', windowClass);
+      this.updateSystemBar(windowClass);
+    });
 
     const type = window.AvoidAreaType.TYPE_SYSTEM; // 以状态栏避让为例
     const avoidArea = windowClass.getWindowAvoidArea(type);
@@ -79,6 +64,40 @@ export default class EntryAbility extends UIAbility {
         AppStorage.setOrCreate('bottomRectHeight', bottomRectHeight);
       }
     });
+  }
+
+  private updateSystemBar(windowClass: window.Window, config?: Configuration): void {
+    const currentConfig: Configuration | undefined = config ?? this.context.config;
+    const isDarkMode: boolean = !!currentConfig &&
+      currentConfig.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+
+    const statusBarContentColor: string = isDarkMode ? '#FFFFFFFF' : '#FF000000';
+
+    let systemBarProperties: window.SystemBarProperties = {
+      statusBarColor: ThemeConfig.transparent.toString(),
+      navigationBarColor: ThemeConfig.transparent.toString(),
+      statusBarContentColor: statusBarContentColor
+    };
+    try {
+      let promise = windowClass.setWindowSystemBarProperties(systemBarProperties);
+      promise.then(() => {
+        console.info('Succeeded in setting the system bar properties.');
+      }).catch((err: BusinessError) => {
+        console.error(`Failed to set the system bar properties. Cause code: ${err.code}, message: ${err.message}`);
+      });
+    } catch (exception) {
+      console.error(`Failed to set the system bar properties. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
+  }
+
+  onConfigurationUpdate(config: Configuration): void {
+    super.onConfigurationUpdate(config);
+    const windowClass = AppStorage.get<window.Window>('windowClass');
+    if (!windowClass) {
+      console.warn('Window class not ready, skip updating system bar.');
+      return;
+    }
+    this.updateSystemBar(windowClass, config);
   }
 
   onWindowStageDestroy(): void {

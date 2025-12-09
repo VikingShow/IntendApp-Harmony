@@ -339,6 +339,14 @@
     {
       "name": "decorative_ice",
       "value": "#FCFCFD"
+    },
+    {
+      "name": "status_bar_background",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "status_bar_content",
+      "value": "#FF000000"
     }
   ]
 }

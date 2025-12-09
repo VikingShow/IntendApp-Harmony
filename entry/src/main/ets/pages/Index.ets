@@ -64,6 +64,7 @@ interface RouterParams {
   renderMode?: string;
   /** 是否为手机端（从Dashboard传递） */
   isPhone?: boolean;
+  selectedTaskId?: string;
 }
 
 @Entry
@@ -239,6 +240,7 @@ struct Index {
     // 从路由参数中获取projectId
     const params = this.uiContext.getRouter().getParams() as RouterParams;
     const projectId = params?.projectId;
+    const selectedTaskIdFromDashboard = params?.selectedTaskId;
 
     console.log(`[EasyFlow] Index.ets aboutToAppear - projectId: ${projectId}`);
 
@@ -250,6 +252,10 @@ struct Index {
       this.restoreCanvasPosition();
       // 延迟一帧确保状态完全生效
       await new Promise<void>(resolve => setTimeout(resolve, 0));
+      if (selectedTaskIdFromDashboard) {
+        this.selectTaskById(selectedTaskIdFromDashboard);
+      }
+
     } else {
       // 如果没有ID，则创建新项目并填充示例数据
       console.log("[EasyFlow] Creating new project with example data.");
@@ -303,6 +309,21 @@ struct Index {
     if (this.project && this.projectManager) {
       console.log(`[EasyFlow] Index.ets onPageHide - 确保项目数据已保存: ${this.project.name}`);
       this.projectManager.getActions().saveProject();
+    }
+  }
+
+  private selectTaskById(taskId: string) {
+    if (!this.project) {
+      return;
+    }
+    const target = this.project.tasks.find(t => t.id === taskId);
+    if (!target) {
+      return;
+    }
+    this.projectManager.getActions().selectTask(target);
+    this.updateStateFromManager();
+    if (this.selectedTask) {
+      this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
     }
   }
 

@@ -2069,77 +2069,91 @@ struct Index {
         this.sidebarVisible = !this.sidebarVisible
       })
 
-      // 侧边栏
-      if (this.sidebarVisible) {
-        Sidebar({
-          project: this.project,
-          selectedTask: this.selectedTask,
-          isHomePage: false,
-          exportService: this.exportService,
-          forceSwitchToEditorTab: this.forceSwitchToEditorTab,
-          onGetCanvasPixelMap: async () => {
-            return await this.canvasController.getCanvasPixelMap(
-              this.project ?? undefined,
-              this.selectedTask?.id
-            );
+      // 侧边栏 - 添加滑动动画
+      Sidebar({
+        project: this.project,
+        selectedTask: this.selectedTask,
+        isHomePage: false,
+        exportService: this.exportService,
+        forceSwitchToEditorTab: this.forceSwitchToEditorTab,
+        onGetCanvasPixelMap: async () => {
+          return await this.canvasController.getCanvasPixelMap(
+            this.project ?? undefined,
+            this.selectedTask?.id
+          );
+        },
+        onUpdateProjectName: (newName) => {
+          this.projectManager.getActions().updateProjectName(newName);
+        },
+        onAddTask: () => {
+          this.projectManager.getActions().addTask();
+        },
+        onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
+          this.projectManager.getActions().updateTask(taskId, updates);
+        },
+          onUpdateChecklist: (taskId, checklist) => {
+            this.projectManager.getActions().updateChecklist(taskId, checklist);
           },
-          onUpdateProjectName: (newName) => {
-            this.projectManager.getActions().updateProjectName(newName);
+          onAddChecklistItem: (taskId, text) => {
+            const newItem: ChecklistItem = {
+              id: `item_${Date.now()}`,
+              text: text,
+              isCompleted: false
+            };
+            this.projectManager.getActions().addChecklistItem(taskId, newItem);
           },
-          onAddTask: () => {
-            this.projectManager.getActions().addTask();
+          onDeleteChecklistItem: (taskId, itemId) => {
+            this.projectManager.getActions().deleteChecklistItem(taskId, itemId);
           },
-          onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
-            this.projectManager.getActions().updateTask(taskId, updates);
+          onDeleteTask: (id) => {
+            this.projectManager.getActions().deleteTask(id);
           },
-            onUpdateChecklist: (taskId, checklist) => {
-              this.projectManager.getActions().updateChecklist(taskId, checklist);
-            },
-            onAddChecklistItem: (taskId, text) => {
-              const newItem: ChecklistItem = {
-                id: `item_${Date.now()}`,
-                text: text,
-                isCompleted: false
-              };
-              this.projectManager.getActions().addChecklistItem(taskId, newItem);
-            },
-            onDeleteChecklistItem: (taskId, itemId) => {
-              this.projectManager.getActions().deleteChecklistItem(taskId, itemId);
-            },
-            onDeleteTask: (id) => {
-              this.projectManager.getActions().deleteTask(id);
-            },
-            onStartConnecting: () => this.handleStartConnecting(),
-            onAddReminder: async (task: TaskNode) => {
-              const id = await this.calendarService.addTaskReminder(task);
-              if (id !== null) {
-                this.promptAction.showToast({
-                  message: `已为任务 "${task.name}" 创建日程并添加提醒`,
-                  duration: 2000
-                });
-              } else {
-                this.promptAction.showToast({
-                  message: '创建日程失败，请检查设备是否支持日历服务',
-                  duration: 3000
-                });
-              }
-            },
-            onSave: () => this.projectManager.getActions().saveProject(),
-          onBack: () => this.handleBackToHome(),
-          onSelectTask: (task: TaskNode) => {
-            // 选中任务并更新状态
-            this.projectManager.getActions().selectTask(task);
-            this.updateStateFromManager();
+          onStartConnecting: () => this.handleStartConnecting(),
+          onAddReminder: async (task: TaskNode) => {
+            const id = await this.calendarService.addTaskReminder(task);
+            if (id !== null) {
+              this.promptAction.showToast({
+                message: `已为任务 "${task.name}" 创建日程并添加提醒`,
+                duration: 2000
+              });
+            } else {
+              this.promptAction.showToast({
+                message: '创建日程失败，请检查设备是否支持日历服务',
+                duration: 3000
+              });
+            }
           },
-          onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),
-          onCreateProjectFromTemplate: (templateId, projectName) =>
-          this.projectManager.getActions().createFromTemplate(templateId, projectName)
+          onSave: () => this.projectManager.getActions().saveProject(),
+        onBack: () => this.handleBackToHome(),
+        onSelectTask: (task: TaskNode) => {
+          // 选中任务并更新状态
+          this.projectManager.getActions().selectTask(task);
+          this.updateStateFromManager();
+        },
+        onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),
+        onCreateProjectFromTemplate: (templateId, projectName) =>
+        this.projectManager.getActions().createFromTemplate(templateId, projectName)
+      })
+        .width(380)
+        .height('100%')
+        .position({ x: 0, y: 0 })
+        .zIndex(150)
+        .translate({ 
+          x: this.sidebarVisible ? 0 : -380 
         })
-          .width(380)
-          .height('100%')
-          .position({ x: 0, y: 0 })
-          .zIndex(150)
-      }
+        .opacity(this.sidebarVisible ? 1 : 0)
+        .transition({
+          type: TransitionType.All,
+          opacity: 0,
+          translate: { 
+            x: -380,
+            y: 0
+          }
+        })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseInOut
+        })
 
       // 画布
       Stack() {

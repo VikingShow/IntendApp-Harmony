@@ -1425,6 +1425,18 @@ struct HomePage {
         {
           text: '营销模板',
           color: ColorResource.projectMarketing
+        },
+        {
+          text: '研究模板',
+          color: ColorResource.projectResearch
+        },
+        {
+          text: '内容模板',
+          color: ColorResource.projectContent
+        },
+        {
+          text: '活动模板',
+          color: ColorResource.projectEvent
         }
       ]
     }).then((result) => {
@@ -1439,6 +1451,18 @@ struct HomePage {
       } else if (result.index === 2) {
         // 营销模板
         this.selectedCategory = 'marketing';
+        this.showTemplateListDialog();
+      } else if (result.index === 3) {
+        // 研究模板
+        this.selectedCategory = 'research';
+        this.showTemplateListDialog();
+      } else if (result.index === 4) {
+        // 内容模板
+        this.selectedCategory = 'content';
+        this.showTemplateListDialog();
+      } else if (result.index === 5) {
+        // 活动模板
+        this.selectedCategory = 'event';
         this.showTemplateListDialog();
       }
     }).catch((error: Error) => {

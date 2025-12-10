@@ -106,6 +106,8 @@ export class ColorResource {
   static readonly projectDesign = $r('app.color.project_design');
   static readonly projectMarketing = $r('app.color.project_marketing');
   static readonly projectResearch = $r('app.color.project_research');
+  static readonly projectContent = $r('app.color.project_content');
+  static readonly projectEvent = $r('app.color.project_event');
   static readonly projectOther = $r('app.color.project_other');
 
   // 画布网格线颜色

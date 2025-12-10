@@ -289,6 +289,14 @@
       "value": "#10B981"
     },
     {
+      "name": "project_content",
+      "value": "#EC4899"
+    },
+    {
+      "name": "project_event",
+      "value": "#F97316"
+    },
+    {
       "name": "project_other",
       "value": "#6B7280"
     },

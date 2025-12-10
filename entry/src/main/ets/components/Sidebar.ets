@@ -63,10 +63,10 @@ export struct Sidebar {
   @ObjectLink project: Project | null;
   /** 当前选中的任务，使用@Prop实现属性传递 */
   @Prop selectedTask: TaskNode | null;
-  /** 强制切换到编辑Tab的标志 */
-  @Prop forceSwitchToEditorTab: boolean = false;
+  /** 强制切换到编辑Tab的计数器 */
+  @Prop @Watch('onForceSwitchChanged') forceSwitchToEditorTab: number = 0;
   @State private selectedTaskForEditor: TaskNode | null = null;
-  @State private lastForceSwitchToEditorTab: boolean = false; // 跟踪forceSwitchToEditorTab的之前值
+  @State private lastForceSwitchToEditorTab: number = 0; // 跟踪forceSwitchToEditorTab的之前值
   // 新增参数：区分首页和编辑页
   isHomePage: boolean = false;
   onCreateBlankProject: () => void = () => {};
@@ -84,6 +84,7 @@ export struct Sidebar {
   @State private currentTabIndex: number = 0; // 当前选中的Tab索引
   @State private lastSelectedTaskId: string | null = null; // 记录上次选中的任务ID，用于检测变化
   @State private lastEditedTaskId: string | null = null; // 记录最后编辑的任务ID，用于显示Tab标题
+  @State private editorRefreshKey: number = 0; // 用于强制刷新TaskEditor
 
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
@@ -135,6 +136,24 @@ export struct Sidebar {
   }
   
   /**
+   * 获取用于编辑的任务对象
+   * 从project中获取最新的任务对象，确保数据是最新的
+   */
+  private getTaskForEditor(): TaskNode | null {
+    if (!this.selectedTask) {
+      return null;
+    }
+    // 从project中获取最新的任务对象，确保数据是最新的
+    if (this.project) {
+      const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+      if (refreshedTask) {
+        return refreshedTask;
+      }
+    }
+    return this.selectedTask;
+  }
+
+  /**
    * 获取编辑Tab的标题
    * 优化：根据任务状态动态显示标题，即使切回总览也保留任务名称
    */
@@ -178,7 +197,7 @@ export struct Sidebar {
     this.updateScreenSize();
     
     // 检查是否需要强制切换到编辑Tab
-    if (this.forceSwitchToEditorTab && this.selectedTask) {
+    if (this.forceSwitchToEditorTab > 0 && this.selectedTask) {
       console.log(`[Sidebar] aboutToAppear: Force switching to task editor tab for task: ${this.selectedTask.name}`);
       // 从project中获取最新的任务对象
       if (this.project) {
@@ -209,6 +228,44 @@ export struct Sidebar {
     } catch (error) {
       console.error('[Sidebar] Error getting screen size:', error);
       this.screenWidth = 840;
+    }
+  }
+
+  /**
+   * 监听 forceSwitchToEditorTab 变化的回调
+   */
+  private onForceSwitchChanged() {
+    console.log(`[Sidebar] onForceSwitchChanged: ${this.lastForceSwitchToEditorTab} -> ${this.forceSwitchToEditorTab}`);
+    
+    // 检测计数器是否变化
+    const forceSwitchChanged = this.lastForceSwitchToEditorTab !== this.forceSwitchToEditorTab;
+    
+    if (forceSwitchChanged && this.forceSwitchToEditorTab > 0 && this.selectedTask) {
+      console.log(`[Sidebar] Force switch triggered by @Watch, switching to editor tab for task: ${this.selectedTask.name}`);
+      
+      // 从project中获取最新的任务对象
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
+      
+      this.lastEditedTaskId = this.selectedTask.id;
+      this.lastSelectedTaskId = this.selectedTask.id;
+      this.currentTabIndex = 1; // 强制设置为编辑Tab
+      
+      // 增加刷新key，强制TaskEditor重新渲染
+      this.editorRefreshKey++;
+      this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
+      
+      console.log(`[Sidebar] Force switch completed by @Watch: tab -> 1, taskId: ${this.selectedTask.id}, refreshKey: ${this.editorRefreshKey}`);
+    } else {
+      this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
     }
   }
 
@@ -426,24 +483,21 @@ export struct Sidebar {
     // 添加调试日志
     console.log(`[Sidebar] aboutToUpdate called: forceSwitchToEditorTab=${this.forceSwitchToEditorTab}, lastForceSwitchToEditorTab=${this.lastForceSwitchToEditorTab}, currentTabIndex=${this.currentTabIndex}, selectedTask=${this.selectedTask?.name || 'null'}`);
     
-    // 检测forceSwitchToEditorTab的变化（从false变为true）
-    const forceSwitchChanged = !this.lastForceSwitchToEditorTab && this.forceSwitchToEditorTab;
+    // 检测计数器是否变化
+    const forceSwitchChanged = this.lastForceSwitchToEditorTab !== this.forceSwitchToEditorTab;
     if (forceSwitchChanged) {
-      console.log(`[Sidebar] forceSwitchToEditorTab changed from false to true, immediately switching to editor tab`);
+      console.log(`[Sidebar] forceSwitchToEditorTab changed from ${this.lastForceSwitchToEditorTab} to ${this.forceSwitchToEditorTab}, immediately switching to editor tab`);
     }
-    this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
     
-    // 检测selectedTask的ID变化（使用ID而不是引用比较，更可靠）
+    // 检测任务ID变化
     const currentTaskId = this.selectedTask?.id || null;
     const taskIdChanged = this.lastSelectedTaskId !== currentTaskId;
     
-    // 1. 处理强制切换到编辑Tab的情况（优先处理，最高优先级）
-    // 如果forceSwitchToEditorTab为true，或者刚刚从false变为true，都执行切换
-    if ((this.forceSwitchToEditorTab || forceSwitchChanged) && this.selectedTask) {
-      const previousTabIndex = this.currentTabIndex;
-      console.log(`[Sidebar] Force switching to editor tab for task: ${this.selectedTask.name}, currentTabIndex: ${previousTabIndex}`);
-      // 强制设置编辑任务和Tab索引（无论当前Tab是什么，都强制切换）
-      // 从project中获取最新的任务对象，确保使用最新的引用
+    // 核心修复：当 forceSwitchToEditorTab 计数器变化时，切换到编辑Tab
+    // 使用计数器可以确保每次点击都能触发变化
+    if (forceSwitchChanged && this.forceSwitchToEditorTab > 0 && this.selectedTask) {
+      console.log(`[Sidebar] Force switch triggered, switching to editor tab for task: ${this.selectedTask.name}`);
+      // 从project中获取最新的任务对象
       if (this.project) {
         const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
         if (refreshedTask) {
@@ -455,13 +509,21 @@ export struct Sidebar {
         this.selectedTaskForEditor = this.selectedTask;
       }
       this.lastEditedTaskId = this.selectedTask.id;
-      this.currentTabIndex = 1; // 强制设置为编辑Tab
-      // 更新任务ID记录（无论是否变化，确保状态一致）
       this.lastSelectedTaskId = currentTaskId;
-      console.log(`[Sidebar] Force switch completed: tab ${previousTabIndex} -> 1, taskId: ${currentTaskId}`);
-      // 继续执行后续逻辑，确保数据同步
-      // 注意：不return，继续执行后续同步逻辑
+      this.currentTabIndex = 1; // 强制设置为编辑Tab
+      // 增加刷新key，强制TaskEditor重新渲染
+      this.editorRefreshKey++;
+      this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
+      console.log(`[Sidebar] Force switch completed: tab -> 1, taskId: ${currentTaskId}, refreshKey: ${this.editorRefreshKey}`);
+      return; // 已处理完成，直接返回
     }
+    
+    this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
+    
+    // 检测selectedTask对象引用变化（即使ID相同，对象引用可能不同）
+    // 这在编辑页切换任务时很重要，因为可能切换到不同的任务对象
+    const taskReferenceChanged = this.selectedTask !== this.selectedTaskForEditor && 
+                                 this.selectedTask?.id === this.selectedTaskForEditor?.id;
     
     // 2. 处理任务ID变化的情况
     if (taskIdChanged) {
@@ -473,40 +535,77 @@ export struct Sidebar {
         const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
         if (refreshedTask) {
           this.selectedTaskForEditor = refreshedTask;
+          console.log(`[Sidebar] Updated selectedTaskForEditor from project: ${refreshedTask.name}`);
         } else {
           this.selectedTaskForEditor = this.selectedTask;
+          console.log(`[Sidebar] Task not found in project, using selectedTask: ${this.selectedTask.name}`);
         }
       } else {
         this.selectedTaskForEditor = this.selectedTask;
+        console.log(`[Sidebar] No project, using selectedTask: ${this.selectedTask?.name || 'null'}`);
       }
       if (this.selectedTask) {
         this.lastEditedTaskId = this.selectedTask.id;
       }
       
-      // 更新Tab索引（如果不在强制切换模式）
-      if (!this.forceSwitchToEditorTab) {
+      // 如果当前在编辑Tab，确保保持在编辑Tab并更新任务
+      // 如果不在编辑Tab，根据是否有选中任务来决定Tab
+      if (this.currentTabIndex === 1 || this.forceSwitchToEditorTab) {
+        // 已经在编辑Tab，或者需要强制切换，确保selectedTaskForEditor已更新
+        // 上面的代码已经更新了selectedTaskForEditor
+        // 如果不在编辑Tab但需要强制切换，切换到编辑Tab
+        if (this.forceSwitchToEditorTab && this.currentTabIndex !== 1) {
+          this.currentTabIndex = 1;
+          console.log(`[Sidebar] Force switching to editor tab due to forceSwitchToEditorTab flag`);
+        }
+      } else if (!this.forceSwitchToEditorTab) {
+        // 如果不在编辑Tab，根据是否有选中任务来决定Tab
         this.updateTabIndex();
       }
     } else if (this.selectedTask) {
       // 3. 任务ID相同但对象引用可能不同，同步更新
-      // 如果当前不在正确的Tab，进行切换（除非已经强制切换过）
-      if (!this.forceSwitchToEditorTab) {
+      // 如果当前在编辑Tab，确保selectedTaskForEditor是最新的
+      if (this.currentTabIndex === 1) {
+        // 从project中获取最新的任务对象，确保使用最新的引用
+        if (this.project) {
+          const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+          if (refreshedTask) {
+            // 无论对象引用是否相同，都更新selectedTaskForEditor以确保数据同步
+            // 这样可以确保即使对象引用相同，但内容可能已更新时也能触发更新
+            if (this.selectedTaskForEditor !== refreshedTask || taskReferenceChanged) {
+              this.selectedTaskForEditor = refreshedTask;
+              console.log(`[Sidebar] Updated selectedTaskForEditor in editor tab: ${refreshedTask.name} (ID: ${refreshedTask.id})`);
+            }
+          } else {
+            // 如果project中找不到任务，使用selectedTask
+            if (this.selectedTaskForEditor !== this.selectedTask) {
+              this.selectedTaskForEditor = this.selectedTask;
+              console.log(`[Sidebar] Task not found in project, using selectedTask: ${this.selectedTask.name}`);
+            }
+          }
+        } else {
+          // 没有project，直接使用selectedTask
+          if (this.selectedTaskForEditor !== this.selectedTask) {
+            this.selectedTaskForEditor = this.selectedTask;
+          }
+        }
+        this.lastEditedTaskId = this.selectedTask.id;
+      } else if (!this.forceSwitchToEditorTab) {
+        // 如果当前不在正确的Tab，进行切换（除非已经强制切换过）
         this.updateTabIndex();
-      }
-      // 同步更新任务引用，确保使用最新的对象
-      // 即使ID相同，也要更新引用，因为对象内容可能已更新
-      // 从project中获取最新的任务对象，确保使用最新的引用
-      if (this.project) {
-        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
-        if (refreshedTask) {
-          this.selectedTaskForEditor = refreshedTask;
+        // 同步更新任务引用，确保使用最新的对象
+        if (this.project) {
+          const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+          if (refreshedTask) {
+            this.selectedTaskForEditor = refreshedTask;
+          } else {
+            this.selectedTaskForEditor = this.selectedTask;
+          }
         } else {
           this.selectedTaskForEditor = this.selectedTask;
         }
-      } else {
-        this.selectedTaskForEditor = this.selectedTask;
+        this.lastEditedTaskId = this.selectedTask.id;
       }
-      this.lastEditedTaskId = this.selectedTask.id;
     } else {
       // 4. 没有选中任务时，确保切换到总览Tab
       if (this.currentTabIndex === 1) {
@@ -609,7 +708,6 @@ export struct Sidebar {
                   onDeleteTask: (taskId: string) => {
                     // 删除任务后，切换到总览Tab
                     this.onDeleteTask(taskId);
-                    this.selectedTaskForEditor = null;
                     this.currentTabIndex = 0;
                   },
                   onStartConnecting: this.onStartConnecting,
@@ -620,10 +718,10 @@ export struct Sidebar {
                     this.onAddReminder(task);
                   },
                   onBack: () => {
-                    this.selectedTaskForEditor = null;
                     this.currentTabIndex = 0; // 返回总览Tab
                   }
                 })
+                .key(`task-editor-${this.editorRefreshKey}`)
               } else {
                 // 优化：没有选中任务时显示更友好的空状态提示
                 Column({ space: ThemeConfig.spacingXL }) {
@@ -680,23 +778,22 @@ export struct Sidebar {
           }
           .onChange((index: number) => {
             this.currentTabIndex = index;
-            // 如果切换到总览Tab，保留任务信息用于Tab标题显示
-            if (index === 0) {
-              // 保存最后编辑的任务ID，用于Tab标题显示
-              if (this.selectedTaskForEditor) {
-                this.lastEditedTaskId = this.selectedTaskForEditor.id;
-              } else if (this.selectedTask) {
-                this.lastEditedTaskId = this.selectedTask.id;
-              }
-              // 清除编辑器使用的任务引用，但不影响Tab标题显示
-              // Tab标题会使用lastEditedTaskId或selectedTask来显示
-              this.selectedTaskForEditor = null;
-              console.log(`[Sidebar] Switched to overview tab, saved lastEditedTaskId: ${this.lastEditedTaskId}`);
-            } else if (index === 1) {
-              // 切换到编辑Tab时，确保selectedTaskForEditor与selectedTask同步
-              // 即使selectedTaskForEditor已存在，也要更新为最新的引用
+            
+            // 如果切换到编辑Tab，确保selectedTaskForEditor与selectedTask同步
+            if (index === 1) {
+              // 切换到编辑Tab时，立即同步selectedTaskForEditor
               if (this.selectedTask) {
-                this.selectedTaskForEditor = this.selectedTask;
+                // 从project中获取最新的任务对象，确保使用最新的引用
+                if (this.project) {
+                  const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+                  if (refreshedTask) {
+                    this.selectedTaskForEditor = refreshedTask;
+                  } else {
+                    this.selectedTaskForEditor = this.selectedTask;
+                  }
+                } else {
+                  this.selectedTaskForEditor = this.selectedTask;
+                }
                 this.lastEditedTaskId = this.selectedTask.id;
                 console.log(`[Sidebar] Tab changed to editor, syncing task: ${this.selectedTask.name}`);
               } else if (this.lastEditedTaskId && this.project) {
@@ -714,6 +811,18 @@ export struct Sidebar {
                 this.selectedTaskForEditor = null;
                 console.log(`[Sidebar] Tab changed to editor but no selectedTask, clearing editor`);
               }
+            } else if (index === 0) {
+              // 如果切换到总览Tab，保留任务信息用于Tab标题显示
+              // 保存最后编辑的任务ID，用于Tab标题显示
+              if (this.selectedTaskForEditor) {
+                this.lastEditedTaskId = this.selectedTaskForEditor.id;
+              } else if (this.selectedTask) {
+                this.lastEditedTaskId = this.selectedTask.id;
+              }
+              // 清除编辑器使用的任务引用，但不影响Tab标题显示
+              // Tab标题会使用lastEditedTaskId或selectedTask来显示
+              this.selectedTaskForEditor = null;
+              console.log(`[Sidebar] Switched to overview tab, saved lastEditedTaskId: ${this.lastEditedTaskId}`);
             }
           })
           .width('100%')
@@ -1094,14 +1203,24 @@ export struct Sidebar {
                   .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     // 优化：点击任务时切换到编辑Tab并选中任务
+                    // 从project中获取最新的任务对象，确保使用最新的引用
+                    let taskToEdit = task;
+                    if (this.project) {
+                      const refreshedTask = this.project.tasks.find(t => t.id === task.id);
+                      if (refreshedTask) {
+                        taskToEdit = refreshedTask;
+                      }
+                    }
+                    
                     // 通过回调通知父组件更新selectedTask
-                    this.onSelectTask(task);
-                    // 立即切换到编辑Tab（selectedTaskForEditor会在aboutToUpdate中同步）
+                    this.onSelectTask(taskToEdit);
+                    // 立即设置编辑任务，确保立即显示
+                    this.selectedTaskForEditor = taskToEdit;
+                    this.lastEditedTaskId = taskToEdit.id;
+                    // 立即切换到编辑Tab
                     this.currentTabIndex = 1;
-                    // 临时设置编辑任务，确保立即显示（aboutToUpdate会同步为最新的selectedTask）
-                    this.selectedTaskForEditor = task;
-                    this.lastEditedTaskId = task.id;
-                    console.log(`[Sidebar] Task clicked: ${task.name}, switching to editor tab`);
+                    this.lastSelectedTaskId = taskToEdit.id;
+                    console.log(`[Sidebar] Task clicked: ${taskToEdit.name}, switching to editor tab`);
                   })
                 }
               })

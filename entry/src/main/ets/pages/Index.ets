@@ -86,7 +86,7 @@ struct Index {
   // 使用@State来响应ProjectManager的状态变化
   @State project: Project | null = null;
   @State selectedTask: TaskNode | null = null;
-  @State forceSwitchToEditorTab: boolean = false; // 强制切换到编辑Tab的标志
+  @State forceSwitchToEditorTab: number = 0; // 强制切换到编辑Tab的计数器（每次点击递增）
   private canvasController: CanvasController = new CanvasController();
   private projectManager: ProjectManager = ProjectManager.getInstance();
   private storageService: StorageService | null = null;
@@ -326,6 +326,9 @@ struct Index {
     if (this.selectedTask) {
       this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
     }
+    // 从Dashboard跳转时也强制切换到编辑Tab
+    this.forceSwitchToEditorTab++;
+    console.log(`[Index] selectTaskById: Set forceSwitchToEditorTab to ${this.forceSwitchToEditorTab}`);
   }
 
   // 设置主题监听器
@@ -965,41 +968,27 @@ struct Index {
     }
     console.log(`[Index] handleEditSelectedTask: Starting for task: ${this.selectedTask.name}, sidebarVisible: ${this.sidebarVisible}`);
     
-    // 显示侧边栏（先显示，确保Sidebar组件已经渲染）
-    const wasVisible = this.sidebarVisible;
+    // 显示侧边栏
     this.sidebarVisible = true;
     
     // 确保任务被选中（触发事件更新状态）
-    // 即使selectedTask已经是当前任务，也重新选择一次以触发更新
     this.projectManager.getActions().selectTask(this.selectedTask);
-    // 更新状态以确保selectedTask同步
     this.updateStateFromManager();
     
-    // 强制触发一次selectedTask的更新，确保Sidebar的aboutToUpdate被调用
-    // 通过创建一个新的对象引用来触发响应式更新
+    // 从project中重新获取任务对象，确保使用最新的引用
     const currentTask = this.selectedTask;
     if (currentTask && this.project) {
-      // 从project中重新获取任务对象，确保使用最新的引用
       const refreshedTask = this.project.tasks.find(t => t.id === currentTask.id);
       if (refreshedTask) {
         this.selectedTask = refreshedTask;
         this.projectManager.getActions().selectTask(refreshedTask);
-        // 再次更新状态以确保同步
         this.updateStateFromManager();
       }
     }
     
-    // 设置强制切换标志（无论侧边栏是否已经显示，都设置标志）
-    // 这样可以确保在编辑页切换任务时也能正确切换
-    this.forceSwitchToEditorTab = true;
-    console.log('[Index] handleEditSelectedTask: Set forceSwitchToEditorTab = true');
-    
-    // 延迟重置标志，确保Sidebar的aboutToUpdate有足够时间处理
-    // 使用较长的延迟时间，确保组件能够检测到变化并完成切换
-    setTimeout(() => {
-      this.forceSwitchToEditorTab = false;
-      console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
-    }, 800);
+    // 递增计数器，触发Sidebar切换到编辑Tab（每次点击都会产生新值）
+    this.forceSwitchToEditorTab++;
+    console.log(`[Index] handleEditSelectedTask: Incremented forceSwitchToEditorTab to ${this.forceSwitchToEditorTab}`);
   }
 
   // 删除当前选中任务

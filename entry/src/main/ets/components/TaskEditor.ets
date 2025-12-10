@@ -468,34 +468,35 @@ export struct TaskEditor {
                   color: ColorResource.surfaceNeutral, 
                   radius: ThemeConfig.radiusMedium 
                 })
-                .enterKeyType(EnterKeyType.Go)
-                .onSubmit(() => {
-                  this.submitNewChecklistItem();
-                })
-                .onFocus(() => {
-                  console.log('[TaskEditor] Checklist input focused');
-                })
-                .onChange((value: string) => {
-                  this.newChecklistItemText = value;
-                })
-                .onSubmit(() => {
-                  this.submitNewChecklistItem();
-                })
-              Button() {
-                Text('+')
-                  .fontSize(ThemeConfig.fontSizeXL)
-                  .fontColor(Color.White)
-                  .fontWeight(ThemeConfig.fontWeightBold)
-              }
-              .width(52)
-              .height(52)
-              .backgroundColor(ColorResource.primaryColor)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .shadow(ThemeConfig.shadowMedium)
-              .border({ width: 2, color: ColorResource.primaryUltraLight, radius: ThemeConfig.radiusMedium })
-              .onClick(() => {
-                this.submitNewChecklistItem();
-              })
+                  .enterKeyType(EnterKeyType.Go)
+                  .onSubmit(() => {
+                    this.submitNewChecklistItem();
+                  })
+                  .onFocus(() => {
+                    console.log('[TaskEditor] Checklist input focused');
+                  })
+                  .onChange((value: string) => {
+                    this.newChecklistItemText = value;
+                  })
+                  .onSubmit(() => {
+                    this.submitNewChecklistItem();
+                  })
+                  Button() {
+                    Text('+')
+                      .fontSize(ThemeConfig.fontSizeL)
+                      .fontColor(ColorResource.primaryColor)
+                      .fontWeight(ThemeConfig.fontWeightBold)
+                  }
+                  .width(40)
+                  .height(40)
+                  .type(ButtonType.Circle)
+                  .backgroundColor(ColorResource.primaryLight)
+                  .borderRadius(20)
+                  .shadow(ThemeConfig.shadowMedium)
+                  .border({ width: 2, color: ColorResource.primaryColor, radius: 20 })
+                  .onClick(() => {
+                    this.submitNewChecklistItem();
+                  })
             }
 
             // 子任务列表 

@@ -791,9 +791,228 @@ export struct DashboardView {
       0}, ${this.project.canvasOffsetY || 0})`);
   }
 
+  // 计算用于“四边进度框”的归一化进度（0.0 ~ 1.0）
+  private getFrameProgress(): number {
+    const completion: number = this.getOverallCompletion();
+    const clampedCompletion: number = Math.max(0, Math.min(100, completion));
+    return clampedCompletion / 100;
+  }
+
+  private getFrameTopWidth(): string {
+    const progress: number = this.getFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, progress / segmentSize);
+    return `${ratio * 100}%`;
+  }
+
+  private getFrameRightHeight(): string {
+    const progress: number = this.getFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  private getFrameBottomWidth(): string {
+    const progress: number = this.getFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - 2 * segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  private getFrameLeftHeight(): string {
+    const progress: number = this.getFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - 3 * segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  private getFrameCornerRadius(): number {
+    // 与统计卡片的圆角策略保持一致
+    return this.isFloatingCard ? 8 : ThemeConfig.radiusLarge;
+  }
+
+  private getTimeFrameProgress(): number {
+    const completion: number = this.getProjectTimeProgress();
+    const clampedCompletion: number = Math.max(0, Math.min(100, completion));
+    return clampedCompletion / 100;
+  }
+
+  private getTimeFrameTopWidth(): string {
+    const progress: number = this.getTimeFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, progress / segmentSize);
+    return `${ratio * 100}%`;
+  }
+
+  private getTimeFrameRightHeight(): string {
+    const progress: number = this.getTimeFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  private getTimeFrameBottomWidth(): string {
+    const progress: number = this.getTimeFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - 2 * segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  private getTimeFrameLeftHeight(): string {
+    const progress: number = this.getTimeFrameProgress();
+    const segmentSize: number = 0.25;
+    const ratio: number = Math.min(1, Math.max(0, (progress - 3 * segmentSize) / segmentSize));
+    return `${ratio * 100}%`;
+  }
+
+  // 手机 / 浮动卡片模式下，用“四条边”来表达项目整体完成度的进度框
+  @Builder
+  ProgressFrameBorder() {
+    Stack() {
+      // 外层：整体完成度进度（任务进度）
+      Column({ space: 0 }) {
+        // 顶部边：从左到右填充
+        Row() {
+          Row()
+            .width(this.getFrameTopWidth())
+            .height('100%')
+            .backgroundColor(ColorResource.taskProgress)
+            .borderRadius(this.getFrameCornerRadius());
+        }
+        .width('100%')
+        .height(2)
+        .backgroundColor(ColorResource.surfaceNeutral)
+        .borderRadius(ThemeConfig.radiusLarge);
+
+        // 中间部分：左右两条竖边
+        Row() {
+          // 左侧边：从下往上填充
+          Column() {
+            Blank()
+              .layoutWeight(1);
+            Column()
+              .width('100%')
+              .height(this.getFrameLeftHeight())
+              .backgroundColor(ColorResource.taskProgress);
+          }
+          .width(2)
+          .height('100%')
+          .backgroundColor(ColorResource.surfaceNeutral)
+          .borderRadius(this.getFrameCornerRadius());
+
+          Blank()
+            .layoutWeight(1);
+
+          // 右侧边：从上往下填充
+          Column() {
+            Column()
+              .width('100%')
+              .height(this.getFrameRightHeight())
+              .backgroundColor(ColorResource.taskProgress);
+            Blank()
+              .layoutWeight(1);
+          }
+          .width(2)
+          .height('100%')
+          .backgroundColor(ColorResource.surfaceNeutral)
+          .borderRadius(this.getFrameCornerRadius());
+        }
+        .width('100%')
+        .layoutWeight(1);
+
+        // 底部边：从右到左填充
+        Row() {
+          Blank()
+            .layoutWeight(1);
+          Row()
+            .width(this.getFrameBottomWidth())
+            .height('100%')
+            .backgroundColor(ColorResource.taskProgress)
+            .borderRadius(this.getFrameCornerRadius());
+        }
+        .width('100%')
+        .height(2)
+        .backgroundColor(ColorResource.surfaceNeutral)
+        .borderRadius(this.getFrameCornerRadius());
+      }
+      .width('100%')
+      .height('100%');
+
+      // 内层：时间进度（比外层略内缩）
+      Column({ space: 0 }) {
+        // 顶部边：从左到右填充
+        Row() {
+          Row()
+            .width(this.getTimeFrameTopWidth())
+            .height('100%')
+            .backgroundColor(ColorResource.infoColor)
+            .borderRadius(this.getFrameCornerRadius());
+        }
+        .width('100%')
+        .height(2)
+            .backgroundColor(Color.Transparent);
+
+        // 中间部分：左右两条竖边
+        Row() {
+          // 左侧边：从下往上填充
+          Column() {
+            Blank()
+              .layoutWeight(1);
+            Column()
+              .width('100%')
+              .height(this.getTimeFrameLeftHeight())
+              .backgroundColor(ColorResource.infoColor);
+          }
+          .width(2)
+          .height('100%')
+          .backgroundColor(Color.Transparent);
+
+          Blank()
+            .layoutWeight(1);
+
+          // 右侧边：从上往下填充
+          Column() {
+            Column()
+              .width('100%')
+              .height(this.getTimeFrameRightHeight())
+              .backgroundColor(ColorResource.infoColor);
+            Blank()
+              .layoutWeight(1);
+          }
+          .width(2)
+          .height('100%')
+            .backgroundColor(Color.Transparent);
+        }
+        .width('100%')
+        .layoutWeight(1);
+
+        // 底部边：从右到左填充
+        Row() {
+          Blank()
+            .layoutWeight(1);
+          Row()
+            .width(this.getTimeFrameBottomWidth())
+            .height('100%')
+            .backgroundColor(ColorResource.infoColor)
+            .borderRadius(this.getFrameCornerRadius());
+        }
+        .width('100%')
+        .height(2)
+        .backgroundColor(Color.Transparent);
+      }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 5, right: 5, top: 5, bottom: 5 });
+    }
+    .width('100%')
+    .height('100%')
+    .borderRadius(this.getFrameCornerRadius())
+    .clip(true);
+  }
+
   build() {
     Column({ space: BreakpointSystem.getResponsiveSpacing(10, this.screenWidth) }) {
-      // 1. 项目标题和进入编辑按钮 - 紧凑单行布局（大屏）
+      // 1. 项目标题和进入编辑按钮 - 紧凑单行布局（大屏） / 手机与浮动卡片共用标题区域
       Column({ space: BreakpointSystem.getResponsiveSpacing(6, this.screenWidth) }) {
         if (!this.isFloatingCard && !this.isPhone) {
           Row({ space: ThemeConfig.spacingS }) {
@@ -815,28 +1034,23 @@ export struct DashboardView {
             .layoutWeight(1)
             .alignItems(VerticalAlign.Center)
 
-            // 右侧：编辑按钮
+            // 右侧：编辑按钮（统一为圆形按钮样式）
             Button() {
-              Row({ space: ThemeConfig.spacingS }) {
-                Text('编辑项目')
-                  .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
-                  .fontColor(Color.White)
-                  .fontWeight(ThemeConfig.fontWeightMedium)
-              }
+              Image($r('app.media.ic_edit'))
+                .width(18)
+                .height(18)
             }
             .accessibilityLevel('important')
-            .height(36)
-            .padding({
-              left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth),
-              right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth)
-            })
+            .width(40)
+            .height(40)
+            .type(ButtonType.Circle)
             .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
-            .borderRadius(18)
+            .borderRadius(20)
             .shadow(ThemeConfig.shadowMedium)
             .border({
-              width: 1.5,
+              width: 2,
               color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
-              radius: 18
+              radius: 20
             })
             .scale({ x: this.editButtonScale, y: this.editButtonScale })
             .opacity(this.editButtonOpacity)
@@ -884,26 +1098,47 @@ export struct DashboardView {
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
-        } else {
-          // 浮动卡片模式或手机端：名称在上，ID 在下，仍然保持紧凑
-          Column({ space: ThemeConfig.spacingXS }) {
-            Text(this.project.name)
-              .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL :
-                (this.isPhone ? ThemeConfig.fontSizeXXL :
-                BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth)))
-              .fontWeight(ThemeConfig.fontWeightBold)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .maxLines(2)
-              .fontColor(ColorResource.surfaceDeep)
+          } else {
+            // 浮动卡片模式或手机端：项目名称与 ID 被进度方框包裹
+            Stack() {
+              // 背景：四边进度框
+              if (this.project.tasks.length > 0) {
+                this.ProgressFrameBorder();
+              }
 
-            Text(`ID: ${this.project.id}`)
-              .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
-              .fontColor(ColorResource.surfaceEmphasized)
-              .fontWeight(ThemeConfig.fontWeightMedium)
-              .opacity(0.8)
+              // 前景：标题文本
+              Column({ space: ThemeConfig.spacingXS }) {
+                Text(this.project.name)
+                  .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL :
+                    (this.isPhone ? ThemeConfig.fontSizeXXL :
+                    BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth)))
+                  .fontWeight(ThemeConfig.fontWeightBold)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .maxLines(2)
+                  .fontColor(ColorResource.surfaceDeep)
+                  .textAlign(TextAlign.Center)
+
+                Text(`ID: ${this.project.id}`)
+                  .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+                  .fontColor(ColorResource.surfaceEmphasized)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
+                  .opacity(0.8)
+                  .textAlign(TextAlign.Center)
+              }
+              .width('100%')
+              .height('100%')
+              .alignItems(HorizontalAlign.Center)
+              .justifyContent(FlexAlign.Center)
+              .padding({
+                left: ThemeConfig.spacingM,
+                right: ThemeConfig.spacingM,
+                top: ThemeConfig.spacingS,
+                bottom: ThemeConfig.spacingS
+              })
+            }
+            .width('100%')
+            .height(72)
           }
-          .width('100%')
-        }
       }
       .width('100%')
       // 非浮动卡片模式下，进一步减少上下留白，使标题区域更紧凑
@@ -921,49 +1156,67 @@ export struct DashboardView {
       .backgroundColor(this.isFloatingCard ? Color.Transparent : ColorResource.transparent)
       .borderRadius(this.isFloatingCard ? 0 : ThemeConfig.radiusLarge)
       .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
-      .border(this.isFloatingCard ? { width: 0 } :
-        { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
+      .border(this.isFloatingCard ? { width: 0 } : {
+        width: 1,
+        color: (this.isPhone && this.project.tasks.length > 0)
+          ? this.getScheduleStatusColor()
+          : ColorResource.surfaceNeutral,
+        radius: ThemeConfig.radiusLarge
+      })
 
-      // 2. 核心指标统计 - 响应式布局
-      if (this.isPhone) {
-        // 手机端：2x2 网格布局（间距进一步收紧）
-        Column({ space: 6 }) {
+        // 2. 核心指标统计 - 响应式布局
+          if (this.isPhone || this.isFloatingCard) {
+            // 手机端 / 浮动卡片：6 个指标拆成两页，每页展示 3 个，自动轮播
+            Swiper() {
+              // 第 1 页：规模与时间
+              Row({ space: 6 }) {
+                this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
+                  ColorResource.primaryColor)
+                this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
+                  ColorResource.infoColor)
+                this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
+                  ColorResource.warningColor)
+              }
+
+              // 第 2 页：风险与关键程度
+              Row({ space: 6 }) {
+                this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
+                  ColorResource.errorColor)
+                this.StatCard('已完成任务', `${this.getCompletedTasksCount()} 个`, ColorResource.successLight,
+                  ColorResource.successColor)
+                this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, ColorResource.infoLight,
+                  ColorResource.infoColor)
+              }
+            }
+            .width('100%')
+            .height(130)
+            .autoPlay(true)
+            .interval(3500)
+            .loop(true)
+            .key(`stats-${this.updateKey}`)
+          } else {
+          // 平板/大屏：单行展示更多统计项
           Row({ space: 6 }) {
             this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
               ColorResource.primaryColor)
             this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
               ColorResource.infoColor)
-          }
-          .width('100%')
-
-          Row({ space: 6 }) {
             this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
               ColorResource.warningColor)
             this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
               ColorResource.errorColor)
+            this.StatCard('已完成任务', `${this.getCompletedTasksCount()} 个`, ColorResource.successLight,
+              ColorResource.successColor)
+            this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, ColorResource.infoLight,
+              ColorResource.infoColor)
           }
           .width('100%')
+          .alignItems(VerticalAlign.Top)
+          .key(`stats-${this.updateKey}`)
         }
-        .width('100%')
-        .key(`stats-${this.updateKey}`)
-      } else {
-        // 平板/大屏：单行布局（卡片之间更紧凑）
-        Row({ space: 6 }) {
-          this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
-            ColorResource.primaryColor)
-          this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
-            ColorResource.infoColor)
-          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
-            ColorResource.warningColor)
-          this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
-            ColorResource.errorColor)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-        .key(`stats-${this.updateKey}`)
-      }
-      // 2. 统计卡片之后，项目进度条
-      if (this.project.tasks.length > 0) {
+      // 2. 统计卡片之后，项目进度条（仅平板 / 大屏完整视图展示；
+      // 手机端和浮动卡片改为通过标题区域外边框体现进度）
+      if (!this.isPhone && !this.isFloatingCard && this.project.tasks.length > 0) {
         Column({ space: ThemeConfig.spacingXS }) {
           Row({ space: ThemeConfig.spacingS }) {
             // 左侧：标题
@@ -1037,74 +1290,76 @@ export struct DashboardView {
           .backgroundColor(ColorResource.surfaceNeutral)
           .borderRadius(3)
 
-          // 任务健康与遗漏提醒：帮助用户实现「一思不漏」
-          if (this.project.tasks.length > 0) {
-            Column({ space: ThemeConfig.spacingXS }) {
-              // 任务健康概览：正常 / 有风险 / 严重滞后
-              Row({ space: ThemeConfig.spacingS }) {
-                Text('任务健康')
-                  .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                  .fontWeight(ThemeConfig.fontWeightMedium)
-                  .fontColor(ColorResource.surfaceDeep)
-
+            // 任务健康与遗漏提醒：帮助用户实现「一思不漏」
+            // 手机版和浮动卡片为避免信息过载暂时隐藏，仅在大屏完整视图显示
+            if (!this.isPhone && !this.isFloatingCard && this.project.tasks.length > 0) {
+            Row({ space: ThemeConfig.spacingXL }) {
+              // 左侧：任务健康
+              Column({ space: ThemeConfig.spacingXS }) {
                 Row({ space: ThemeConfig.spacingS }) {
-                  // 正常
-                  Row({ space: 4 }) {
-                    Text('●')
-                      .fontSize(10)
-                      .fontColor(ColorResource.successColor)
-                    Text(`正常 ${this.getHealthyTasksCount()} 个`)
-                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                      .fontColor(ColorResource.surfaceEmphasized)
-                      .onClick(() => {
-                        this.handleHealthFilterClick('HEALTH_NORMAL', '健康任务');
-                      })
-                  }
-                  .alignItems(VerticalAlign.Center)
-
-                  // 有风险
-                  Row({ space: 4 }) {
-                    Text('●')
-                      .fontSize(10)
-                      .fontColor(ColorResource.warningColor)
-                    Text(this.getRiskTasksCount() > 0 ? `有风险 ${this.getRiskTasksCount()} 个` : '有风险 0 个（很好）')
-                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                      .fontColor(this.getRiskTasksCount() > 0 ? ColorResource.surfaceEmphasized :
-                      ColorResource.successColor)
-                      .onClick(() => {
-                        this.handleHealthFilterClick('HEALTH_RISK', '有风险任务');
-                      })
-                  }
-                  .alignItems(VerticalAlign.Center)
-
-                  // 严重滞后
-                  Row({ space: 4 }) {
-                    Text('●')
-                      .fontSize(10)
-                      .fontColor(ColorResource.errorColor)
-                    Text(this.getLateTasksCount() > 0 ? `严重滞后 ${this.getLateTasksCount()} 个` :
-                      '严重滞后 0 个（很好）')
-                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                      .fontColor(this.getLateTasksCount() > 0 ? ColorResource.surfaceEmphasized :
-                      ColorResource.successColor)
-                      .onClick(() => {
-                        this.handleHealthFilterClick('HEALTH_LATE', '严重滞后任务');
-                      })
-                  }
-                  .alignItems(VerticalAlign.Center)
-                }
-              }
-              .width('100%')
-
-              // 遗漏提醒：未拆解任务 / 未完成检查项
-              if (this.getTasksWithoutChecklistCount() > 0 || this.getOpenChecklistItemsCount() > 0) {
-                Row({ space: ThemeConfig.spacingS }) {
-                  Text('遗漏提醒')
+                  Text('任务健康')
                     .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
                     .fontWeight(ThemeConfig.fontWeightMedium)
                     .fontColor(ColorResource.surfaceDeep)
 
                   Row({ space: ThemeConfig.spacingS }) {
+                    // 正常
+                    Row({ space: 4 }) {
+                      Text('●')
+                        .fontSize(10)
+                        .fontColor(ColorResource.successColor)
+                      Text(`正常 ${this.getHealthyTasksCount()} 个`)
+                        .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                        .fontColor(ColorResource.surfaceEmphasized)
+                        .onClick(() => {
+                          this.handleHealthFilterClick('HEALTH_NORMAL', '健康任务');
+                        })
+                    }
+                    .alignItems(VerticalAlign.Center)
+
+                    // 有风险
+                    Row({ space: 4 }) {
+                      Text('●')
+                        .fontSize(10)
+                        .fontColor(ColorResource.warningColor)
+                      Text(this.getRiskTasksCount() > 0 ? `有风险 ${this.getRiskTasksCount()} 个` : '有风险 0 个（很好）')
+                        .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                        .fontColor(this.getRiskTasksCount() > 0 ? ColorResource.surfaceEmphasized : ColorResource.successColor)
+                        .onClick(() => {
+                          this.handleHealthFilterClick('HEALTH_RISK', '有风险任务');
+                        })
+                    }
+                    .alignItems(VerticalAlign.Center)
+
+                    // 严重滞后
+                    Row({ space: 4 }) {
+                      Text('●')
+                        .fontSize(10)
+                        .fontColor(ColorResource.errorColor)
+                      Text(this.getLateTasksCount() > 0 ? `严重滞后 ${this.getLateTasksCount()} 个` : '严重滞后 0 个（很好）')
+                        .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                        .fontColor(this.getLateTasksCount() > 0 ? ColorResource.surfaceEmphasized : ColorResource.successColor)
+                        .onClick(() => {
+                          this.handleHealthFilterClick('HEALTH_LATE', '严重滞后任务');
+                        })
+                    }
+                    .alignItems(VerticalAlign.Center)
+                  }
+                }
+                .width('100%')
+              }
+              .layoutWeight(1)
+
+                // 右侧：遗漏提醒（标题 + 数量 + 去补充同一行）
+                if (this.getTasksWithoutChecklistCount() > 0 || this.getOpenChecklistItemsCount() > 0) {
+                  Row({ space: ThemeConfig.spacingS }) {
+                    // 标题
+                    Text('遗漏提醒')
+                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                      .fontWeight(ThemeConfig.fontWeightMedium)
+                      .fontColor(ColorResource.surfaceDeep)
+
+                    // 数量信息
                     if (this.getTasksWithoutChecklistCount() > 0) {
                       Text(`未拆解任务 ${this.getTasksWithoutChecklistCount()} 个`)
                         .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
@@ -1122,43 +1377,42 @@ export struct DashboardView {
                           this.handleOmissionFilterClick('OPEN_CHECKLIST', '未完成检查项');
                         })
                     }
-                  }
 
-                  // 快速补漏入口：优先查看未拆解任务，否则查看未完成检查项
-                  Text('去补充')
-                    .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.primaryColor)
-                    .fontWeight(ThemeConfig.fontWeightMedium)
-                    .padding({
-                      left: ThemeConfig.spacingXS,
-                      right: ThemeConfig.spacingXS,
-                      top: 2,
-                      bottom: 2
-                    })
-                    .backgroundColor(ColorResource.primaryLight)
-                    .borderRadius(ThemeConfig.radiusSmall)
-                    .onClick(() => {
-                      // 1）切回列表视图并应用合适的筛选
-                      this.taskViewMode = 'LIST';
-                      if (this.getTasksWithoutChecklistCount() > 0) {
-                        this.taskFilter = 'NO_CHECKLIST';
-                        this.promptAction.showToast({
-                          message: '已切换到“未拆解任务”视图',
-                          duration: 2000
-                        });
-                      } else if (this.getOpenChecklistItemsCount() > 0) {
-                        this.taskFilter = 'OPEN_CHECKLIST';
-                        this.promptAction.showToast({
-                          message: '已切换到“未完成检查项”视图',
-                          duration: 2000
-                        });
-                      }
-                      // 2）直接打开第一个需要补充的任务编辑页
-                      this.goToFirstTaskNeedingDetails();
-                    })
+                    // 同一行的「去补充」按钮
+                    Text('去补充')
+                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.primaryColor)
+                      .fontWeight(ThemeConfig.fontWeightMedium)
+                      .padding({
+                        left: ThemeConfig.spacingXS,
+                        right: ThemeConfig.spacingXS,
+                        top: 2,
+                        bottom: 2
+                      })
+                      .backgroundColor(ColorResource.primaryLight)
+                      .borderRadius(ThemeConfig.radiusSmall)
+                      .onClick(() => {
+                        this.taskViewMode = 'LIST';
+                        if (this.getTasksWithoutChecklistCount() > 0) {
+                          this.taskFilter = 'NO_CHECKLIST';
+                          this.promptAction.showToast({
+                            message: '已切换到“未拆解任务”视图',
+                            duration: 2000
+                          });
+                        } else if (this.getOpenChecklistItemsCount() > 0) {
+                          this.taskFilter = 'OPEN_CHECKLIST';
+                          this.promptAction.showToast({
+                            message: '已切换到“未完成检查项”视图',
+                            duration: 2000
+                          });
+                        }
+                        this.goToFirstTaskNeedingDetails();
+                      })
+                  }
+                  .layoutWeight(1)
+                  .justifyContent(FlexAlign.End)
+                  .alignItems(VerticalAlign.Center)
                 }
-                .width('100%')
-              }
             }
           }
         }
@@ -1173,10 +1427,11 @@ export struct DashboardView {
         .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
       }
 
-      // 今日 / 本周重点 + 即将到期
-      if (!this.isPhone && this.getFocusTasks().length > 0 && this.getUpcomingTasks().length > 0) {
-        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth) }) {
-          Column({ space: this.isPhone ? 6 : 8 }) {
+        // 今日 / 本周重点 + 即将到期
+        // 大屏非浮动卡片时左右并排；手机或浮动卡片使用下方的纵向布局，避免过于局促
+        if (!this.isPhone && !this.isFloatingCard && this.getFocusTasks().length > 0 && this.getUpcomingTasks().length > 0) {
+          Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
+            Column({ space: this.isPhone ? 4 : 6 }) {
             Row({ space: ThemeConfig.spacingM }) {
               Text('今日 / 本周重点')
                 .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
@@ -1189,23 +1444,25 @@ export struct DashboardView {
                   (this.isPhone ? 11 : ThemeConfig.fontSizeS))
                 .fontColor(ColorResource.surfaceEmphasized)
                 .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            List({ space: ThemeConfig.spacingS }) {
-              ForEach(this.getFocusTasks(), (task: TaskNode) => {
-                ListItem() {
-                  this.FocusTaskItem(task)
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+  
+              Swiper() {
+                ForEach(this.getFocusTasks(), (task: TaskNode) => {
+                    this.FocusTaskItem(task)
+                  })
                 }
-              })
-            }
-            .width('100%')
+                .width('100%')
+                .height(this.isFloatingCard ? 80 : 100)
+                .autoPlay(true)
+                .interval(4000)
+                .loop(true)
           }
-          .width('100%')
-          .layoutWeight(1)
-
-          Column({ space: this.isPhone ? 8 : 12 }) {
+            .width('100%')
+            .layoutWeight(1)
+  
+            Column({ space: this.isPhone ? 4 : 6 }) {
             Row({ space: ThemeConfig.spacingM }) {
               Text('即将到期')
                 .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
@@ -1217,19 +1474,21 @@ export struct DashboardView {
                   (this.isPhone ? 11 : ThemeConfig.fontSizeS))
                 .fontColor(ColorResource.surfaceEmphasized)
                 .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            if (this.getUpcomingTasks().length > 0) {
-              List({ space: ThemeConfig.spacingS }) {
-                ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
-                  ListItem() {
-                    this.UpcomingTaskCard(task)
-                  }
-                })
               }
               .width('100%')
+              .alignItems(VerticalAlign.Center)
+  
+                if (this.getUpcomingTasks().length > 0) {
+                  Swiper() {
+                    ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
+                      this.UpcomingTaskCard(task)
+                    })
+                  }
+                  .width('100%')
+                  .height(this.isFloatingCard ? 90 : 110)
+                  .autoPlay(true)
+                  .interval(4000)
+                  .loop(true)
             } else {
               Column({ space: ThemeConfig.spacingM }) {
                 Column({ space: ThemeConfig.spacingS }) {
@@ -1256,87 +1515,6 @@ export struct DashboardView {
           }
           .width('100%')
           .layoutWeight(1)
-        }
-        .width('100%')
-      } else {
-        if (this.getFocusTasks().length > 0) {
-          Column({ space: this.isPhone ? 6 : 8 }) {
-            Row({ space: ThemeConfig.spacingM }) {
-              Text('今日 / 本周重点')
-                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
-                  (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
-                .fontWeight(ThemeConfig.fontWeightBold)
-                .fontColor(ColorResource.surfaceDeep)
-
-              Text(`(${this.getFocusTasks().length} 项)`)
-                .fontSize(this.isFloatingCard ? 10 :
-                  (this.isPhone ? 11 : ThemeConfig.fontSizeS))
-                .fontColor(ColorResource.surfaceEmphasized)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            List({ space: ThemeConfig.spacingS }) {
-              ForEach(this.getFocusTasks(), (task: TaskNode) => {
-                ListItem() {
-                  this.FocusTaskItem(task)
-                }
-              })
-            }
-            .width('100%')
-          }
-          .width('100%')
-        }
-
-        Column({ space: this.isPhone ? 8 : 12 }) {
-          Row({ space: ThemeConfig.spacingM }) {
-            Text('即将到期')
-              .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
-                (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
-              .fontWeight(ThemeConfig.fontWeightBold)
-              .fontColor(ColorResource.surfaceDeep)
-            Text('(未来7天)')
-              .fontSize(this.isFloatingCard ? 10 :
-                (this.isPhone ? 11 : ThemeConfig.fontSizeS))
-              .fontColor(ColorResource.surfaceEmphasized)
-              .fontWeight(ThemeConfig.fontWeightMedium)
-          }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
-
-          if (this.getUpcomingTasks().length > 0) {
-            List({ space: ThemeConfig.spacingS }) {
-              ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
-                ListItem() {
-                  this.UpcomingTaskCard(task)
-                }
-              })
-            }
-            .width('100%')
-          } else {
-            Column({ space: ThemeConfig.spacingM }) {
-              Column({ space: ThemeConfig.spacingS }) {
-                Text('暂无即将到期的任务')
-                  .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
-                  .fontColor(ColorResource.surfaceDeep)
-                  .fontWeight(ThemeConfig.fontWeightBold)
-                Text('一切尽在掌握之中！')
-                  .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.surfaceEmphasized)
-                  .textAlign(TextAlign.Center)
-                  .lineHeight(20)
-              }
-            }
-            .width('100%')
-            .padding(ThemeConfig.spacingXL)
-            .justifyContent(FlexAlign.Center)
-            .alignItems(HorizontalAlign.Center)
-            .backgroundColor(ColorResource.transparent)
-            .borderRadius(ThemeConfig.radiusLarge)
-            .shadow(ThemeConfig.cardShadow)
-            .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusLarge })
-          }
         }
         .width('100%')
       }
@@ -1388,50 +1566,50 @@ export struct DashboardView {
             .layoutWeight(1)
             .alignItems(VerticalAlign.Center)
 
-            // 视图切换：列表 / 时间轴
-            Row({ space: ThemeConfig.spacingXS }) {
-              Text('列表')
-                .fontSize(this.isFloatingCard ? 10 :
-                  (this.isPhone ? 11 : ThemeConfig.fontSizeXS))
-                .fontColor(this.taskViewMode === 'LIST' ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
-                .padding({
-                  left: 6,
-                  right: 6,
-                  top: 2,
-                  bottom: 2
-                })
-                .backgroundColor(this.taskViewMode === 'LIST' ? ColorResource.primaryLight :
-                ColorResource.surfaceSubtle)
-                .borderRadius(ThemeConfig.radiusSmall)
-                .onClick(() => {
-                  this.taskViewMode = 'LIST';
-                  this.resetAllTasksScroll();
-                })
+            // 视图切换：列表 / 时间轴（仅在非浮动大屏显示）。
+            if (!this.isFloatingCard) {
+              Row({ space: ThemeConfig.spacingXS }) {
+                Text('列表')
+                  .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+                  .fontColor(this.taskViewMode === 'LIST' ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
+                  .padding({
+                    left: 6,
+                    right: 6,
+                    top: 2,
+                    bottom: 2
+                  })
+                  .backgroundColor(this.taskViewMode === 'LIST' ? ColorResource.primaryLight :
+                    ColorResource.surfaceSubtle)
+                  .borderRadius(ThemeConfig.radiusSmall)
+                  .onClick(() => {
+                    this.taskViewMode = 'LIST';
+                    this.resetAllTasksScroll();
+                  })
 
-              Text('时间轴')
-                .fontSize(this.isFloatingCard ? 10 :
-                  (this.isPhone ? 11 : ThemeConfig.fontSizeXS))
-                .fontColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryColor :
-                ColorResource.surfaceEmphasized)
-                .padding({
-                  left: 6,
-                  right: 6,
-                  top: 2,
-                  bottom: 2
-                })
-                .backgroundColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryLight :
-                ColorResource.surfaceSubtle)
-                .borderRadius(ThemeConfig.radiusSmall)
-                .onClick(() => {
-                  this.taskViewMode = 'TIMELINE';
-                  this.resetAllTasksScroll();
-                })
+                Text('时间轴')
+                  .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+                  .fontColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryColor :
+                    ColorResource.surfaceEmphasized)
+                  .padding({
+                    left: 6,
+                    right: 6,
+                    top: 2,
+                    bottom: 2
+                  })
+                  .backgroundColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryLight :
+                    ColorResource.surfaceSubtle)
+                  .borderRadius(ThemeConfig.radiusSmall)
+                  .onClick(() => {
+                    this.taskViewMode = 'TIMELINE';
+                    this.resetAllTasksScroll();
+                  })
+              }
             }
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
 
-          if (this.taskViewMode === 'LIST') {
+          if (!this.isFloatingCard && this.taskViewMode === 'LIST') {
             // 列表视图：使用 Scroll 占据剩余高度，内部内容自然决定滚动范围
             Column({ space: ThemeConfig.spacingS }) {
               Scroll() {

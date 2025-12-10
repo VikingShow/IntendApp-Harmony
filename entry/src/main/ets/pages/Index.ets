@@ -1176,7 +1176,7 @@ struct Index {
   TaskQuickActionsBar() {
     if (this.showTaskQuickActions && this.selectedTask) {
       Row({ space: 8 }) {
-        // 编辑
+        // 编辑（主操作按钮，稍大一些）
         Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_edit'))
             .width(18)
@@ -1185,6 +1185,8 @@ struct Index {
         .width(40)
         .height(40)
         .backgroundColor(ColorResource.primaryColor)
+        .borderRadius(20)
+        .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 20 })
         .shadow(ThemeConfig.shadowMedium)
         .onClick(() => {
           this.handleEditSelectedTask();
@@ -1196,9 +1198,11 @@ struct Index {
             .width(18)
             .height(18)
         }
-        .width(40)
-        .height(40)
+        .width(36)
+        .height(36)
         .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .borderRadius(18)
+        .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 18 })
         .shadow(ThemeConfig.shadowSmall)
         .onClick(() => {
           this.handleDuplicateSelectedTask();
@@ -1210,9 +1214,11 @@ struct Index {
             .width(18)
             .height(18)
         }
-        .width(40)
-        .height(40)
+        .width(36)
+        .height(36)
         .backgroundColor(this.isDarkMode ? ColorResource.errorColor : ColorResource.errorLight)
+        .borderRadius(18)
+        .border({ width: 1.5, color: ColorResource.errorColor, radius: 18 })
         .shadow(ThemeConfig.shadowMedium)
         .onClick(() => {
           this.handleDeleteSelectedTask();
@@ -1224,9 +1230,11 @@ struct Index {
             .width(20)
             .height(20)
         }
-        .width(40)
-        .height(40)
+        .width(36)
+        .height(36)
         .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .borderRadius(18)
+        .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 18 })
         .shadow(ThemeConfig.shadowSmall)
         .onClick(() => {
           this.handleAddTaskNearSelected();

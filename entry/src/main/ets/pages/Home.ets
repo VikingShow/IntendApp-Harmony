@@ -177,6 +177,110 @@ struct RenameProjectDialog {
 }
 
 @CustomDialog
+struct EditNoteDialog {
+  controller: CustomDialogController;
+  projectNote: string = '';
+  onConfirm: (newNote: string) => void = () => {};
+  @State inputValue: string = '';
+
+  aboutToAppear() {
+    this.inputValue = this.projectNote;
+  }
+
+  build() {
+    Column({ space: 0 }) {
+      // 标题区域
+      Column({ space: 4 }) {
+        Text('编辑项目备注')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary)
+          .textAlign(TextAlign.Center)
+          .width('100%')
+      }
+      .width('100%')
+      .padding({ top: 24, left: 24, right: 24, bottom: 16 })
+      
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
+      
+      // 内容区域
+      Column({ space: 8 }) {
+        TextArea({ text: this.inputValue, placeholder: '请输入项目备注（可选）' })
+          .width('100%')
+          .height(100)
+          .fontSize(16)
+          .backgroundColor(ColorResource.surface)
+          .borderRadius(10)
+          .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+          .onChange((value: string) => {
+            this.inputValue = value;
+          })
+      }
+      .width('100%')
+      .padding({ top: 16, left: 24, right: 24, bottom: 20 })
+      
+      // 分隔线
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3)
+      
+      // 按钮区域
+      Row({ space: 0 }) {
+        Button('取消')
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(0)
+          .onClick(() => {
+            this.controller.close();
+          })
+        
+        // 垂直分隔线
+        Divider()
+          .vertical(true)
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.3)
+          .height(48)
+        
+        Button('确定')
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(17)
+          .type(ButtonType.Normal)
+          .backgroundColor(Color.Transparent)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(0)
+          .onClick(() => {
+            this.onConfirm(this.inputValue.trim());
+            this.controller.close();
+          })
+      }
+      .width('100%')
+    }
+    .width('85%')
+    .constraintSize({ maxWidth: 320 })
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(14)
+    .shadow({ 
+      radius: 24, 
+      color: 'rgba(0, 0, 0, 0.12)', 
+      offsetX: 0, 
+      offsetY: 4 
+    })
+  }
+}
+
+@CustomDialog
 struct AIGenerateDialog {
   controller: CustomDialogController;
   apiKey: string = '';
@@ -420,6 +524,11 @@ struct HomePage {
   @State renameProjectId: string = '';
   @State renameProjectName: string = '';
   @State selectedTaskForDetail: TaskNode | null = null;
+  
+  // 备注编辑对话框
+  private editNoteDialogController: CustomDialogController | null = null;
+  @State editNoteProjectId: string = '';
+  @State editNoteProjectNote: string = '';
   
   // 画布渲染模式（手机端默认使用缩略模式）
   @State canvasRenderMode: RenderMode = RenderMode.NORMAL;
@@ -1957,14 +2066,44 @@ struct HomePage {
               Row() {
                 // 主要内容区域
                 Column({ space: ThemeConfig.spacingS }) {
-                  Text(meta.name)
-                    .fontSize(ThemeConfig.fontSizeM)
-                    .fontWeight(ThemeConfig.fontWeightBold)
-                    .fontColor(ColorResource.surfaceDeep)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .width('100%')
-                    .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                  Row({ space: ThemeConfig.spacingXS }) {
+                    Text(meta.name)
+                      .fontSize(ThemeConfig.fontSizeM)
+                      .fontWeight(ThemeConfig.fontWeightBold)
+                      .fontColor(ColorResource.surfaceDeep)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .layoutWeight(1)
+                      .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                      .onAppear(() => {
+                        console.log(`[Home-Tablet] Project: ${meta.name}, Note: "${meta.note || 'undefined'}", Has note: ${!!(meta.note && meta.note.length > 0)}`);
+                      })
+                    
+                    if (meta.note && meta.note.length > 0) {
+                      Text(meta.note)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.primaryColor)
+                        .fontWeight(ThemeConfig.fontWeightMedium)
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                        .padding({ 
+                          left: ThemeConfig.spacingS, 
+                          right: ThemeConfig.spacingS,
+                          top: 2,
+                          bottom: 2
+                        })
+                        .backgroundColor(ColorResource.primaryUltraLight)
+                        .borderRadius(ThemeConfig.radiusMedium)
+                        .border({ 
+                          width: 1, 
+                          color: ColorResource.primaryLight 
+                        })
+                        .constraintSize({ maxWidth: 150 })
+                        .opacity(0.9)
+                    }
+                  }
+                  .width('100%')
+                  
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
                     .fontSize(ThemeConfig.fontSizeXS)
                     .fontColor(ColorResource.surfaceEmphasized)
@@ -2256,6 +2395,10 @@ struct HomePage {
           color: ColorResource.primaryColor
         },
         {
+          text: '编辑备注',
+          color: ColorResource.primaryColor
+        },
+        {
           text: '删除项目',
           color: ColorResource.errorColor
         },
@@ -2274,6 +2417,9 @@ struct HomePage {
         // 编辑名称
         this.showRenameProjectDialog(projectId);
       } else if (data.index === 1) {
+        // 编辑备注
+        this.showEditNoteDialog(projectId);
+      } else if (data.index === 2) {
         // 删除项目
         this.deleteProject(projectId);
       }
@@ -2358,6 +2504,118 @@ struct HomePage {
       console.error('[Home] Rename project error:', error);
       this.promptAction.showToast({
         message: '重命名失败，请重试',
+        duration: 2000
+      });
+    }
+  }
+
+  // 显示备注编辑对话框
+  private showEditNoteDialog(projectId: string) {
+    const project = this.projectList.find(p => p.id === projectId);
+    if (!project) return;
+
+    // 先关闭之前的对话框（如果存在）
+    if (this.editNoteDialogController) {
+      this.editNoteDialogController.close();
+      this.editNoteDialogController = null;
+    }
+
+    this.editNoteProjectId = projectId;
+    this.editNoteProjectNote = project.note || '';
+
+    // 创建并打开对话框
+    this.editNoteDialogController = new CustomDialogController({
+      builder: EditNoteDialog({
+        projectNote: this.editNoteProjectNote,
+        onConfirm: (newNote: string) => {
+          this.handleEditNote(this.editNoteProjectId, newNote);
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.editNoteDialogController.open();
+  }
+
+  // 处理备注编辑
+  private async handleEditNote(projectId: string, newNote: string) {
+    try {
+      if (!this.storageService) return;
+
+      console.log(`[Home] handleEditNote called: projectId=${projectId}, newNote="${newNote}"`);
+
+      // 获取完整的项目数据
+      const project = await this.storageService.getProject(projectId);
+      if (!project) {
+        this.promptAction.showToast({
+          message: '项目不存在',
+          duration: 2000
+        });
+        return;
+      }
+
+      console.log(`[Home] Project loaded: ${project.name}, current note: ${project.note || 'undefined'}`);
+
+      // 更新项目备注和时间戳
+      project.note = newNote.length > 0 ? newNote : undefined;
+      project.lastModified = Date.now();
+
+      console.log(`[Home] Updated project note to: ${project.note || 'undefined'}`);
+
+      // 保存到存储
+      await this.storageService.saveProject(project);
+
+      console.log(`[Home] Project saved to storage`);
+
+      // 更新本地项目列表 - 创建新数组引用以触发响应式更新
+      const projectIndex = this.projectList.findIndex(p => p.id === projectId);
+      if (projectIndex !== -1) {
+        // 创建新的项目元数据对象（手动复制属性）
+        const oldMeta = this.projectList[projectIndex];
+        const updatedMeta: ProjectMeta = {
+          id: oldMeta.id,
+          name: oldMeta.name,
+          category: oldMeta.category,
+          note: project.note,
+          lastModified: Date.now()
+        };
+        
+        // 创建新数组并替换元素，触发响应式更新
+        const newList: ProjectMeta[] = [];
+        for (let i = 0; i < this.projectList.length; i++) {
+          if (i === projectIndex) {
+            newList.push(updatedMeta);
+          } else {
+            newList.push(this.projectList[i]);
+          }
+        }
+        this.projectList = newList;
+        
+        console.log(`[Home] Updated projectList[${projectIndex}].note to: ${updatedMeta.note || 'undefined'}`);
+      } else {
+        console.error(`[Home] Project not found in projectList: ${projectId}`);
+      }
+
+      // 如果是当前选中的项目，也更新详情数据
+      if (this.selectedProjectDetail && this.selectedProjectDetail.id === projectId) {
+        this.selectedProjectDetail.note = project.note;
+        this.selectedProjectDetail.lastModified = Date.now();
+      }
+
+      // 显示成功提示
+      this.promptAction.showToast({
+        message: newNote.length > 0 ? '备注已更新' : '备注已清除',
+        duration: 2000
+      });
+
+      // 强制刷新UI
+      this.componentKey++;
+    } catch (error) {
+      console.error('[Home] Edit note error:', error);
+      this.promptAction.showToast({
+        message: '备注编辑失败，请重试',
         duration: 2000
       });
     }
@@ -2603,14 +2861,41 @@ struct HomePage {
               Row() {
                 // 主要内容区域
                 Column({ space: ThemeConfig.spacingS }) {
-                  Text(meta.name)
-                    .fontSize(ThemeConfig.fontSizeM)
-                    .fontWeight(ThemeConfig.fontWeightBold)
-                    .fontColor(ColorResource.surfaceDeep)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .width('100%')
-                    .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                  Row({ space: ThemeConfig.spacingXS }) {
+                    Text(meta.name)
+                      .fontSize(ThemeConfig.fontSizeM)
+                      .fontWeight(ThemeConfig.fontWeightBold)
+                      .fontColor(ColorResource.surfaceDeep)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .layoutWeight(1)
+                      .lineHeight(ThemeConfig.fontSizeM * 1.4)
+                    
+                    if (meta.note && meta.note.length > 0) {
+                      Text(meta.note)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.primaryColor)
+                        .fontWeight(ThemeConfig.fontWeightMedium)
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                        .padding({ 
+                          left: ThemeConfig.spacingS, 
+                          right: ThemeConfig.spacingS,
+                          top: 2,
+                          bottom: 2
+                        })
+                        .backgroundColor(ColorResource.primaryUltraLight)
+                        .borderRadius(ThemeConfig.radiusMedium)
+                        .border({ 
+                          width: 1, 
+                          color: ColorResource.primaryLight 
+                        })
+                        .constraintSize({ maxWidth: 150 })
+                        .opacity(0.9)
+                    }
+                  }
+                  .width('100%')
+                  
                   Text(`修改于: ${new Date(meta.lastModified).toLocaleDateString()}`)
                     .fontSize(ThemeConfig.fontSizeXS)
                     .fontColor(ColorResource.surfaceEmphasized)

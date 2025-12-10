@@ -46,6 +46,8 @@ export interface ProjectMeta {
   lastModified: number;
   /** 项目分类 */
   category: string;
+  /** 项目备注 */
+  note?: string;
 }
 
 /**
@@ -68,6 +70,8 @@ interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
   tasks: StorableTaskNode[];
   /** 项目分类 */
   category: string;
+  /** 项目备注 */
+  note?: string;
   /** 画布X轴偏移量 */
   canvasOffsetX: number;
   /** 画布Y轴偏移量 */
@@ -410,7 +414,8 @@ export class FileStorageService {
                 id: (projectData.id as string) || projectId,
                 name: (projectData.name as string) || '未命名项目',
                 lastModified: (projectData.lastModified as number) || Date.now(),
-                category: (projectData.category as string) || '其他'
+                category: (projectData.category as string) || '其他',
+                note: (projectData.note as string) || undefined
               };
 
               projectList.push(projectMeta);
@@ -503,7 +508,8 @@ export class FileStorageService {
         id: project.id,
         name: project.name,
         lastModified: Date.now(),
-        category: project.category || '其他'
+        category: project.category || '其他',
+        note: project.note
       };
 
       const existingIndex = list.findIndex(p => p.id === project.id);
@@ -537,6 +543,7 @@ export class FileStorageService {
           };
         }),
         category: project.category || '其他',
+        note: project.note,
         canvasOffsetX: project.canvasOffsetX || 0,
         canvasOffsetY: project.canvasOffsetY || 0,
         zoomScale: project.zoomScale || 1.0
@@ -626,6 +633,7 @@ export class FileStorageService {
           };
         });
         project.category = storableProject.category || '其他';
+        project.note = storableProject.note;
         // 恢复画布状态
         project.canvasOffsetX = storableProject.canvasOffsetX || 0;
         project.canvasOffsetY = storableProject.canvasOffsetY || 0;

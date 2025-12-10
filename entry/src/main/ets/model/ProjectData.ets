@@ -115,6 +115,8 @@ export class Project {
   lastModified: number;
   /** 项目分类 */
   category: string = '其他';
+  /** 项目备注 */
+  note?: string;
 
   /** 任务列表 */
   tasks: TaskNode[] = [];

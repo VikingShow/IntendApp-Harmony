@@ -86,6 +86,7 @@ struct Index {
   // 使用@State来响应ProjectManager的状态变化
   @State project: Project | null = null;
   @State selectedTask: TaskNode | null = null;
+  @State forceSwitchToEditorTab: boolean = false; // 强制切换到编辑Tab的标志
   private canvasController: CanvasController = new CanvasController();
   private projectManager: ProjectManager = ProjectManager.getInstance();
   private storageService: StorageService | null = null;
@@ -956,13 +957,59 @@ struct Index {
     this.canRedo = this.commandHistory.canRedo();
   }
 
-  // 编辑当前选中任务：打开侧边栏
+  // 编辑当前选中任务：打开侧边栏并切换到任务编辑Tab
   private handleEditSelectedTask(): void {
     if (!this.selectedTask) {
+      console.log('[Index] handleEditSelectedTask: No selected task');
       return;
     }
+    console.log(`[Index] handleEditSelectedTask: Starting for task: ${this.selectedTask.name}, sidebarVisible: ${this.sidebarVisible}`);
+    
+    // 显示侧边栏（先显示，确保Sidebar组件已经渲染）
+    const wasVisible = this.sidebarVisible;
     this.sidebarVisible = true;
+    
+    // 确保任务被选中（触发事件更新状态）
+    // 即使selectedTask已经是当前任务，也重新选择一次以触发更新
     this.projectManager.getActions().selectTask(this.selectedTask);
+    // 更新状态以确保selectedTask同步
+    this.updateStateFromManager();
+    
+    // 强制触发一次selectedTask的更新，确保Sidebar的aboutToUpdate被调用
+    // 通过创建一个新的对象引用来触发响应式更新
+    const currentTask = this.selectedTask;
+    if (currentTask && this.project) {
+      // 从project中重新获取任务对象，确保使用最新的引用
+      const refreshedTask = this.project.tasks.find(t => t.id === currentTask.id);
+      if (refreshedTask) {
+        this.selectedTask = refreshedTask;
+        this.projectManager.getActions().selectTask(refreshedTask);
+      }
+    }
+    
+    // 如果侧边栏刚刚显示，需要等待组件渲染完成
+    // 如果侧边栏已经显示，可以直接设置标志
+    if (wasVisible) {
+      // 侧边栏已经显示，直接设置标志
+      this.forceSwitchToEditorTab = true;
+      console.log('[Index] handleEditSelectedTask: Sidebar already visible, set forceSwitchToEditorTab = true');
+      // 延迟重置标志
+      setTimeout(() => {
+        this.forceSwitchToEditorTab = false;
+        console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
+      }, 300);
+    } else {
+      // 侧边栏刚刚显示，需要等待组件渲染完成
+      setTimeout(() => {
+        this.forceSwitchToEditorTab = true;
+        console.log('[Index] handleEditSelectedTask: Sidebar just shown, set forceSwitchToEditorTab = true after delay');
+        // 延迟重置标志
+        setTimeout(() => {
+          this.forceSwitchToEditorTab = false;
+          console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
+        }, 300);
+      }, 50);
+    }
   }
 
   // 删除当前选中任务
@@ -2039,6 +2086,7 @@ struct Index {
           selectedTask: this.selectedTask,
           isHomePage: false,
           exportService: this.exportService,
+          forceSwitchToEditorTab: this.forceSwitchToEditorTab,
           onGetCanvasPixelMap: async () => {
             return await this.canvasController.getCanvasPixelMap(
               this.project ?? undefined,

@@ -64,6 +64,8 @@ export interface RenderConfig {
   selectedTaskId: string | null;
   /** 渲染模式 */
   renderMode?: RenderMode;
+  /** 是否显示依赖连线箭头 */
+  showDependencyArrows?: boolean;
 }
 
 /**
@@ -236,11 +238,14 @@ export class CanvasRenderer {
       return;
     }
 
-    // 渲染依赖连线
-    this.renderDependencies(project, config);
+    // 第一步：渲染依赖连线（不含箭头）
+    this.renderDependencyLines(project, config);
     
-    // 渲染任务节点
+    // 第二步：渲染任务节点
     this.renderTasks(project, config);
+    
+    // 第三步：渲染箭头（在节点之上）
+    this.renderDependencyArrows(project, config);
     
     // 恢复上下文状态
     this.context.restore();
@@ -312,7 +317,10 @@ export class CanvasRenderer {
     this.context.stroke();
   }
 
-  private renderDependencies(project: Project, config: RenderConfig): void {
+  /**
+   * 渲染依赖连线（不含箭头）
+   */
+  private renderDependencyLines(project: Project, config: RenderConfig): void {
     const isCompactMode = config.renderMode === RenderMode.COMPACT;
     
     project.dependencies.forEach((dep: Dependency) => {
@@ -328,8 +336,8 @@ export class CanvasRenderer {
         
         if (isCompactMode) {
           // 缩略模式：连接圆圈中心
-          fromCenterX = fromNode.x + config.canvasOffsetX + 100; // 节点宽度200的一半
-          fromCenterY = fromNode.y + config.canvasOffsetY + 60;  // 节点高度120的一半
+          fromCenterX = fromNode.x + config.canvasOffsetX + 100;
+          fromCenterY = fromNode.y + config.canvasOffsetY + 60;
           toCenterX = toNode.x + config.canvasOffsetX + 100;
           toCenterY = toNode.y + config.canvasOffsetY + 60;
         } else {
@@ -340,21 +348,131 @@ export class CanvasRenderer {
           toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
         }
         
+        // 连线颜色根据深色模式和关键路径调整
+        const lineColor = isCriticalDep 
+          ? ThemeConfig.taskCritical.toString() 
+          : (this.isDarkMode ? '#8E8E93' : '#AEAEB2');
+        const lineWidth = isCompactMode ? (isCriticalDep ? 2.5 : 1.5) : (isCriticalDep ? 3 : 2);
+        
+        // 绘制连线
         this.context.beginPath();
         this.context.moveTo(fromCenterX, fromCenterY);
         this.context.lineTo(toCenterX, toCenterY);
-        
-        // 连线颜色根据深色模式和关键路径调整
-        if (isCriticalDep) {
-          this.context.strokeStyle = ThemeConfig.taskCritical.toString();
-          this.context.lineWidth = isCompactMode ? 2.5 : 3; // 缩略模式下稍细
-        } else {
-          this.context.strokeStyle = this.isDarkMode ? '#8E8E93' : '#AEAEB2';
-          this.context.lineWidth = isCompactMode ? 1.5 : 2; // 缩略模式下稍细
-        }
+        this.context.strokeStyle = lineColor;
+        this.context.lineWidth = lineWidth;
         this.context.stroke();
       }
     });
+  }
+
+  /**
+   * 渲染依赖箭头（在节点之上）
+   */
+  private renderDependencyArrows(project: Project, config: RenderConfig): void {
+    const isCompactMode = config.renderMode === RenderMode.COMPACT;
+    const showArrows = config.showDependencyArrows !== false;
+    
+    console.log(`[CanvasRenderer] renderDependencyArrows - showArrows: ${showArrows}`);
+    
+    project.dependencies.forEach((dep: Dependency, index: number) => {
+      const fromNode = project.tasks.find((t: TaskNode) => t.id === dep.fromId);
+      const toNode = project.tasks.find((t: TaskNode) => t.id === dep.toId);
+      
+      if (fromNode && toNode) {
+        const isCriticalDep = fromNode.isCritical && toNode.isCritical;
+        
+        // 根据渲染模式计算连接点位置
+        let fromCenterX: number, fromCenterY: number;
+        let toCenterX: number, toCenterY: number;
+        
+        if (isCompactMode) {
+          fromCenterX = fromNode.x + config.canvasOffsetX + 100;
+          fromCenterY = fromNode.y + config.canvasOffsetY + 60;
+          toCenterX = toNode.x + config.canvasOffsetX + 100;
+          toCenterY = toNode.y + config.canvasOffsetY + 60;
+        } else {
+          fromCenterX = fromNode.x + config.canvasOffsetX + 200 / 2;
+          fromCenterY = fromNode.y + config.canvasOffsetY + 120 / 2;
+          toCenterX = toNode.x + config.canvasOffsetX + 200 / 2;
+          toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
+        }
+        
+        const lineColor = isCriticalDep 
+          ? ThemeConfig.taskCritical.toString() 
+          : (this.isDarkMode ? '#8E8E93' : '#AEAEB2');
+        const lineWidth = isCompactMode ? (isCriticalDep ? 2.5 : 1.5) : (isCriticalDep ? 3 : 2);
+        
+        // 绘制箭头（如果全局启用且该依赖未禁用）
+        const shouldShowArrow = showArrows && (dep.showArrow !== false);
+        if (shouldShowArrow) {
+          console.log(`[CanvasRenderer] Drawing arrow ${index}: ${dep.fromId}->${dep.toId}`);
+          // 计算连线中点位置
+          const midX = (fromCenterX + toCenterX) / 2;
+          const midY = (fromCenterY + toCenterY) / 2;
+          this.drawArrow(fromCenterX, fromCenterY, midX, midY, lineColor, lineWidth);
+        }
+      }
+    });
+  }
+
+  /**
+   * 绘制箭头
+   * @param fromX 起点X坐标
+   * @param fromY 起点Y坐标
+   * @param toX 终点X坐标
+   * @param toY 终点Y坐标
+   * @param color 箭头颜色
+   * @param lineWidth 线条宽度
+   */
+  private drawArrow(fromX: number, fromY: number, toX: number, toY: number, color: string, lineWidth: number): void {
+    console.log(`[CanvasRenderer] drawArrow called: from(${fromX},${fromY}) to(${toX},${toY}), color=${color}, lineWidth=${lineWidth}`);
+    
+    // 计算箭头参数
+    const arrowLength = 12 + lineWidth * 2; // 箭头长度随线条粗细调整
+    const arrowWidth = 8 + lineWidth; // 箭头宽度随线条粗细调整
+    
+    // 计算线条方向向量
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length === 0) {
+      console.log(`[CanvasRenderer] drawArrow: length is 0, skipping`);
+      return; // 避免除以零
+    }
+    
+    // 归一化方向向量
+    const unitDx = dx / length;
+    const unitDy = dy / length;
+    
+    // 箭头顶点位置（在终点处）
+    const arrowTipX = toX;
+    const arrowTipY = toY;
+    
+    // 箭头底部中心点
+    const arrowBaseX = toX - unitDx * arrowLength;
+    const arrowBaseY = toY - unitDy * arrowLength;
+    
+    // 计算垂直于线条的向量（用于箭头两侧）
+    const perpDx = -unitDy;
+    const perpDy = unitDx;
+    
+    // 箭头两侧的点
+    const arrowLeft1X = arrowBaseX + perpDx * arrowWidth;
+    const arrowLeft1Y = arrowBaseY + perpDy * arrowWidth;
+    const arrowRight1X = arrowBaseX - perpDx * arrowWidth;
+    const arrowRight1Y = arrowBaseY - perpDy * arrowWidth;
+    
+    // 绘制箭头（实心三角形）
+    console.log(`[CanvasRenderer] Drawing arrow triangle: tip(${arrowTipX},${arrowTipY}), left(${arrowLeft1X},${arrowLeft1Y}), right(${arrowRight1X},${arrowRight1Y})`);
+    this.context.beginPath();
+    this.context.moveTo(arrowTipX, arrowTipY);
+    this.context.lineTo(arrowLeft1X, arrowLeft1Y);
+    this.context.lineTo(arrowRight1X, arrowRight1Y);
+    this.context.closePath();
+    this.context.fillStyle = color;
+    this.context.fill();
+    console.log(`[CanvasRenderer] Arrow drawn successfully`);
   }
 
   private renderTasks(project: Project, config: RenderConfig): void {

@@ -53,6 +53,8 @@ export interface AppStateSnapshot {
   zoomScale: number;
   /** 画布是否锁定 */
   isCanvasLocked: boolean;
+  /** 是否显示依赖连线箭头 */
+  showDependencyArrows: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export class AppState {
   canvasOffsetY: number = 0;
   zoomScale: number = 1.0;
   isCanvasLocked: boolean = false;
+  showDependencyArrows: boolean = true;
 
   // 私有构造函数，确保单例模式
   private constructor() {}
@@ -179,6 +182,20 @@ export class AppState {
   }
 
   /**
+   * 切换依赖连线箭头显示
+   */
+  public toggleDependencyArrows(): void {
+    this.showDependencyArrows = !this.showDependencyArrows;
+  }
+
+  /**
+   * 设置依赖连线箭头显示
+   */
+  public setShowDependencyArrows(show: boolean): void {
+    this.showDependencyArrows = show;
+  }
+
+  /**
    * 清除错误
    */
   public clearError(): void {
@@ -198,7 +215,8 @@ export class AppState {
       canvasOffsetX: this.canvasOffsetX,
       canvasOffsetY: this.canvasOffsetY,
       zoomScale: this.zoomScale,
-      isCanvasLocked: this.isCanvasLocked
+      isCanvasLocked: this.isCanvasLocked,
+      showDependencyArrows: this.showDependencyArrows
     };
   }
 }

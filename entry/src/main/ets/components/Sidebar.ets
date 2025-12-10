@@ -74,6 +74,9 @@ export struct Sidebar {
   onDeleteTask: (taskId: string) => void = () => {};
   onGetCanvasPixelMap: (() => Promise<image.PixelMap | null>) | null = null; // 获取 Canvas 截图的回调
   exportService: ExportService | null = null; // 导出服务实例
+  onToggleArrows: () => void = () => {}; // 切换箭头显示的回调
+  onDeleteDependency: (fromId: string, toId: string) => void = () => {}; // 删除依赖关系的回调
+  @Prop showDependencyArrows: boolean = true; // 箭头显示状态
 
   @State isEditingProjectName: boolean = false;
   @State tempProjectName: string = '';
@@ -699,6 +702,8 @@ export struct Sidebar {
               if (this.selectedTaskForEditor) {
                 TaskEditor({
                   task: this.selectedTaskForEditor,
+                  project: this.project,
+                  showDependencyArrows: this.showDependencyArrows,
                   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
                     this.onUpdateTask(taskId, updates);
                   },
@@ -716,6 +721,12 @@ export struct Sidebar {
                     // 这里仅保留回调链路，具体实现放在页面层
                     console.log('[Sidebar] onAddReminder triggered for task', task.id);
                     this.onAddReminder(task);
+                  },
+                  onToggleArrows: () => {
+                    this.onToggleArrows();
+                  },
+                  onDeleteDependency: (fromId: string, toId: string) => {
+                    this.onDeleteDependency(fromId, toId);
                   },
                   onBack: () => {
                     this.currentTabIndex = 0; // 返回总览Tab

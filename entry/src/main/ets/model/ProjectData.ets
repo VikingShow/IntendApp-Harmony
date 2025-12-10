@@ -81,6 +81,8 @@ export interface Dependency {
   fromId: string;
   /** 目标任务ID */
   toId: string;
+  /** 是否显示箭头（可选，默认true） */
+  showArrow?: boolean;
 }
 
 /**

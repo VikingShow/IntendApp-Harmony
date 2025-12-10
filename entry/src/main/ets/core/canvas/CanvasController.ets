@@ -37,6 +37,14 @@ import { CanvasRenderer, RenderConfig, RenderMode } from './CanvasRenderer';
 import { image } from '@kit.ImageKit';
 
 /**
+ * 依赖命中信息接口
+ */
+interface DependencyHit {
+  fromId: string;
+  toId: string;
+}
+
+/**
  * 内容边界接口
  * 定义画布内容的边界框
  */
@@ -106,7 +114,7 @@ export interface CanvasActions {
   /** 停止连接任务 */
   stopConnecting: () => void;
   /** 获取渲染配置 */
-  getRenderConfig: (selectedTaskId: string | null) => RenderConfig;
+  getRenderConfig: (selectedTaskId: string | null, showDependencyArrows?: boolean) => RenderConfig;
   /** 放大画布 */
   zoomIn: () => void;
   /** 缩小画布 */
@@ -180,6 +188,7 @@ export class CanvasController {
   private onTaskMove: ((taskId: string, x: number, y: number) => void) | null = null;
   private onTaskMoveImmediate: ((taskId: string, x: number, y: number) => void) | null = null;
   private onTaskClick: ((task: TaskNode) => void) | null = null; // 节点点击回调（用于缩略模式显示详情）
+  private onDependencyClick: ((fromId: string, toId: string, x: number, y: number) => void) | null = null; // 依赖线点击回调
   private uiContext: UIContext | null = null;
 
   public setContext(ctx: UIContext) {
@@ -203,13 +212,15 @@ export class CanvasController {
     onDependencyCreate: (fromId: string, toId: string) => void,
     onTaskMove: (taskId: string, x: number, y: number) => void,
     onTaskMoveImmediate?: (taskId: string, x: number, y: number) => void,
-    onTaskClick?: (task: TaskNode) => void
+    onTaskClick?: (task: TaskNode) => void,
+    onDependencyClick?: (fromId: string, toId: string, x: number, y: number) => void
   ): void {
     this.onTaskSelect = onTaskSelect;
     this.onDependencyCreate = onDependencyCreate;
     this.onTaskMove = onTaskMove;
     this.onTaskMoveImmediate = onTaskMoveImmediate || null;
     this.onTaskClick = onTaskClick || null;
+    this.onDependencyClick = onDependencyClick || null;
   }
 
   /**
@@ -234,7 +245,7 @@ export class CanvasController {
       toggleCanvasLock: () => this.toggleCanvasLock(),
       startConnecting: (taskId: string) => this.startConnecting(taskId),
       stopConnecting: () => this.stopConnecting(),
-      getRenderConfig: (selectedTaskId: string | null) => this.getRenderConfig(selectedTaskId),
+      getRenderConfig: (selectedTaskId: string | null, showDependencyArrows?: boolean) => this.getRenderConfig(selectedTaskId, showDependencyArrows),
       zoomIn: () => this.zoomIn(),
       zoomOut: () => this.zoomOut(),
       resetZoom: () => this.resetZoom()
@@ -270,6 +281,7 @@ export class CanvasController {
       const realTouchY = screenTouchY / this.state.zoomScale;
 
       let hitNode: TaskNode | null = null;
+      let hitDependency: DependencyHit | null = null;
       
       // 根据渲染模式进行不同的命中检测
       if (this.state.renderMode === RenderMode.COMPACT) {
@@ -277,10 +289,15 @@ export class CanvasController {
       } else {
         hitNode = this.hitTestNormal(realTouchX, realTouchY, project);
       }
+      
+      // 如果没有命中节点，检测是否命中依赖线
+      if (!hitNode) {
+        hitDependency = this.hitTestDependency(realTouchX, realTouchY, project);
+      }
 
       switch (event.type) {
         case TouchType.Down:
-          this.handleTouchDown(realTouchX, realTouchY, hitNode);
+          this.handleTouchDown(realTouchX, realTouchY, hitNode, hitDependency);
           break;
         case TouchType.Move:
           this.handleTouchMove(realTouchX, realTouchY);
@@ -397,6 +414,75 @@ export class CanvasController {
   }
 
   /**
+   * 依赖线命中检测
+   * 检测触摸点是否在某条依赖线附近
+   */
+  private hitTestDependency(touchX: number, touchY: number, project: Project): DependencyHit | null {
+    const HIT_TOLERANCE = 10; // 点击容差（像素）
+    
+    for (const dep of project.dependencies) {
+      const fromNode = project.tasks.find(t => t.id === dep.fromId);
+      const toNode = project.tasks.find(t => t.id === dep.toId);
+      
+      if (fromNode && toNode) {
+        // 计算线段的起点和终点
+        let fromX: number, fromY: number, toX: number, toY: number;
+        
+        if (this.state.renderMode === RenderMode.COMPACT) {
+          fromX = fromNode.x + this.state.canvasOffsetX + 100;
+          fromY = fromNode.y + this.state.canvasOffsetY + 60;
+          toX = toNode.x + this.state.canvasOffsetX + 100;
+          toY = toNode.y + this.state.canvasOffsetY + 60;
+        } else {
+          fromX = fromNode.x + this.state.canvasOffsetX + 100;
+          fromY = fromNode.y + this.state.canvasOffsetY + 60;
+          toX = toNode.x + this.state.canvasOffsetX + 100;
+          toY = toNode.y + this.state.canvasOffsetY + 60;
+        }
+        
+        // 计算点到线段的距离
+        const distance = this.pointToLineDistance(touchX, touchY, fromX, fromY, toX, toY);
+        
+        if (distance <= HIT_TOLERANCE) {
+          const hit: DependencyHit = { fromId: dep.fromId, toId: dep.toId };
+          return hit;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * 计算点到线段的距离
+   */
+  private pointToLineDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSquared = dx * dx + dy * dy;
+    
+    if (lengthSquared === 0) {
+      // 线段退化为点
+      const dpx = px - x1;
+      const dpy = py - y1;
+      return Math.sqrt(dpx * dpx + dpy * dpy);
+    }
+    
+    // 计算投影参数 t
+    let t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t)); // 限制在 [0, 1] 范围内
+    
+    // 计算线段上最近的点
+    const nearestX = x1 + t * dx;
+    const nearestY = y1 + t * dy;
+    
+    // 计算距离
+    const distX = px - nearestX;
+    const distY = py - nearestY;
+    return Math.sqrt(distX * distX + distY * distY);
+  }
+
+  /**
    * 缩略模式命中检测（圆形区域）
    */
   private hitTestCompact(touchX: number, touchY: number, project: Project): TaskNode | null {
@@ -423,13 +509,19 @@ export class CanvasController {
     return null;
   }
 
-  private handleTouchDown(touchX: number, touchY: number, hitNode: TaskNode | null): void {
+  private handleTouchDown(touchX: number, touchY: number, hitNode: TaskNode | null, hitDependency?: DependencyHit | null): void {
     // 记录触摸开始位置（用于区分点击和拖拽）
     this.touchStartX = touchX;
     this.touchStartY = touchY;
     
     if (this.state.isConnecting && this.state.connectingFromTaskId) {
       this.handleConnectingTouchDown(hitNode);
+      return;
+    }
+    
+    // 如果点击了依赖线
+    if (hitDependency && this.onDependencyClick) {
+      this.onDependencyClick(hitDependency.fromId, hitDependency.toId, touchX, touchY);
       return;
     }
 
@@ -547,7 +639,7 @@ export class CanvasController {
     this.state.connectingFromTaskId = null;
   }
 
-  private getRenderConfig(selectedTaskId: string | null): RenderConfig {
+  private getRenderConfig(selectedTaskId: string | null, showDependencyArrows?: boolean): RenderConfig {
     return {
       canvasOffsetX: this.state.canvasOffsetX,
       canvasOffsetY: this.state.canvasOffsetY,
@@ -555,7 +647,8 @@ export class CanvasController {
       isConnecting: this.state.isConnecting,
       connectingFromTaskId: this.state.connectingFromTaskId,
       selectedTaskId: selectedTaskId,
-      renderMode: this.state.renderMode
+      renderMode: this.state.renderMode,
+      showDependencyArrows: showDependencyArrows
     };
   }
   

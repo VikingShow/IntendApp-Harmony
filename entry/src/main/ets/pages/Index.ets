@@ -54,6 +54,14 @@ import { PerformanceService } from '../services/PerformanceService';
 import { CalendarService } from '../services/CalendarService';
 
 /**
+ * 依赖选择信息接口
+ */
+interface DependencySelection {
+  fromId: string;
+  toId: string;
+}
+
+/**
  * 路由参数接口
  * 定义页面路由传递的参数结构
  */
@@ -128,9 +136,13 @@ struct Index {
   @State quickActionsY: number = 0;
   
   // 渲染节流相关
-  private isRendering: boolean = false;
-  private pendingRender: boolean = false;
-  private lastRenderTime: number = 0;
+  @State private lastRenderTime: number = 0;
+  @State private pendingRender: boolean = false;
+  @State private isRendering: boolean = false;
+  @State private showDependencyMenu: boolean = false;
+  @State private selectedDependency: DependencySelection | null = null;
+  @State private dependencyMenuX: number = 0;
+  @State private dependencyMenuY: number = 0;
   private readonly RENDER_THROTTLE_MS: number = 16; // 约60fps
   
   // 滑块拖动相关
@@ -195,6 +207,11 @@ struct Index {
       (taskId, x, y) => {
         // TouchMove 时调用：立即更新位置，不创建命令
         this.projectManager.getActions().moveTaskImmediate(taskId, x, y);
+      },
+      undefined, // onTaskClick
+      (fromId, toId, x, y) => {
+        // 依赖线点击回调
+        this.handleDependencyClick(fromId, toId, x, y);
       }
     );
     // 注入uiContext
@@ -697,6 +714,22 @@ struct Index {
     this.updateStateFromManager();
   }
 
+  // 强制立即渲染画布（跳过节流）
+  private forceDrawGraph(): void {
+    this.updateStateFromManager();
+    this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
+    
+    const renderConfig = this.canvasController.getActions().getRenderConfig(
+      this.selectedTask?.id || null,
+      this.appState.showDependencyArrows
+    );
+
+    if (this.project) {
+      this.canvasController.getRenderer().render(this.project, renderConfig);
+      this.zoomScale = this.canvasController.getState().zoomScale;
+    }
+  }
+
   // 渲染画布（增强节流优化 + 性能监控）
   private drawGraph(): void {
     // 同步最新的项目与选中任务状态，确保快捷操作条位置始终使用最新数据
@@ -716,11 +749,12 @@ struct Index {
     const startTime = Date.now();
     
     const renderConfig = this.canvasController.getActions().getRenderConfig(
-      this.selectedTask?.id || null
+      this.selectedTask?.id || null,
+      this.appState.showDependencyArrows
     );
 
     if (this.project) {
-      console.log(`[Index] drawGraph - renderMode: ${renderConfig.renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}, zoomScale: ${renderConfig.zoomScale}`);
+      console.log(`[Index] drawGraph - renderMode: ${renderConfig.renderMode === RenderMode.COMPACT ? 'COMPACT' : 'NORMAL'}, zoomScale: ${renderConfig.zoomScale}, showDependencyArrows: ${this.appState.showDependencyArrows}, renderConfig.showDependencyArrows: ${renderConfig.showDependencyArrows}`);
       this.canvasController.getRenderer().render(this.project, renderConfig);
       // 更新缩放比例显示
       this.zoomScale = this.canvasController.getState().zoomScale;
@@ -947,6 +981,50 @@ struct Index {
       this.canvasController.getActions().startConnecting(this.selectedTask.id);
       this.drawGraph();
     }
+  }
+
+  // 处理依赖线点击
+  private handleDependencyClick(fromId: string, toId: string, x: number, y: number): void {
+    console.log(`[Index] Dependency clicked: ${fromId} -> ${toId} at (${x}, ${y})`);
+    const selection: DependencySelection = { fromId, toId };
+    this.selectedDependency = selection;
+    this.dependencyMenuX = x;
+    this.dependencyMenuY = y;
+    this.showDependencyMenu = true;
+  }
+
+  // 切换依赖箭头显示
+  private toggleDependencyArrow(fromId: string, toId: string): void {
+    if (!this.project) return;
+    
+    const dep = this.project.dependencies.find(d => d.fromId === fromId && d.toId === toId);
+    if (dep) {
+      dep.showArrow = dep.showArrow === false ? true : false;
+      
+      // 强制立即重新渲染画布（跳过节流）
+      this.forceDrawGraph();
+      
+      this.promptAction.showToast({
+        message: dep.showArrow ? '已显示箭头' : '已隐藏箭头',
+        duration: 1500
+      });
+    }
+  }
+
+  // 反转依赖方向
+  private reverseDependency(fromId: string, toId: string): void {
+    if (!this.project) return;
+    
+    // 删除原依赖
+    this.projectManager.getActions().removeDependency(fromId, toId);
+    // 创建反向依赖
+    this.projectManager.getActions().addDependency(toId, fromId);
+    
+    this.drawGraph();
+    this.promptAction.showToast({
+      message: '已反转依赖方向',
+      duration: 1500
+    });
   }
 
   // 处理返回主页
@@ -2098,6 +2176,15 @@ struct Index {
             this.projectManager.getActions().deleteTask(id);
           },
           onStartConnecting: () => this.handleStartConnecting(),
+          onToggleArrows: () => {
+            this.appState.toggleDependencyArrows();
+            this.drawGraph();
+          },
+          onDeleteDependency: (fromId: string, toId: string) => {
+            this.projectManager.getActions().removeDependency(fromId, toId);
+            this.drawGraph();
+          },
+          showDependencyArrows: this.appState.showDependencyArrows,
           onAddReminder: async (task: TaskNode) => {
             const id = await this.calendarService.addTaskReminder(task);
             if (id !== null) {
@@ -2233,12 +2320,150 @@ struct Index {
       }
       .width('100%')
       .height('100%')
+      
+      // 依赖线上下文菜单
+      if (this.showDependencyMenu && this.selectedDependency) {
+        this.DependencyContextMenu()
+      }
     }
     .width('100%')
     .height('100%')
     .padding({
       top: this.getUIContext().px2vp(this.topRectHeight),
       // bottom: this.getUIContext().px2vp(this.bottomRectHeight)
+    })
+  }
+  
+  @Builder
+  DependencyContextMenu() {
+    Column({ space: 0 }) {
+      // 删除依赖
+      Row({ space: 12 }) {
+        Text('×')
+          .fontSize(24)
+          .fontColor(ColorResource.errorColor)
+          .fontWeight(FontWeight.Bold)
+        Text('删除依赖')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontColor(ColorResource.errorColor)
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .height(52)
+      .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL })
+      .justifyContent(FlexAlign.Start)
+      .backgroundColor(ColorResource.transparent)
+      .onClick(() => {
+        if (this.selectedDependency) {
+          this.projectManager.getActions().removeDependency(
+            this.selectedDependency.fromId,
+            this.selectedDependency.toId
+          );
+          this.drawGraph();
+          this.promptAction.showToast({
+            message: '已删除依赖关系',
+            duration: 1500
+          });
+        }
+        this.showDependencyMenu = false;
+      })
+      
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceNeutral)
+        .opacity(0.2)
+      
+      // 切换箭头
+      Row({ space: 12 }) {
+        Text('→')
+          .fontSize(22)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+        Text('切换箭头')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontColor(ColorResource.textPrimary)
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .height(52)
+      .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL })
+      .justifyContent(FlexAlign.Start)
+      .backgroundColor(ColorResource.transparent)
+      .onClick(() => {
+        if (this.selectedDependency) {
+          this.toggleDependencyArrow(
+            this.selectedDependency.fromId,
+            this.selectedDependency.toId
+          );
+        }
+        this.showDependencyMenu = false;
+      })
+      
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceNeutral)
+        .opacity(0.2)
+      
+      // 反转方向
+      Row({ space: 12 }) {
+        Text('⇄')
+          .fontSize(22)
+          .fontColor(ColorResource.primaryColor)
+          .fontWeight(FontWeight.Bold)
+        Text('反转方向')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontColor(ColorResource.textPrimary)
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .height(52)
+      .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL })
+      .justifyContent(FlexAlign.Start)
+      .backgroundColor(ColorResource.transparent)
+      .onClick(() => {
+        if (this.selectedDependency) {
+          this.reverseDependency(
+            this.selectedDependency.fromId,
+            this.selectedDependency.toId
+          );
+        }
+        this.showDependencyMenu = false;
+      })
+      
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceNeutral)
+        .opacity(0.2)
+      
+      // 取消
+      Row() {
+        Text('取消')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontColor(ColorResource.textSecondary)
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .height(52)
+      .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL })
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor(ColorResource.transparent)
+      .onClick(() => {
+        this.showDependencyMenu = false;
+      })
+    }
+    .width(220)
+    .backgroundColor(ColorResource.overlaySubtle)
+    .borderRadius(ThemeConfig.radiusXLarge)
+    .shadow(ThemeConfig.cardShadow)
+    .border({ 
+      width: 1, 
+      color: ColorResource.surfaceNeutral, 
+      radius: ThemeConfig.radiusXLarge 
+    })
+    .backdropBlur(ThemeConfig.backdropBlurMedium)
+    .position({ x: this.dependencyMenuX, y: this.dependencyMenuY })
+    .onClick(() => {
+      // 阻止事件冒泡
     })
   }
 }

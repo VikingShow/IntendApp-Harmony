@@ -32,11 +32,22 @@
  * @since 2024-01-01
  */
 
-import { TaskNode, ChecklistItem } from '../model/ProjectData';
+import { TaskNode, ChecklistItem, Dependency, Project } from '../model/ProjectData';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { PromptAction } from '@kit.ArkUI';
+
+/**
+ * 任务依赖信息接口
+ */
+interface TaskDependencyInfo {
+  fromId: string;
+  toId: string;
+  fromName: string;
+  toName: string;
+  type: string;
+}
 
 /**
  * 任务编辑器组件
@@ -68,6 +79,7 @@ export struct TaskEditor {
   @State private displayStartDate: Date = new Date(); // 用于DatePicker绑定的开始日期
   @State private displayEndDate: Date = new Date(); // 用于DatePicker绑定的结束日期
   @State private displayChecklist: ChecklistItem[] = []; // 用于清单显示的数据
+  @State private displayDependencies: TaskDependencyInfo[] = []; // 用于依赖关系显示的数据
   // 任务切换动画相关状态
   @State private editorOpacity: number = 1; // 编辑器透明度
   @State private editorTranslateY: number = 0; // 编辑器垂直位移
@@ -93,6 +105,16 @@ export struct TaskEditor {
   // 为当前任务添加日历提醒的回调（由父组件实现具体逻辑）
   onAddReminder: (task: TaskNode) => void = () => {
   };
+  // 切换箭头显示的回调
+  onToggleArrows: () => void = () => {
+  };
+  // 删除依赖关系的回调
+  onDeleteDependency: (fromId: string, toId: string) => void = () => {
+  };
+  // 箭头显示状态（由父组件传入）
+  @Prop showDependencyArrows: boolean = true;
+  // 当前项目（用于获取依赖关系）
+  @ObjectLink project: Project | null;
 
   /**
    * 计算任务数据的哈希值，用于检测数据内容变化
@@ -117,7 +139,7 @@ export struct TaskEditor {
   }
 
   /**
-   * 更新显示数据（日期和清单）
+   * 更新显示数据（日期、清单和依赖关系）
    */
   private updateDisplayData() {
     const task = this.localTask || this.task;
@@ -125,7 +147,8 @@ export struct TaskEditor {
       this.displayStartDate = task.startDate;
       this.displayEndDate = task.endDate;
       this.displayChecklist = task.checklist ? [...task.checklist] : [];
-      console.log(`[TaskEditor] Updated display data: startDate=${task.startDate.toLocaleDateString()}, endDate=${task.endDate.toLocaleDateString()}, checklist=${this.displayChecklist.length} items`);
+      this.displayDependencies = this.getTaskDependencies(task.id);
+      console.log(`[TaskEditor] Updated display data: startDate=${task.startDate.toLocaleDateString()}, endDate=${task.endDate.toLocaleDateString()}, checklist=${this.displayChecklist.length} items, dependencies=${this.displayDependencies.length} items`);
     }
   }
 
@@ -427,6 +450,36 @@ export struct TaskEditor {
     this.autoSaveTimer = setTimeout(() => {
       this.saveTaskChanges();
     }, 1000);
+  }
+
+  /**
+   * 获取任务的所有依赖关系（入度和出度）
+   */
+  private getTaskDependencies(taskId: string): TaskDependencyInfo[] {
+    if (!this.project) return [];
+    
+    const dependencies: TaskDependencyInfo[] = [];
+    
+    // 查找所有相关的依赖关系
+    this.project.dependencies.forEach((dep: Dependency) => {
+      if (dep.fromId === taskId || dep.toId === taskId) {
+        const fromTask = this.project!.tasks.find(t => t.id === dep.fromId);
+        const toTask = this.project!.tasks.find(t => t.id === dep.toId);
+        
+        if (fromTask && toTask) {
+          const depInfo: TaskDependencyInfo = {
+            fromId: dep.fromId,
+            toId: dep.toId,
+            fromName: fromTask.name,
+            toName: toTask.name,
+            type: dep.toId === taskId ? 'incoming' : 'outgoing'
+          };
+          dependencies.push(depInfo);
+        }
+      }
+    });
+    
+    return dependencies;
   }
 
   // 保存任务更改
@@ -934,6 +987,96 @@ export struct TaskEditor {
           .borderRadius(ThemeConfig.radiusXLarge)
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
+
+          // --- 设置和依赖管理卡片 ---
+          Column({ space: 16 }) {
+            // 设置标题
+            Row({ space: 8 }) {
+              Text('设置与依赖')
+                 .fontSize(18)
+                 .fontWeight(FontWeight.Medium)
+                 .fontColor(ColorResource.textPrimary)
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            // 箭头显示开关
+            Row({ space: 12 }) {
+              Text('显示依赖连线箭头')
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontColor(ColorResource.textPrimary)
+                .layoutWeight(1)
+              Toggle({ type: ToggleType.Switch, isOn: this.showDependencyArrows })
+                .selectedColor(ColorResource.primaryColor)
+                .onChange((isOn: boolean) => {
+                  this.onToggleArrows();
+                })
+            }
+            .width('100%')
+            .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+            .backgroundColor(ColorResource.overlaySubtle)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .backdropBlur(ThemeConfig.backdropBlurSmall)
+            .shadow(ThemeConfig.shadowSmall)
+            .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
+
+            // 依赖关系管理
+            if (displayTask && this.displayDependencies.length > 0) {
+              Column({ space: 8 }) {
+                Text('依赖关系')
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.textSecondary)
+                  .width('100%')
+                
+                ForEach(this.displayDependencies, (dep: TaskDependencyInfo) => {
+                  Row({ space: 12 }) {
+                    Column({ space: 4 }) {
+                      if (dep.type === 'incoming') {
+                        Text(`← 依赖于: ${dep.fromName}`)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontColor(ColorResource.textPrimary)
+                      } else {
+                        Text(`→ 被依赖: ${dep.toName}`)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontColor(ColorResource.textPrimary)
+                      }
+                    }
+                    .layoutWeight(1)
+                    .alignItems(HorizontalAlign.Start)
+                    
+                    Button() {
+                      Text('×')
+                        .fontSize(16)
+                        .fontColor(ColorResource.errorColor)
+                        .fontWeight(ThemeConfig.fontWeightBold)
+                    }
+                    .width(32)
+                    .height(32)
+                    .type(ButtonType.Circle)
+                    .backgroundColor(ColorResource.errorLight)
+                    .border({ width: 1, color: ColorResource.errorColor, radius: 16 })
+                    .onClick(() => {
+                      this.onDeleteDependency(dep.fromId, dep.toId);
+                    })
+                  }
+                  .width('100%')
+                  .padding({ left: ThemeConfig.spacingM, right: ThemeConfig.spacingM, top: ThemeConfig.spacingS, bottom: ThemeConfig.spacingS })
+                  .backgroundColor(ColorResource.overlaySubtle)
+                  .backdropBlur(ThemeConfig.backdropBlurSmall)
+                  .borderRadius(ThemeConfig.radiusSmall)
+                  .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusSmall })
+                }, (dep: TaskDependencyInfo) => `${dep.fromId}-${dep.toId}`)
+              }
+              .width('100%')
+              .key(`dependencies-${displayTask.id}-${this.forceUpdateKey}`)
+            }
+          }
+          .padding(ThemeConfig.spacingXL)
+          .backgroundColor(ColorResource.overlaySubtle)
+          .borderRadius(ThemeConfig.radiusXLarge)
+          .backdropBlur(ThemeConfig.backdropBlurMedium)
+          .shadow(ThemeConfig.cardShadow)
+          .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusXLarge })
 
           // --- 底部操作按钮 - 苹果风格：更优雅的按钮设计 ---
           Column({ space: 12 }) {

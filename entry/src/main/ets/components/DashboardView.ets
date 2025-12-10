@@ -32,7 +32,7 @@
  * @since 2024-01-01
  */
 
-import { Project, TaskNode } from '../model/ProjectData';
+import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import router from '@ohos.router';
@@ -43,6 +43,7 @@ import { StorageService } from '../services/StorageService';
 import { CalendarService } from '../services/CalendarService';
 import { PromptAction } from '@kit.ArkUI';
 import common from '@ohos.app.ability.common';
+
 
 /**
  * 项目仪表板视图组件
@@ -426,11 +427,14 @@ export struct DashboardView {
     if (!target) {
       return;
     }
-    target.checklist = target.checklist.map(item => ({
-      id: item.id,
-      text: item.text,
-      isCompleted: true
-    }));
+    target.checklist = target.checklist.map((item: ChecklistItem): ChecklistItem => {
+      const updatedItem: ChecklistItem = {
+        id: item.id,
+        text: item.text,
+        isCompleted: true
+      };
+      return updatedItem;
+    });
     try {
       if (!this.storageService) {
         const hostContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -854,17 +858,16 @@ export struct DashboardView {
 
   @Builder
   FilterChip(label: string, value: string) {
-    const isActive: boolean = (this.taskFilter === value);
     Text(label)
       .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS :
       BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
-      .fontColor(isActive ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
+      .fontColor(this.taskFilter === value ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
       .padding({ left: ThemeConfig.spacingXS, right: ThemeConfig.spacingXS, top: 4, bottom: 4 })
-      .backgroundColor(isActive ? ColorResource.primaryLight : ColorResource.surfaceSubtle)
+      .backgroundColor(this.taskFilter === value ? ColorResource.primaryLight : ColorResource.surfaceSubtle)
       .borderRadius(ThemeConfig.radiusSmall)
       .border({
         width: 1,
-        color: isActive ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
+        color: this.taskFilter === value ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
         radius: ThemeConfig.radiusSmall
       })
       .onClick(() => {
@@ -874,17 +877,16 @@ export struct DashboardView {
 
   @Builder
   SortChip(label: string, value: string) {
-    const isActive: boolean = (this.taskSort === value);
     Text(label)
       .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS :
       BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
-      .fontColor(isActive ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
+      .fontColor(this.taskSort === value ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
       .padding({ left: ThemeConfig.spacingXS, right: ThemeConfig.spacingXS, top: 4, bottom: 4 })
-      .backgroundColor(isActive ? ColorResource.primaryLight : ColorResource.surfaceSubtle)
+      .backgroundColor(this.taskSort === value ? ColorResource.primaryLight : ColorResource.surfaceSubtle)
       .borderRadius(ThemeConfig.radiusSmall)
       .border({
         width: 1,
-        color: isActive ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
+        color: this.taskSort === value ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
         radius: ThemeConfig.radiusSmall
       })
       .onClick(() => {

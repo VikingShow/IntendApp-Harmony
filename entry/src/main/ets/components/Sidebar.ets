@@ -66,6 +66,7 @@ export struct Sidebar {
   /** 强制切换到编辑Tab的标志 */
   @Prop forceSwitchToEditorTab: boolean = false;
   @State private selectedTaskForEditor: TaskNode | null = null;
+  @State private lastForceSwitchToEditorTab: boolean = false; // 跟踪forceSwitchToEditorTab的之前值
   // 新增参数：区分首页和编辑页
   isHomePage: boolean = false;
   onCreateBlankProject: () => void = () => {};
@@ -161,14 +162,35 @@ export struct Sidebar {
   }
 
   aboutToAppear() {
-    this.selectedTaskForEditor = this.selectedTask;
+    // 从project中获取最新的任务对象，确保使用最新的引用
+    if (this.selectedTask && this.project) {
+      const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+      if (refreshedTask) {
+        this.selectedTaskForEditor = refreshedTask;
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
+    } else {
+      this.selectedTaskForEditor = this.selectedTask;
+    }
     this.lastSelectedTaskId = this.selectedTask?.id || null;
+    this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab; // 初始化跟踪变量
     this.updateScreenSize();
     
     // 检查是否需要强制切换到编辑Tab
     if (this.forceSwitchToEditorTab && this.selectedTask) {
       console.log(`[Sidebar] aboutToAppear: Force switching to task editor tab for task: ${this.selectedTask.name}`);
-      this.selectedTaskForEditor = this.selectedTask;
+      // 从project中获取最新的任务对象
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       this.currentTabIndex = 1;
     } else if (this.selectedTask) {
       // 如果有选中的任务，默认切换到任务编辑Tab
@@ -401,16 +423,37 @@ export struct Sidebar {
    * 优化后的逻辑：简化状态管理，提高可维护性
    */
   aboutToUpdate() {
+    // 添加调试日志
+    console.log(`[Sidebar] aboutToUpdate called: forceSwitchToEditorTab=${this.forceSwitchToEditorTab}, lastForceSwitchToEditorTab=${this.lastForceSwitchToEditorTab}, currentTabIndex=${this.currentTabIndex}, selectedTask=${this.selectedTask?.name || 'null'}`);
+    
+    // 检测forceSwitchToEditorTab的变化（从false变为true）
+    const forceSwitchChanged = !this.lastForceSwitchToEditorTab && this.forceSwitchToEditorTab;
+    if (forceSwitchChanged) {
+      console.log(`[Sidebar] forceSwitchToEditorTab changed from false to true, immediately switching to editor tab`);
+    }
+    this.lastForceSwitchToEditorTab = this.forceSwitchToEditorTab;
+    
     // 检测selectedTask的ID变化（使用ID而不是引用比较，更可靠）
     const currentTaskId = this.selectedTask?.id || null;
     const taskIdChanged = this.lastSelectedTaskId !== currentTaskId;
     
     // 1. 处理强制切换到编辑Tab的情况（优先处理，最高优先级）
-    if (this.forceSwitchToEditorTab && this.selectedTask) {
+    // 如果forceSwitchToEditorTab为true，或者刚刚从false变为true，都执行切换
+    if ((this.forceSwitchToEditorTab || forceSwitchChanged) && this.selectedTask) {
       const previousTabIndex = this.currentTabIndex;
       console.log(`[Sidebar] Force switching to editor tab for task: ${this.selectedTask.name}, currentTabIndex: ${previousTabIndex}`);
       // 强制设置编辑任务和Tab索引（无论当前Tab是什么，都强制切换）
-      this.selectedTaskForEditor = this.selectedTask;
+      // 从project中获取最新的任务对象，确保使用最新的引用
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       this.lastEditedTaskId = this.selectedTask.id;
       this.currentTabIndex = 1; // 强制设置为编辑Tab
       // 更新任务ID记录（无论是否变化，确保状态一致）
@@ -425,8 +468,17 @@ export struct Sidebar {
       console.log(`[Sidebar] Task ID changed: ${this.lastSelectedTaskId} -> ${currentTaskId}`);
       this.lastSelectedTaskId = currentTaskId;
       
-      // 更新编辑任务引用
-      this.selectedTaskForEditor = this.selectedTask;
+      // 更新编辑任务引用（从project中获取最新的任务对象）
+      if (this.selectedTask && this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       if (this.selectedTask) {
         this.lastEditedTaskId = this.selectedTask.id;
       }
@@ -443,7 +495,17 @@ export struct Sidebar {
       }
       // 同步更新任务引用，确保使用最新的对象
       // 即使ID相同，也要更新引用，因为对象内容可能已更新
-      this.selectedTaskForEditor = this.selectedTask;
+      // 从project中获取最新的任务对象，确保使用最新的引用
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       this.lastEditedTaskId = this.selectedTask.id;
     } else {
       // 4. 没有选中任务时，确保切换到总览Tab
@@ -461,7 +523,17 @@ export struct Sidebar {
     // 6. 特殊处理：如果当前在编辑Tab但selectedTaskForEditor为空，且有selectedTask，则恢复
     if (this.currentTabIndex === 1 && !this.selectedTaskForEditor && this.selectedTask) {
       console.log(`[Sidebar] Editor tab active but no selectedTaskForEditor, restoring from selectedTask`);
-      this.selectedTaskForEditor = this.selectedTask;
+      // 从project中获取最新的任务对象
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       this.lastEditedTaskId = this.selectedTask.id;
     }
     
@@ -469,7 +541,17 @@ export struct Sidebar {
     if (this.currentTabIndex === 1 && this.selectedTask && !this.selectedTaskForEditor) {
       // 这种情况不应该发生，但作为保护措施
       console.log(`[Sidebar] Protection: Restoring selectedTaskForEditor in editor tab`);
-      this.selectedTaskForEditor = this.selectedTask;
+      // 从project中获取最新的任务对象
+      if (this.project) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          this.selectedTaskForEditor = refreshedTask;
+        } else {
+          this.selectedTaskForEditor = this.selectedTask;
+        }
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
+      }
       this.lastEditedTaskId = this.selectedTask.id;
     }
   }
@@ -485,6 +567,7 @@ export struct Sidebar {
   onSave: () => void = () => {};
   onBack: () => void = () => {};
   onAddReminder: (task: TaskNode) => void = () => {};
+  onSelectTask: (task: TaskNode) => void = () => {}; // 选中任务的回调
 
   private saveProjectName() {
     if (this.tempProjectName.trim() === '') {
@@ -1011,10 +1094,13 @@ export struct Sidebar {
                   .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     // 优化：点击任务时切换到编辑Tab并选中任务
-                    this.selectedTask = task;
+                    // 通过回调通知父组件更新selectedTask
+                    this.onSelectTask(task);
+                    // 立即切换到编辑Tab（selectedTaskForEditor会在aboutToUpdate中同步）
+                    this.currentTabIndex = 1;
+                    // 临时设置编辑任务，确保立即显示（aboutToUpdate会同步为最新的selectedTask）
                     this.selectedTaskForEditor = task;
-                    this.lastEditedTaskId = task.id; // 保存最后编辑的任务ID
-                    this.currentTabIndex = 1; // 切换到任务编辑Tab
+                    this.lastEditedTaskId = task.id;
                     console.log(`[Sidebar] Task clicked: ${task.name}, switching to editor tab`);
                   })
                 }

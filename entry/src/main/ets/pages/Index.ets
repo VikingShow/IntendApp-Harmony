@@ -984,32 +984,22 @@ struct Index {
       if (refreshedTask) {
         this.selectedTask = refreshedTask;
         this.projectManager.getActions().selectTask(refreshedTask);
+        // 再次更新状态以确保同步
+        this.updateStateFromManager();
       }
     }
     
-    // 如果侧边栏刚刚显示，需要等待组件渲染完成
-    // 如果侧边栏已经显示，可以直接设置标志
-    if (wasVisible) {
-      // 侧边栏已经显示，直接设置标志
-      this.forceSwitchToEditorTab = true;
-      console.log('[Index] handleEditSelectedTask: Sidebar already visible, set forceSwitchToEditorTab = true');
-      // 延迟重置标志
-      setTimeout(() => {
-        this.forceSwitchToEditorTab = false;
-        console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
-      }, 300);
-    } else {
-      // 侧边栏刚刚显示，需要等待组件渲染完成
-      setTimeout(() => {
-        this.forceSwitchToEditorTab = true;
-        console.log('[Index] handleEditSelectedTask: Sidebar just shown, set forceSwitchToEditorTab = true after delay');
-        // 延迟重置标志
-        setTimeout(() => {
-          this.forceSwitchToEditorTab = false;
-          console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
-        }, 300);
-      }, 50);
-    }
+    // 设置强制切换标志（无论侧边栏是否已经显示，都设置标志）
+    // 这样可以确保在编辑页切换任务时也能正确切换
+    this.forceSwitchToEditorTab = true;
+    console.log('[Index] handleEditSelectedTask: Set forceSwitchToEditorTab = true');
+    
+    // 延迟重置标志，确保Sidebar的aboutToUpdate有足够时间处理
+    // 使用较长的延迟时间，确保组件能够检测到变化并完成切换
+    setTimeout(() => {
+      this.forceSwitchToEditorTab = false;
+      console.log('[Index] handleEditSelectedTask: Reset forceSwitchToEditorTab flag');
+    }, 800);
   }
 
   // 删除当前选中任务
@@ -2136,6 +2126,11 @@ struct Index {
             },
             onSave: () => this.projectManager.getActions().saveProject(),
           onBack: () => this.handleBackToHome(),
+          onSelectTask: (task: TaskNode) => {
+            // 选中任务并更新状态
+            this.projectManager.getActions().selectTask(task);
+            this.updateStateFromManager();
+          },
           onCreateBlankProject: () => this.projectManager.getActions().createNewProject(),
           onCreateProjectFromTemplate: (templateId, projectName) =>
           this.projectManager.getActions().createFromTemplate(templateId, projectName)

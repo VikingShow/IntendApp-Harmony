@@ -64,6 +64,7 @@ export struct TaskEditor {
   @State private autoSaveTimer: number | null = null;
   @State private hasUnsavedChanges: boolean = false;
   @State private debounceTimer: number | null = null;
+  @State private dateTabIndex: number = 0; // 日期Tab索引：0-开始日期，1-结束日期
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
@@ -347,14 +348,68 @@ export struct TaskEditor {
                 })
             }
 
-             // 日期选择区域
-             Column({ space: 12 }) {
-               // 开始日期 - 独占一行，确保有足够宽度
-               Column({ space: 8 }) {
-                 Text('开始日期')
-                   .fontSize(13)
-                   .fontWeight(FontWeight.Medium)
-                   .fontColor(ColorResource.textTertiary)
+             // 日期选择区域 - 使用自定义Tab切换（苹果风格）
+             Column({ space: 0 }) {
+               // Tab切换按钮栏
+               Row({ space: 0 }) {
+                 // 开始日期Tab
+                 Column() {
+                   Text('开始日期')
+                     .fontSize(ThemeConfig.fontSizeM)
+                     .fontWeight(this.dateTabIndex === 0 ? FontWeight.Medium : FontWeight.Normal)
+                     .fontColor(this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.textSecondary)
+                     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+                 }
+                 .layoutWeight(1)
+                 .backgroundColor(
+                   this.dateTabIndex === 0 ? ColorResource.primaryUltraLight : ColorResource.transparent
+                 )
+                 .borderRadius({ topLeft: ThemeConfig.radiusMedium, topRight: 0, bottomLeft: 0, bottomRight: 0 })
+                 .border({ 
+                   width: { bottom: this.dateTabIndex === 0 ? 2 : 0 }, 
+                   color: this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.transparent
+                 })
+                 .onClick(() => {
+                   this.dateTabIndex = 0;
+                 })
+                 
+                 // 结束日期Tab
+                 Column() {
+                   Text('结束日期')
+                     .fontSize(ThemeConfig.fontSizeM)
+                     .fontWeight(this.dateTabIndex === 1 ? FontWeight.Medium : FontWeight.Normal)
+                     .fontColor(this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.textSecondary)
+                     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+                 }
+                 .layoutWeight(1)
+                 .backgroundColor(
+                   this.dateTabIndex === 1 ? ColorResource.primaryUltraLight : ColorResource.transparent
+                 )
+                 .borderRadius({ topLeft: 0, topRight: ThemeConfig.radiusMedium, bottomLeft: 0, bottomRight: 0 })
+                 .border({ 
+                   width: { bottom: this.dateTabIndex === 1 ? 2 : 0 }, 
+                   color: this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.transparent
+                 })
+                 .onClick(() => {
+                   this.dateTabIndex = 1;
+                 })
+               }
+               .width('100%')
+               .backgroundColor(ColorResource.surfaceLight)
+               .borderRadius({ 
+                 topLeft: ThemeConfig.radiusMedium, 
+                 topRight: ThemeConfig.radiusMedium, 
+                 bottomLeft: 0, 
+                 bottomRight: 0 
+               })
+               .border({ 
+                 width: { bottom: 1 }, 
+                 color: ColorResource.surfaceNeutral 
+               })
+               .shadow(ThemeConfig.shadowSmall)
+
+               // 日期选择器内容
+               if (this.dateTabIndex === 0) {
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
@@ -370,6 +425,13 @@ export struct TaskEditor {
                        const newStartDate = value;
                        const newEndDate = this.localTask.endDate < newStartDate ? newStartDate : this.localTask.endDate;
                        
+                       // 更新本地任务数据
+                       this.localTask.startDate = newStartDate;
+                       this.localTask.endDate = newEndDate;
+                       
+                       // 触发自动保存
+                       this.scheduleAutoSave();
+                       
                        // 只传递需要更新的字段
                        this.onUpdateTask(this.localTask.id, { 
                          startDate: newStartDate,
@@ -377,14 +439,7 @@ export struct TaskEditor {
                        });
                      }
                    })
-               }
-
-               // 结束日期 - 独占一行，确保有足够宽度
-               Column({ space: 8 }) {
-                 Text('结束日期')
-                   .fontSize(13)
-                   .fontWeight(FontWeight.Medium)
-                   .fontColor(ColorResource.textTertiary)
+               } else {
                  DatePicker({
                    start: new Date('2020-01-01'),
                    end: new Date('2030-12-31'),
@@ -400,6 +455,13 @@ export struct TaskEditor {
                        const newEndDate = value;
                        const newStartDate = this.localTask.startDate > newEndDate ? newEndDate : this.localTask.startDate;
                        
+                       // 更新本地任务数据
+                       this.localTask.startDate = newStartDate;
+                       this.localTask.endDate = newEndDate;
+                       
+                       // 触发自动保存
+                       this.scheduleAutoSave();
+                       
                        // 只传递需要更新的字段
                        this.onUpdateTask(this.localTask.id, { 
                          startDate: newStartDate,
@@ -409,6 +471,7 @@ export struct TaskEditor {
                    })
                }
              }
+             .width('100%')
 
             // 工期显示与日历提醒
             Row({ space: 8 }) {

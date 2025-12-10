@@ -86,8 +86,9 @@ export struct DashboardView {
   @State private screenWidth: number = 0;
   @State private currentBreakpoint: BreakpointConfig = BreakpointSystem.getCurrentBreakpoint(0);
   @State private isPhone: boolean = false;
-  @State private taskFilter: string = 'ALL';   // ALL | CRITICAL | THIS_WEEK | OVERDUE
-  @State private taskSort: string = 'START';   // START | END | PROGRESS
+  @State private taskFilter: string = 'ALL'; // ALL | CRITICAL | THIS_WEEK | OVERDUE
+  @State private taskSort: string = 'START'; // START | END | PROGRESS
+  @State private taskViewMode: string = 'LIST'; // LIST | TIMELINE
   /** 是否为浮动卡片模式（手机端） */
   @Prop isFloatingCard: boolean = false;
   /** 画布渲染器（使用单例避免重复创建）*/
@@ -97,6 +98,8 @@ export struct DashboardView {
   private storageService: StorageService | null = null;
   private calendarService: CalendarService = CalendarService.getInstance();
   private promptAction: PromptAction = this.getUIContext().getPromptAction();
+  /** 列表/时间轴的重建键，用于切换视图或筛选时回到顶部 */
+  @State private allTasksScrollKey: number = 0;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
@@ -195,9 +198,6 @@ export struct DashboardView {
     this.editButtonOpacity = 1;
   }
 
-
-
-
   // --- Helper Functions to calculate stats ---
   private getDuration(task: TaskNode): number {
     const diffTime = task.endDate.getTime() - task.startDate.getTime();
@@ -260,6 +260,16 @@ export struct DashboardView {
       tasks = tasks.filter(task => this.isTaskInThisWeek(task));
     } else if (this.taskFilter === 'OVERDUE') {
       tasks = tasks.filter(task => task.endDate < now && !this.isTaskCompleted(task));
+    } else if (this.taskFilter === 'HEALTH_NORMAL') {
+      tasks = tasks.filter(task => this.getTaskHealthLabel(task) === '正常');
+    } else if (this.taskFilter === 'HEALTH_RISK') {
+      tasks = tasks.filter(task => this.getTaskHealthLabel(task) === '有风险');
+    } else if (this.taskFilter === 'HEALTH_LATE') {
+      tasks = tasks.filter(task => this.getTaskHealthLabel(task) === '严重滞后');
+    } else if (this.taskFilter === 'NO_CHECKLIST') {
+      tasks = tasks.filter(task => !task.checklist || task.checklist.length === 0);
+    } else if (this.taskFilter === 'OPEN_CHECKLIST') {
+      tasks = tasks.filter(task => task.checklist && task.checklist.some(item => !item.isCompleted));
     }
 
     // 根据排序方式排序任务
@@ -274,6 +284,65 @@ export struct DashboardView {
 
     console.log(`[DashboardView] Project "${this.project.name}" all tasks filtered=${this.taskFilter}, sort=${this.taskSort}, count=${tasks.length}`);
     return tasks;
+  }
+
+  // 在点击健康/遗漏标签时切换筛选；再次点击同一标签则清除筛选
+  private toggleTaskFilter(filter: string): void {
+    if (this.taskFilter === filter) {
+      this.taskFilter = 'ALL';
+    } else {
+      this.taskFilter = filter;
+    }
+  }
+
+  // 带 Toast 提示的筛选切换（用于任务健康）
+  private handleHealthFilterClick(filter: string, label: string): void {
+    const isSame: boolean = this.taskFilter === filter;
+    this.toggleTaskFilter(filter);
+    this.taskViewMode = 'LIST';
+    this.resetAllTasksScroll();
+    const message: string = isSame ? '已恢复显示全部任务' : `已切换到“${label}”视图`;
+    this.promptAction.showToast({
+      message,
+      duration: 2000
+    });
+  }
+
+  // 带 Toast 提示的筛选切换（用于遗漏提醒）
+  private handleOmissionFilterClick(filter: string, label: string): void {
+    const isSame: boolean = this.taskFilter === filter;
+    this.toggleTaskFilter(filter);
+    this.taskViewMode = 'LIST';
+    this.resetAllTasksScroll();
+    const message: string = isSame ? '已恢复显示全部任务' : `已切换到“${label}”视图`;
+    this.promptAction.showToast({
+      message,
+      duration: 2000
+    });
+  }
+
+  // 当前筛选状态标签文本
+  private getCurrentFilterLabel(): string {
+    switch (this.taskFilter) {
+      case 'CRITICAL':
+        return '当前视图：关键任务';
+      case 'THIS_WEEK':
+        return '当前视图：本周到期任务';
+      case 'OVERDUE':
+        return '当前视图：已逾期任务';
+      case 'HEALTH_NORMAL':
+        return '当前视图：健康任务';
+      case 'HEALTH_RISK':
+        return '当前视图：有风险任务';
+      case 'HEALTH_LATE':
+        return '当前视图：严重滞后任务';
+      case 'NO_CHECKLIST':
+        return '当前视图：未拆解任务';
+      case 'OPEN_CHECKLIST':
+        return '当前视图：仍有未完成检查项的任务';
+      default:
+        return '';
+    }
   }
 
   // 计算单个任务的完成度（基于 checklist）
@@ -368,6 +437,20 @@ export struct DashboardView {
     return clamped;
   }
 
+  // 任务列表/时间轴的统一滚动高度，保证两种视图体验一致
+  private getAllTasksScrollHeight(): number {
+    return this.isFloatingCard ? 360 : (this.isPhone ? 420 : 560);
+  }
+
+  // 切换视图或筛选时重置滚动位置，避免停留在底部导致看不到列表
+  private resetAllTasksScroll(): void {
+    try {
+      this.allTasksScrollKey++;
+    } catch (error) {
+      console.warn('[DashboardView] Failed to reset task scroller', error);
+    }
+  }
+
   // 计算任务时间进度（0-100%，用于健康状态判断）
   private getTaskTimeProgressPercent(task: TaskNode): number {
     const now = Date.now();
@@ -378,6 +461,43 @@ export struct DashboardView {
     }
     const raw = Math.round(((now - start) / (end - start)) * 100);
     return Math.max(0, Math.min(100, raw));
+  }
+
+  private getScheduleDiff(): number {
+    const completion = this.getOverallCompletion();
+    const timeProgress = this.getProjectTimeProgress();
+    return completion - timeProgress;
+  }
+
+  private getScheduleStatusLabel(): string {
+    const diff = this.getScheduleDiff();
+    if (diff <= -20) {
+      return '进度严重滞后，请检查关键任务';
+    }
+    if (diff <= -10) {
+      return `进度落后 ${Math.abs(diff)}%，需要加快进度`;
+    }
+    if (diff >= 15) {
+      return `进度明显领先 ${diff}%`;
+    }
+    if (diff >= 5) {
+      return `进度略有领先 ${diff}%`;
+    }
+    return '进度基本正常';
+  }
+
+  private getScheduleStatusColor(): string | Resource {
+    const diff = this.getScheduleDiff();
+    if (diff <= -20) {
+      return ColorResource.errorColor;
+    }
+    if (diff <= -10) {
+      return ColorResource.warningColor;
+    }
+    if (diff >= 10) {
+      return ColorResource.successColor;
+    }
+    return ColorResource.surfaceEmphasized;
   }
 
   // 获取任务健康状态标签
@@ -416,6 +536,142 @@ export struct DashboardView {
       return ThemeConfig.hoverWarningLight;
     }
     return ThemeConfig.hoverErrorLight;
+  }
+
+  private getHealthyTasksCount(): number {
+    if (!this.project || this.project.tasks.length === 0) {
+      return 0;
+    }
+    return this.project.tasks.filter(task => this.getTaskHealthLabel(task) === '正常').length;
+  }
+
+  private getRiskTasksCount(): number {
+    if (!this.project || this.project.tasks.length === 0) {
+      return 0;
+    }
+    return this.project.tasks.filter(task => this.getTaskHealthLabel(task) === '有风险').length;
+  }
+
+  private getLateTasksCount(): number {
+    if (!this.project || this.project.tasks.length === 0) {
+      return 0;
+    }
+    return this.project.tasks.filter(task => this.getTaskHealthLabel(task) === '严重滞后').length;
+  }
+
+  // 统计尚未拆解（没有检查项）的任务数量
+  private getTasksWithoutChecklistCount(): number {
+    if (!this.project || this.project.tasks.length === 0) {
+      return 0;
+    }
+    return this.project.tasks.filter(task => !task.checklist || task.checklist.length === 0).length;
+  }
+
+  // 统计所有未完成的检查项数量
+  private getOpenChecklistItemsCount(): number {
+    if (!this.project || this.project.tasks.length === 0) {
+      return 0;
+    }
+    return this.project.tasks.reduce((sum, task) => {
+      if (!task.checklist || task.checklist.length === 0) {
+        return sum;
+      }
+      const openItems = task.checklist.filter(item => !item.isCompleted).length;
+      return sum + openItems;
+    }, 0);
+  }
+
+  // 获取检查项进度文本，例如 "3/5" 或 "未拆解"
+  private getChecklistProgressText(task: TaskNode): string {
+    if (!task.checklist || task.checklist.length === 0) {
+      return '未拆解';
+    }
+    const total = task.checklist.length;
+    const completed = task.checklist.filter(item => item.isCompleted).length;
+    return `${completed}/${total}`;
+  }
+
+  // 获取第一个需要补充检查项的任务（未拆解优先，其次是有未完成检查项）
+  private getFirstTaskNeedingChecklist(): TaskNode | null {
+    if (!this.project || !this.project.tasks || this.project.tasks.length === 0) {
+      return null;
+    }
+    const noChecklist = this.project.tasks.find(task => !task.checklist || task.checklist.length === 0);
+    if (noChecklist) {
+      return noChecklist;
+    }
+    const openChecklist =
+      this.project.tasks.find(task => task.checklist && task.checklist.some(item => !item.isCompleted));
+    return openChecklist || null;
+  }
+
+  // 从 Dashboard 直接跳转到第一个需要补充检查项的任务编辑页
+  private goToFirstTaskNeedingDetails(): void {
+    const target = this.getFirstTaskNeedingChecklist();
+    if (!target) {
+      // 没有需要补充的任务时给出友好提示，避免用户误以为点击无效
+      this.promptAction.showToast({
+        message: '当前没有需要补充检查项的任务',
+        duration: 2000
+      });
+      return;
+    }
+    this.handleOpenTaskInEditor(target);
+  }
+
+  // 获取任务结束日期标签，用于时间轴视图
+  private getTaskEndDateLabel(task: TaskNode): string {
+    const end = task.endDate;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dayAfterTomorrow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    if (end >= today && end < tomorrow) {
+      return '今天';
+    }
+    if (end >= tomorrow && end < dayAfterTomorrow) {
+      return '明天';
+    }
+    return end.toLocaleDateString();
+  }
+
+  // 今日/本周重点任务（优先：今天到期 -> 严重滞后 -> 有风险），最多3条
+  private getFocusTasks(): TaskNode[] {
+    if (!this.project || this.project.tasks.length === 0) {
+      return [];
+    }
+    const tasks = this.project.tasks.slice();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+    const result: TaskNode[] = [];
+    const pushIfNotExists = (task: TaskNode): void => {
+      if (!result.some(t => t.id === task.id)) {
+        result.push(task);
+      }
+    };
+
+    // 今天到期的任务
+    tasks
+      .filter(task => task.endDate >= today && task.endDate < tomorrow)
+      .sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
+      .forEach(task => pushIfNotExists(task));
+
+    // 严重滞后任务
+    tasks
+      .filter(task => this.getTaskHealthLabel(task) === '严重滞后')
+      .sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
+      .forEach(task => pushIfNotExists(task));
+
+    // 有风险任务
+    tasks
+      .filter(task => this.getTaskHealthLabel(task) === '有风险')
+      .sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
+      .forEach(task => pushIfNotExists(task));
+
+    return result.slice(0, 3);
   }
 
   private async handleMarkTaskCompleted(task: TaskNode) {
@@ -481,7 +737,6 @@ export struct DashboardView {
     } as router.RouterOptions);
   }
 
-
   // 获取Canvas上下文（单例模式）
   private getCanvasContext(): CanvasRenderingContext2D {
     if (!this.canvasRenderer) {
@@ -514,38 +769,39 @@ export struct DashboardView {
       renderMode: this.isPhone ? RenderMode.COMPACT : RenderMode.NORMAL // 根据设备类型选择
     });
 
-    console.log(`[DashboardView] Canvas background rendered - Mode: ${this.isPhone ? 'COMPACT' : 'NORMAL'}, Zoom: ${this.project.zoomScale || 1.0}, Offset: (${this.project.canvasOffsetX || 0}, ${this.project.canvasOffsetY || 0})`);
+    console.log(`[DashboardView] Canvas background rendered - Mode: ${this.isPhone ? 'COMPACT' :
+      'NORMAL'}, Zoom: ${this.project.zoomScale || 1.0}, Offset: (${this.project.canvasOffsetX ||
+      0}, ${this.project.canvasOffsetY || 0})`);
   }
 
   build() {
     // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
     // 注意：不再在DashboardView中渲染Canvas，使用Home页面的Canvas作为背景
-    Column({ space: BreakpointSystem.getResponsiveSpacing(16, this.screenWidth) }) {
-      // 1. 项目标题和进入编辑按钮 - 优化布局
-      Column({ space: BreakpointSystem.getResponsiveSpacing(12, this.screenWidth) }) {
-        // 项目名称单独一行，确保不被遮挡（手机端缩小字体）
-        Text(this.project.name)
-          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL :
-                   (this.isPhone ? ThemeConfig.fontSizeXXXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth)))
-          .fontWeight(ThemeConfig.fontWeightBold)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .maxLines(2)
-          .fontColor(ColorResource.surfaceDeep)
-          .width('100%')
-          .lineHeight((this.isFloatingCard ? ThemeConfig.fontSizeL :
-                      (this.isPhone ? ThemeConfig.fontSizeXXXL : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))) * 1.3)
-
-        // 项目ID和编辑按钮在一行（浮动卡片模式和手机端不显示编辑按钮）
+    // 顶部整体间距进一步收紧，让信息更集中
+    Column({ space: BreakpointSystem.getResponsiveSpacing(10, this.screenWidth) }) {
+      // 1. 项目标题和进入编辑按钮 - 紧凑单行布局（大屏）
+      Column({ space: BreakpointSystem.getResponsiveSpacing(6, this.screenWidth) }) {
         if (!this.isFloatingCard && !this.isPhone) {
-          Row({ space: ThemeConfig.spacingM }) {
-            Text(`ID: ${this.project.id}`)
-              .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
-              .fontColor(ColorResource.surfaceEmphasized)
-              .fontWeight(ThemeConfig.fontWeightMedium)
-              .layoutWeight(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .maxLines(1)
+          Row({ space: ThemeConfig.spacingS }) {
+            // 左侧：项目名称 + ID 同行展示
+            Row({ space: ThemeConfig.spacingS }) {
+              Text(this.project.name)
+                .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXXL, this.screenWidth))
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .maxLines(1)
+                .fontColor(ColorResource.surfaceDeep)
 
+              Text(`ID: ${this.project.id}`)
+                .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeS, this.screenWidth))
+                .fontColor(ColorResource.surfaceEmphasized)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+                .opacity(0.9)
+            }
+            .layoutWeight(1)
+            .alignItems(VerticalAlign.Center)
+
+            // 右侧：编辑按钮
             Button() {
               Row({ space: ThemeConfig.spacingS }) {
                 Text('编辑项目')
@@ -555,18 +811,18 @@ export struct DashboardView {
               }
             }
             .accessibilityLevel('important')
-            .height(40)
+            .height(36)
             .padding({
-              left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth),
-              right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth)
+              left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth),
+              right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth)
             })
             .backgroundColor(this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryColor)
-            .borderRadius(20)
+            .borderRadius(18)
             .shadow(ThemeConfig.shadowMedium)
             .border({
-              width: 2,
+              width: 1.5,
               color: this.isEditButtonPressed ? ColorResource.primaryDark : ColorResource.primaryUltraLight,
-              radius: 20
+              radius: 18
             })
             .scale({ x: this.editButtonScale, y: this.editButtonScale })
             .opacity(this.editButtonOpacity)
@@ -615,45 +871,78 @@ export struct DashboardView {
           .width('100%')
           .alignItems(VerticalAlign.Center)
         } else {
-          // 浮动卡片模式或手机端：只显示ID
-          Text(`ID: ${this.project.id}`)
-            .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
-            .fontColor(ColorResource.surfaceEmphasized)
-            .fontWeight(ThemeConfig.fontWeightMedium)
-            .opacity(0.8)
+          // 浮动卡片模式或手机端：名称在上，ID 在下，仍然保持紧凑
+          Column({ space: ThemeConfig.spacingXS }) {
+            Text(this.project.name)
+              .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeL :
+                (this.isPhone ? ThemeConfig.fontSizeXXL :
+                BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth)))
+              .fontWeight(ThemeConfig.fontWeightBold)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .maxLines(2)
+              .fontColor(ColorResource.surfaceDeep)
+
+            Text(`ID: ${this.project.id}`)
+              .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.surfaceEmphasized)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+              .opacity(0.8)
+          }
+          .width('100%')
         }
       }
       .width('100%')
-      .padding(this.isFloatingCard ? { left: 16, right: 16, top: 12, bottom: 12 } : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+      // 非浮动卡片模式下，进一步减少上下留白，使标题区域更紧凑
+      .padding(this.isFloatingCard ? {
+        left: 16,
+        right: 16,
+        top: 10,
+        bottom: 10
+      } : {
+        left: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth),
+        right: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth),
+        top: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth),
+        bottom: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth)
+      })
       .backgroundColor(this.isFloatingCard ? Color.Transparent : ColorResource.transparent)
       .borderRadius(this.isFloatingCard ? 0 : ThemeConfig.radiusLarge)
       .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
-      .border(this.isFloatingCard ? { width: 0 } : { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
+      .border(this.isFloatingCard ? { width: 0 } :
+        { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
 
       // 2. 核心指标统计 - 响应式布局
       if (this.isPhone) {
-        // 手机端：2x2 网格布局
-        Column({ space: 12 }) {
-          Row({ space: 12 }) {
-            this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight, ColorResource.primaryColor)
-            this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight, ColorResource.infoColor)
+        // 手机端：2x2 网格布局（间距进一步收紧）
+        Column({ space: 6 }) {
+          Row({ space: 6 }) {
+            this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
+              ColorResource.primaryColor)
+            this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
+              ColorResource.infoColor)
           }
           .width('100%')
-          Row({ space: 12 }) {
-            this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
-            this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight, ColorResource.errorColor)
+
+          Row({ space: 6 }) {
+            this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
+              ColorResource.warningColor)
+            this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
+              ColorResource.errorColor)
           }
           .width('100%')
         }
         .width('100%')
         .key(`stats-${this.updateKey}`)
       } else {
-        // 平板/大屏：单行布局
-        Row({ space: 12 }) {
-          this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight, ColorResource.primaryColor)
-          this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight, ColorResource.infoColor)
-          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight, ColorResource.warningColor)
-          this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight, ColorResource.errorColor)
+        // 平板/大屏：单行布局（卡片之间更紧凑）
+        Row({ space: 6 }) {
+          this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
+            ColorResource.primaryColor)
+          this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
+            ColorResource.infoColor)
+          this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
+            ColorResource.warningColor)
+          this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
+            ColorResource.errorColor)
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
@@ -663,108 +952,416 @@ export struct DashboardView {
       if (this.project.tasks.length > 0) {
         Column({ space: ThemeConfig.spacingXS }) {
           Row({ space: ThemeConfig.spacingS }) {
+            // 左侧：标题
             Text('项目进度')
               .fontSize(this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeM)
               .fontWeight(ThemeConfig.fontWeightBold)
               .fontColor(ColorResource.surfaceDeep)
 
-            Text(`完成度 ${this.getOverallCompletion()}% · 时间进度 ${this.getProjectTimeProgress()}% · 工期 ${this.getTotalDuration()} 天`)
+            // 中间：图例（占据中间空间）
+            Row({ space: ThemeConfig.spacingM }) {
+              // 完成度图例
+              Row({ space: 4 }) {
+                Text('●')
+                  .fontSize(10)
+                  .fontColor(ColorResource.taskProgress)
+                Text(`完成度 ${this.getOverallCompletion()}%`)
+                  .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.surfaceEmphasized)
+              }
+              .alignItems(VerticalAlign.Center)
+
+              // 时间进度图例
+              Row({ space: 4 }) {
+                Text('●')
+                  .fontSize(10)
+                  .fontColor(ColorResource.infoColor)
+                Text(`时间进度 ${this.getProjectTimeProgress()}%`)
+                  .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.surfaceEmphasized)
+              }
+              .alignItems(VerticalAlign.Center)
+
+              Text(`工期 ${this.getTotalDuration()} 天`)
+                .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                .fontColor(ColorResource.surfaceEmphasized)
+            }
+            .layoutWeight(1) // 占满中间，把状态挤到右侧
+            .alignItems(VerticalAlign.Center)
+
+            // 右侧：整体状态（领先 / 落后 / 正常）
+            Text(this.getScheduleStatusLabel())
               .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-              .fontColor(ColorResource.surfaceEmphasized)
+              .fontColor(this.getScheduleStatusColor())
           }
           .width('100%')
+          .alignItems(VerticalAlign.Center)
 
-          // 简单进度条：灰色底 + 绿色前景
-          Stack() {
-            Row()
-              .width('100%')
-              .height(6)
-              .backgroundColor(ColorResource.surfaceNeutral)
-              .borderRadius(3)
-
+          // 完成度进度条
+          Row() {
             Row()
               .width(`${this.getOverallCompletion()}%`)
-              .height(6)
+              .height('100%')
               .backgroundColor(ColorResource.taskProgress)
               .borderRadius(3)
           }
           .width('100%')
-        }
-        .width('100%')
-      }
-      // 3. 即将到期的任务列表 - 紧凑设计
-      Column({ space: this.isPhone ? 8 : 12 }) {
-        Row({ space: ThemeConfig.spacingM }) {
-          Text('即将到期')
-            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
-                     (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
-            .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ColorResource.surfaceDeep)
-          Text('(未来7天)')
-            .fontSize(this.isFloatingCard ? 10 :
-                     (this.isPhone ? 11 : ThemeConfig.fontSizeS))
-            .fontColor(ColorResource.surfaceEmphasized)
-            .fontWeight(ThemeConfig.fontWeightMedium)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
+          .height(6)
+          .backgroundColor(ColorResource.surfaceNeutral)
+          .borderRadius(3)
 
-        // 直接计算即将到期的任务
-        if (this.getUpcomingTasks().length > 0) {
-          List({ space: ThemeConfig.spacingS }) {
-            ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
-              ListItem() {
-                this.UpcomingTaskCard(task)
-              }
-            })
+          // 时间进度进度条
+          Row() {
+            Row()
+              .width(`${this.getProjectTimeProgress()}%`)
+              .height('100%')
+              .backgroundColor(ColorResource.infoColor)
+              .borderRadius(3)
           }
-          .height('100%')
           .width('100%')
-        } else {
-          // 没有即将到期的任务 - 紧凑的空状态设计
-          Column({ space: ThemeConfig.spacingM }) {
-            Column({ space: ThemeConfig.spacingS }) {
-              Text('暂无即将到期的任务')
-                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
-                .fontColor(ColorResource.surfaceDeep)
-                .fontWeight(ThemeConfig.fontWeightBold)
-              Text('一切尽在掌握之中！')
-                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
-                .fontColor(ColorResource.surfaceEmphasized)
-                .textAlign(TextAlign.Center)
-                .lineHeight(20)
+          .height(6)
+          .backgroundColor(ColorResource.surfaceNeutral)
+          .borderRadius(3)
+
+          // 任务健康与遗漏提醒：帮助用户实现「一思不漏」
+          if (this.project.tasks.length > 0) {
+            Column({ space: ThemeConfig.spacingXS }) {
+              // 任务健康概览：正常 / 有风险 / 严重滞后
+              Row({ space: ThemeConfig.spacingS }) {
+                Text('任务健康')
+                  .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                  .fontWeight(ThemeConfig.fontWeightMedium)
+                  .fontColor(ColorResource.surfaceDeep)
+
+                Row({ space: ThemeConfig.spacingS }) {
+                  // 正常
+                  Row({ space: 4 }) {
+                    Text('●')
+                      .fontSize(10)
+                      .fontColor(ColorResource.successColor)
+                    Text(`正常 ${this.getHealthyTasksCount()} 个`)
+                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.surfaceEmphasized)
+                      .onClick(() => {
+                        this.handleHealthFilterClick('HEALTH_NORMAL', '健康任务');
+                      })
+                  }
+                  .alignItems(VerticalAlign.Center)
+
+                  // 有风险
+                  Row({ space: 4 }) {
+                    Text('●')
+                      .fontSize(10)
+                      .fontColor(ColorResource.warningColor)
+                    Text(this.getRiskTasksCount() > 0 ? `有风险 ${this.getRiskTasksCount()} 个` : '有风险 0 个（很好）')
+                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                      .fontColor(this.getRiskTasksCount() > 0 ? ColorResource.surfaceEmphasized :
+                      ColorResource.successColor)
+                      .onClick(() => {
+                        this.handleHealthFilterClick('HEALTH_RISK', '有风险任务');
+                      })
+                  }
+                  .alignItems(VerticalAlign.Center)
+
+                  // 严重滞后
+                  Row({ space: 4 }) {
+                    Text('●')
+                      .fontSize(10)
+                      .fontColor(ColorResource.errorColor)
+                    Text(this.getLateTasksCount() > 0 ? `严重滞后 ${this.getLateTasksCount()} 个` :
+                      '严重滞后 0 个（很好）')
+                      .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                      .fontColor(this.getLateTasksCount() > 0 ? ColorResource.surfaceEmphasized :
+                      ColorResource.successColor)
+                      .onClick(() => {
+                        this.handleHealthFilterClick('HEALTH_LATE', '严重滞后任务');
+                      })
+                  }
+                  .alignItems(VerticalAlign.Center)
+                }
+              }
+              .width('100%')
+
+              // 遗漏提醒：未拆解任务 / 未完成检查项
+              if (this.getTasksWithoutChecklistCount() > 0 || this.getOpenChecklistItemsCount() > 0) {
+                Row({ space: ThemeConfig.spacingS }) {
+                  Text('遗漏提醒')
+                    .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                    .fontColor(ColorResource.surfaceDeep)
+
+                  Row({ space: ThemeConfig.spacingS }) {
+                    if (this.getTasksWithoutChecklistCount() > 0) {
+                      Text(`未拆解任务 ${this.getTasksWithoutChecklistCount()} 个`)
+                        .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                        .fontColor(ColorResource.warningColor)
+                        .onClick(() => {
+                          this.handleOmissionFilterClick('NO_CHECKLIST', '未拆解任务');
+                        })
+                    }
+
+                    if (this.getOpenChecklistItemsCount() > 0) {
+                      Text(`未完成检查项 ${this.getOpenChecklistItemsCount()} 项`)
+                        .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                        .fontColor(ColorResource.warningColor)
+                        .onClick(() => {
+                          this.handleOmissionFilterClick('OPEN_CHECKLIST', '未完成检查项');
+                        })
+                    }
+                  }
+
+                  // 快速补漏入口：优先查看未拆解任务，否则查看未完成检查项
+                  Text('去补充')
+                    .fontSize(this.isPhone ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.primaryColor)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                    .padding({
+                      left: ThemeConfig.spacingXS,
+                      right: ThemeConfig.spacingXS,
+                      top: 2,
+                      bottom: 2
+                    })
+                    .backgroundColor(ColorResource.primaryLight)
+                    .borderRadius(ThemeConfig.radiusSmall)
+                    .onClick(() => {
+                      // 1）切回列表视图并应用合适的筛选
+                      this.taskViewMode = 'LIST';
+                      if (this.getTasksWithoutChecklistCount() > 0) {
+                        this.taskFilter = 'NO_CHECKLIST';
+                        this.promptAction.showToast({
+                          message: '已切换到“未拆解任务”视图',
+                          duration: 2000
+                        });
+                      } else if (this.getOpenChecklistItemsCount() > 0) {
+                        this.taskFilter = 'OPEN_CHECKLIST';
+                        this.promptAction.showToast({
+                          message: '已切换到“未完成检查项”视图',
+                          duration: 2000
+                        });
+                      }
+                      // 2）直接打开第一个需要补充的任务编辑页
+                      this.goToFirstTaskNeedingDetails();
+                    })
+                }
+                .width('100%')
+              }
             }
           }
-          .width('100%')
-          .padding(ThemeConfig.spacingXL)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .backgroundColor(ColorResource.transparent)
-          .borderRadius(ThemeConfig.radiusLarge)
-          .shadow(ThemeConfig.cardShadow)
-          .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusLarge })
         }
+        .width('100%')
+        .padding({
+          top: ThemeConfig.spacingS,
+          bottom: ThemeConfig.spacingS,
+          left: ThemeConfig.spacingS,
+          right: ThemeConfig.spacingS
+        })
+        .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
+        .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
+      }
 
-        // 3.2 所有任务总览列表
-        if (this.project.tasks.length > 0) {
-          Column({ space: this.isPhone ? 8 : 12 }) {
+      // 今日 / 本周重点 + 即将到期
+      if (!this.isPhone && this.getFocusTasks().length > 0 && this.getUpcomingTasks().length > 0) {
+        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth) }) {
+          Column({ space: this.isPhone ? 6 : 8 }) {
             Row({ space: ThemeConfig.spacingM }) {
-              Text('所有任务')
+              Text('今日 / 本周重点')
                 .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
-                         (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
+                  (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
                 .fontWeight(ThemeConfig.fontWeightBold)
                 .fontColor(ColorResource.surfaceDeep)
-              Text(`(${this.project.tasks.length} 个)`)
+
+              Text(`(${this.getFocusTasks().length} 项)`)
                 .fontSize(this.isFloatingCard ? 10 :
-                         (this.isPhone ? 11 : ThemeConfig.fontSizeS))
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeS))
                 .fontColor(ColorResource.surfaceEmphasized)
                 .fontWeight(ThemeConfig.fontWeightMedium)
             }
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 排序 Chip 行
+            List({ space: ThemeConfig.spacingS }) {
+              ForEach(this.getFocusTasks(), (task: TaskNode) => {
+                ListItem() {
+                  this.FocusTaskItem(task)
+                }
+              })
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .layoutWeight(1)
+
+          Column({ space: this.isPhone ? 8 : 12 }) {
+            Row({ space: ThemeConfig.spacingM }) {
+              Text('即将到期')
+                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
+                  (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .fontColor(ColorResource.surfaceDeep)
+              Text('(未来7天)')
+                .fontSize(this.isFloatingCard ? 10 :
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeS))
+                .fontColor(ColorResource.surfaceEmphasized)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            if (this.getUpcomingTasks().length > 0) {
+              List({ space: ThemeConfig.spacingS }) {
+                ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
+                  ListItem() {
+                    this.UpcomingTaskCard(task)
+                  }
+                })
+              }
+              .width('100%')
+            } else {
+              Column({ space: ThemeConfig.spacingM }) {
+                Column({ space: ThemeConfig.spacingS }) {
+                  Text('暂无即将到期的任务')
+                    .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
+                    .fontColor(ColorResource.surfaceDeep)
+                    .fontWeight(ThemeConfig.fontWeightBold)
+                  Text('一切尽在掌握之中！')
+                    .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.surfaceEmphasized)
+                    .textAlign(TextAlign.Center)
+                    .lineHeight(20)
+                }
+              }
+              .width('100%')
+              .padding(ThemeConfig.spacingXL)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+              .backgroundColor(ColorResource.transparent)
+              .borderRadius(ThemeConfig.radiusLarge)
+              .shadow(ThemeConfig.cardShadow)
+              .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusLarge })
+            }
+          }
+          .width('100%')
+          .layoutWeight(1)
+        }
+        .width('100%')
+      } else {
+        if (this.getFocusTasks().length > 0) {
+          Column({ space: this.isPhone ? 6 : 8 }) {
+            Row({ space: ThemeConfig.spacingM }) {
+              Text('今日 / 本周重点')
+                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
+                  (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .fontColor(ColorResource.surfaceDeep)
+
+              Text(`(${this.getFocusTasks().length} 项)`)
+                .fontSize(this.isFloatingCard ? 10 :
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeS))
+                .fontColor(ColorResource.surfaceEmphasized)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            List({ space: ThemeConfig.spacingS }) {
+              ForEach(this.getFocusTasks(), (task: TaskNode) => {
+                ListItem() {
+                  this.FocusTaskItem(task)
+                }
+              })
+            }
+            .width('100%')
+          }
+          .width('100%')
+        }
+
+        Column({ space: this.isPhone ? 8 : 12 }) {
+          Row({ space: ThemeConfig.spacingM }) {
+            Text('即将到期')
+              .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
+                (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
+              .fontWeight(ThemeConfig.fontWeightBold)
+              .fontColor(ColorResource.surfaceDeep)
+            Text('(未来7天)')
+              .fontSize(this.isFloatingCard ? 10 :
+                (this.isPhone ? 11 : ThemeConfig.fontSizeS))
+              .fontColor(ColorResource.surfaceEmphasized)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+
+          if (this.getUpcomingTasks().length > 0) {
+            List({ space: ThemeConfig.spacingS }) {
+              ForEach(this.getUpcomingTasks(), (task: TaskNode) => {
+                ListItem() {
+                  this.UpcomingTaskCard(task)
+                }
+              })
+            }
+            .width('100%')
+          } else {
+            Column({ space: ThemeConfig.spacingM }) {
+              Column({ space: ThemeConfig.spacingS }) {
+                Text('暂无即将到期的任务')
+                  .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
+                  .fontColor(ColorResource.surfaceDeep)
+                  .fontWeight(ThemeConfig.fontWeightBold)
+                Text('一切尽在掌握之中！')
+                  .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS : ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.surfaceEmphasized)
+                  .textAlign(TextAlign.Center)
+                  .lineHeight(20)
+              }
+            }
+            .width('100%')
+            .padding(ThemeConfig.spacingXL)
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+            .backgroundColor(ColorResource.transparent)
+            .borderRadius(ThemeConfig.radiusLarge)
+            .shadow(ThemeConfig.cardShadow)
+            .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusLarge })
+          }
+        }
+        .width('100%')
+      }
+
+      // 3.2 所有任务总览列表 / 时间轴视图
+      if (this.project.tasks.length > 0) {
+        Column({ space: this.isPhone ? 8 : 12 }) {
+          Row({ space: ThemeConfig.spacingM }) {
             Row({ space: ThemeConfig.spacingS }) {
+              Text('所有任务')
+                .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS :
+                  (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
+                .fontWeight(ThemeConfig.fontWeightBold)
+                .fontColor(ColorResource.surfaceDeep)
+              Text(`(${this.getAllTasksSorted().length} 个)`)
+                .fontSize(this.isFloatingCard ? 10 :
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeS))
+                .fontColor(ColorResource.surfaceEmphasized)
+                .fontWeight(ThemeConfig.fontWeightMedium)
+
+              if (this.taskFilter !== 'ALL') {
+                Text(this.getCurrentFilterLabel())
+                  .fontSize(this.isFloatingCard ? 9 :
+                    (this.isPhone ? 10 : ThemeConfig.fontSizeXS))
+                  .fontColor(ColorResource.primaryColor)
+                  .padding({
+                    left: ThemeConfig.spacingXS,
+                    right: ThemeConfig.spacingXS,
+                    top: 2,
+                    bottom: 2
+                  })
+                  .backgroundColor(ColorResource.primaryLight)
+                  .borderRadius(ThemeConfig.radiusSmall)
+                  .onClick(() => {
+                    this.taskFilter = 'ALL';
+                  })
+              }
+
+              // 排序：与标题放在同一行
               Text('排序：')
                 .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeXS :
                   (this.isPhone ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeS))
@@ -774,29 +1371,151 @@ export struct DashboardView {
               this.SortChip('结束时间', 'END')
               this.SortChip('完成度', 'PROGRESS')
             }
-            .width('100%')
+            .layoutWeight(1)
+            .alignItems(VerticalAlign.Center)
 
-            List({ space: ThemeConfig.spacingS }) {
-              ForEach(this.getAllTasksSorted(), (task: TaskNode) => {
-                ListItem() {
-                  this.AllTaskListItem(task)
-                }
-              })
+            // 视图切换：列表 / 时间轴
+            Row({ space: ThemeConfig.spacingXS }) {
+              Text('列表')
+                .fontSize(this.isFloatingCard ? 10 :
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeXS))
+                .fontColor(this.taskViewMode === 'LIST' ? ColorResource.primaryColor : ColorResource.surfaceEmphasized)
+                .padding({
+                  left: 6,
+                  right: 6,
+                  top: 2,
+                  bottom: 2
+                })
+                .backgroundColor(this.taskViewMode === 'LIST' ? ColorResource.primaryLight :
+                ColorResource.surfaceSubtle)
+                .borderRadius(ThemeConfig.radiusSmall)
+                .onClick(() => {
+                  this.taskViewMode = 'LIST';
+                  this.resetAllTasksScroll();
+                })
+
+              Text('时间轴')
+                .fontSize(this.isFloatingCard ? 10 :
+                  (this.isPhone ? 11 : ThemeConfig.fontSizeXS))
+                .fontColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryColor :
+                ColorResource.surfaceEmphasized)
+                .padding({
+                  left: 6,
+                  right: 6,
+                  top: 2,
+                  bottom: 2
+                })
+                .backgroundColor(this.taskViewMode === 'TIMELINE' ? ColorResource.primaryLight :
+                ColorResource.surfaceSubtle)
+                .borderRadius(ThemeConfig.radiusSmall)
+                .onClick(() => {
+                  this.taskViewMode = 'TIMELINE';
+                  this.resetAllTasksScroll();
+                })
             }
-            .width('100%')
           }
           .width('100%')
+          .alignItems(VerticalAlign.Center)
+
+          if (this.taskViewMode === 'LIST') {
+            Column({ space: ThemeConfig.spacingS }) {
+              Scroll() {
+                Column({ space: ThemeConfig.spacingS }) {
+                  ForEach(this.getAllTasksSorted(), (task: TaskNode) => {
+                    this.AllTaskListItem(task)
+                  })
+                }
+              }
+              .width('100%')
+              .height(this.getAllTasksScrollHeight())
+              .edgeEffect(EdgeEffect.Spring)
+              .scrollBar(BarState.On)
+              .scrollable(ScrollDirection.Vertical)
+              .key(`all-tasks-scroll-${this.allTasksScrollKey}`)
+            }
+            .width('100%')
+            .padding({
+              top: 0, // 顶部去掉内边距，避免滚动区域上方出现空白
+              bottom: ThemeConfig.spacingS,
+              left: ThemeConfig.spacingS,
+              right: ThemeConfig.spacingS
+            })
+            .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
+            .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
+            .clip(true)
+          } else {
+            // 时间轴视图：按结束日期简要展示（容器内滚动）
+            Column({ space: ThemeConfig.spacingS }) {
+              Scroll() {
+                Column({ space: ThemeConfig.spacingS }) {
+                  ForEach(this.getAllTasksSorted(), (task: TaskNode) => {
+                    Row({ space: ThemeConfig.spacingS }) {
+                      // 日期标签
+                      Text(this.getTaskEndDateLabel(task))
+                        .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.surfaceEmphasized)
+                        .width(80)
+
+                      // 时间轴上的节点
+                      Row({ space: ThemeConfig.spacingS }) {
+                        Text('●')
+                          .fontSize(10)
+                          .fontColor(this.getTaskHealthTextColor(task))
+
+                        Column({ space: 2 }) {
+                          Text(task.name)
+                            .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : ThemeConfig.fontSizeM)
+                            .fontWeight(ThemeConfig.fontWeightMedium)
+                            .fontColor(ColorResource.surfaceDeep)
+                            .maxLines(1)
+                            .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                          Text(`进度 ${this.getTaskCompletionPercent(task)}% · 检查项 ${this.getChecklistProgressText(task)}`)
+                            .fontSize(this.isFloatingCard ? 10 : ThemeConfig.fontSizeXS)
+                            .fontColor(ColorResource.surfaceEmphasized)
+                        }
+                      }
+                      .layoutWeight(1)
+                    }
+                    .width('100%')
+                    .padding({ top: 4, bottom: 4 })
+                    .onClick(() => {
+                      this.handleOpenTaskInEditor(task);
+                    })
+                  })
+                }
+              }
+              .width('100%')
+              .height(this.getAllTasksScrollHeight())
+              .edgeEffect(EdgeEffect.Spring)
+              .scrollBar(BarState.On)
+              .scrollable(ScrollDirection.Vertical)
+              .key(`all-tasks-scroll-${this.allTasksScrollKey}`)
+            }
+            .width('100%')
+            .padding({
+              top: 0, // 顶部去掉内边距，避免滚动区域上方出现空白
+              bottom: ThemeConfig.spacingS,
+              left: ThemeConfig.spacingS,
+              right: ThemeConfig.spacingS
+            })
+            .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
+            .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
+            .clip(true)
+          }
         }
+        .width('100%')
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
     }
+    .alignItems(HorizontalAlign.Start)
     .width('100%')
-    .height('100%')
     .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor(ColorResource.transparent)
-    .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
-    .opacity(this.fadeOpacity)
+    .backgroundColor
+    (ColorResource.transparent)
+    .backdropBlur
+    (this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge: ThemeConfig.backdropBlurNone)
+    .opacity
+    (this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })
     .animation({
@@ -806,6 +1525,7 @@ export struct DashboardView {
       playMode: PlayMode.Normal
     })
   }
+
 
   // 构建器：统计卡片 - 紧凑设计
   @Builder
@@ -835,8 +1555,9 @@ export struct DashboardView {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .height(this.isFloatingCard ? 70 : (this.isPhone ? 100 : 120))
-    .padding(this.isFloatingCard ? 8 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+    // 统计卡片整体高度和内边距略收紧，让上半区更紧凑
+    .height(this.isFloatingCard ? 68 : (this.isPhone ? 90 : 100))
+    .padding(this.isFloatingCard ? 8 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))
     .backgroundColor(ResponsiveColorConfig.getStatCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
     .borderRadius(this.isFloatingCard ? 8 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.shadowMedium)
@@ -872,6 +1593,7 @@ export struct DashboardView {
       })
       .onClick(() => {
         this.taskFilter = value;
+        this.resetAllTasksScroll();
       })
   }
 
@@ -891,6 +1613,7 @@ export struct DashboardView {
       })
       .onClick(() => {
         this.taskSort = value;
+        this.resetAllTasksScroll();
       })
   }
 
@@ -898,18 +1621,18 @@ export struct DashboardView {
   // 构建器：任务总览列表项
   @Builder
   AllTaskListItem(task: TaskNode) {
-    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
+    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
       Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth) }) {
         // 任务名称
         Text(task.name)
-          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeL, this.screenWidth))
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.surfaceDeep)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        // 时间区间 + 完成度
-        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
+        // 时间区间 + 完成度 + 检查项进度 + 健康状态
+        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth) }) {
           Text(`${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()}`)
             .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
@@ -917,37 +1640,43 @@ export struct DashboardView {
           Text(`完成度: ${this.getTaskCompletionPercent(task)}%`)
             .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
-        }
-        // 健康状态标签
-        Text(this.getTaskHealthLabel(task))
-          .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
-          .fontColor(this.getTaskHealthTextColor(task))
-          .fontWeight(ThemeConfig.fontWeightMedium)
-          .padding({ left: ThemeConfig.spacingXS, right: ThemeConfig.spacingXS, top: 2, bottom: 2 })
-          .backgroundColor(this.getTaskHealthBackgroundColor(task))
-          .borderRadius(ThemeConfig.radiusSmall)
-        // 关键任务标签
-        if (task.isCritical) {
-          Text('关键任务')
+
+          Text(this.getChecklistProgressText(task))
             .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
-            .fontColor(ColorResource.errorColor)
+            .fontColor(ColorResource.surfaceEmphasized)
+
+          // 健康状态标签放在同一行，便于扫描
+          Text(this.getTaskHealthLabel(task))
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(this.getTaskHealthTextColor(task))
             .fontWeight(ThemeConfig.fontWeightMedium)
-            .padding({
-              left: ThemeConfig.spacingXS,
-              right: ThemeConfig.spacingXS,
-              top: 2,
-              bottom: 2
-            })
-            .backgroundColor(ColorResource.hoverError)
+            .padding({ left: ThemeConfig.spacingXS, right: ThemeConfig.spacingXS, top: 2, bottom: 2 })
+            .backgroundColor(this.getTaskHealthBackgroundColor(task))
             .borderRadius(ThemeConfig.radiusSmall)
-            .border({ width: 1, color: ColorResource.errorColor, radius: ThemeConfig.radiusSmall })
+
+          // 关键任务标签也放在同一行
+          if (task.isCritical) {
+            Text('关键任务')
+              .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+              .fontColor(ColorResource.errorColor)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+              .padding({
+                left: ThemeConfig.spacingXS,
+                right: ThemeConfig.spacingXS,
+                top: 2,
+                bottom: 2
+              })
+              .backgroundColor(ColorResource.hoverError)
+              .borderRadius(ThemeConfig.radiusSmall)
+              .border({ width: 1, color: ColorResource.errorColor, radius: ThemeConfig.radiusSmall })
+          }
         }
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
       // 右侧小图标操作区
-      Row({ space: ThemeConfig.spacingS }) {
+      Row({ space: ThemeConfig.spacingXS }) {
         // 标记完成
         Text('✓')
           .fontSize(ThemeConfig.fontSizeM)
@@ -983,7 +1712,7 @@ export struct DashboardView {
       }
     }
     .width('100%')
-    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))
     .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
     .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
@@ -996,7 +1725,7 @@ export struct DashboardView {
   @Builder
   UpcomingTaskCard(task: TaskNode) {
     Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
-      // 任务信息 - 紧凑设计
+      // 任务信息 - 紧凑设计（与 FocusTaskItem 保持一致）
       Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth) }) {
         Text(task.name)
           .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
@@ -1004,10 +1733,21 @@ export struct DashboardView {
           .fontColor(ColorResource.surfaceDeep)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+
         Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
           Text(`截止: ${task.endDate.toLocaleDateString()}`)
             .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
+
+          // 健康状态标签，与今日/本周重点一致
+          Text(this.getTaskHealthLabel(task))
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(this.getTaskHealthTextColor(task))
+
+          Text(this.getChecklistProgressText(task))
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(ColorResource.surfaceEmphasized)
+
           if (task.isCritical) {
             Text('关键')
               .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
@@ -1028,17 +1768,75 @@ export struct DashboardView {
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
+
+      // 与今日/本周重点一致的“打开编辑”箭头
+      Text('↗')
+        .fontSize(ThemeConfig.fontSizeM)
+        .fontColor(ColorResource.primaryColor)
+        .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+        .backgroundColor(ColorResource.primaryLight)
+        .borderRadius(ThemeConfig.radiusSmall)
     }
     .width('100%')
-    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
+    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))
     .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
     .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
     .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
     .border(this.isFloatingCard ?
       { width: 1, color: ResponsiveColorConfig.getTaskCardBorderColor(this.isFloatingCard, this.isDarkMode), radius: 6 } :
       { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
+    .onClick(() => {
+      this.handleOpenTaskInEditor(task);
+    })
   }
 
+  // 构建器：今日/本周重点任务列表项
+  @Builder
+  FocusTaskItem(task: TaskNode) {
+    Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth) }) {
+      Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXS, this.screenWidth) }) {
+        Text(task.name)
+          .fontSize(this.isFloatingCard ? ThemeConfig.fontSizeS : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
+          .fontWeight(ThemeConfig.fontWeightBold)
+          .fontColor(ColorResource.surfaceDeep)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
 
+        Row({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
+          Text(`截止: ${task.endDate.toLocaleDateString()}`)
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(ColorResource.surfaceEmphasized)
+
+          Text(this.getTaskHealthLabel(task))
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(this.getTaskHealthTextColor(task))
+
+          Text(this.getChecklistProgressText(task))
+            .fontSize(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXS, this.screenWidth))
+            .fontColor(ColorResource.surfaceEmphasized)
+        }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Text('↗')
+        .fontSize(ThemeConfig.fontSizeM)
+        .fontColor(ColorResource.primaryColor)
+        .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+        .backgroundColor(ColorResource.primaryLight)
+        .borderRadius(ThemeConfig.radiusSmall)
+    }
+    .width('100%')
+    .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))
+    .backgroundColor(ResponsiveColorConfig.getTaskCardBackgroundColor(this.isFloatingCard, this.isDarkMode))
+    .borderRadius(this.isFloatingCard ? 6 : ThemeConfig.radiusLarge)
+    .shadow(this.isFloatingCard ? { radius: 0, color: Color.Transparent } : ThemeConfig.cardShadow)
+    .border(this.isFloatingCard ?
+      { width: 1, color: ResponsiveColorConfig.getTaskCardBorderColor(this.isFloatingCard, this.isDarkMode), radius: 6 } :
+      { width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusLarge })
+    .onClick(() => {
+      this.handleOpenTaskInEditor(task);
+    })
+  }
 }
 

@@ -661,6 +661,49 @@ struct HomePage {
     console.log(`[Home] Color mode updated: ${this.isDarkMode ? 'Dark' : 'Light'}`);
   }
 
+  private showOmissionReminderIfNeeded(project: Project) {
+    if (!project || !project.tasks || project.tasks.length === 0) {
+      return;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+    let noChecklistCount = 0;
+    let dueTodayWithoutChecklistCount = 0;
+
+    project.tasks.forEach(task => {
+      const noChecklist = !task.checklist || task.checklist.length === 0;
+      if (noChecklist) {
+        noChecklistCount++;
+        if (task.endDate >= today && task.endDate < tomorrow) {
+          dueTodayWithoutChecklistCount++;
+        }
+      }
+    });
+
+    if (noChecklistCount === 0 && dueTodayWithoutChecklistCount === 0) {
+      return;
+    }
+
+    let message = '';
+    if (noChecklistCount > 0) {
+      message += `还有 ${noChecklistCount} 个任务没有拆解`;
+    }
+    if (dueTodayWithoutChecklistCount > 0) {
+      if (message.length > 0) message += '，';
+      message += `其中 ${dueTodayWithoutChecklistCount} 个今天到期`;
+    }
+    message += '，建议补充检查项，避免遗漏。';
+
+    this.promptAction.showToast({
+      message,
+      duration: 4000
+    });
+  }
+
+
   // 更新屏幕尺寸和断点配置
   private updateScreenSize() {
     // 获取屏幕宽度（vp）
@@ -861,7 +904,13 @@ struct HomePage {
       if (loadedProject) {
         // 静默更新项目数据（不清空，不触发动画）
         this.selectedProjectDetail = loadedProject;
-        
+        // 强制刷新 Dashboard 组件（key 变化会重建）
+        this.dashboardKey++;
+        this.dashboardTimestamp = Date.now();
+        // 在这里调用提醒
+        this.showOmissionReminderIfNeeded(loadedProject);
+
+
         console.log(`[Home] Project data silently updated: ${loadedProject.name}, Canvas state - Zoom: ${loadedProject.zoomScale}, Offset: (${loadedProject.canvasOffsetX}, ${loadedProject.canvasOffsetY})`);
         
         // 立即重新渲染画布

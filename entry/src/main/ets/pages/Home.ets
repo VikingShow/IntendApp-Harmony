@@ -1339,16 +1339,6 @@ struct HomePage {
               await this.loadProjects();
             } catch (error) {
               this.promptAction.showToast({ message: '删除失败，请重试' });
-              console.error('[Home] Delete project error:', error);
-            }
-          }
-        }
-      }
-    });
-  }
-
-
-  // 显示创建项目选项的原生弹窗
   showCreateProjectOptions() {
     this.promptAction.showActionMenu({
       title: '创建新项目',
@@ -1365,8 +1355,6 @@ struct HomePage {
           text: '导入项目',
           color: ColorResource.projectDevelopment
         },
-        { text: 'AI 生成导图',
-          color: ColorResource.secondaryColor }
       ]
     }).then((result) => {
       if (result.index === 0) {
@@ -1378,8 +1366,6 @@ struct HomePage {
       } else if (result.index === 2) {
         // 导入项目
         this.importProject();
-      } else if (result.index === 3) {
-        this.showAIGenerateDialog();
       }
 
   }).catch((error: Error) => {

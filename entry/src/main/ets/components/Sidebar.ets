@@ -78,6 +78,7 @@ export struct Sidebar {
   @State showTemplateDialog: boolean = false;
   // @State private taskEditorKey: number = 0;
   @State private screenWidth: number = 0;
+  @State private currentTabIndex: number = 0; // 当前选中的Tab索引
 
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
@@ -115,6 +116,11 @@ export struct Sidebar {
         action: () => {
           this.onDeleteTask(task.id);
           this.promptAction.showToast({ message: '任务已删除' });
+          // 如果删除的是当前选中的任务，切换到总览Tab
+          if (this.selectedTaskForEditor?.id === task.id) {
+            this.selectedTaskForEditor = null;
+            this.currentTabIndex = 0;
+          }
         }
       }
     });
@@ -290,10 +296,14 @@ export struct Sidebar {
   }
   
   aboutToUpdate() {
-    // 当selectedTask变化时，更新selectedTaskForEditor
+    // 当selectedTask变化时，更新selectedTaskForEditor并切换到任务编辑Tab
     if (this.selectedTaskForEditor?.id !== this.selectedTask?.id) {
       console.log(`[Sidebar] selectedTask changed, updating selectedTaskForEditor`);
       this.selectedTaskForEditor = this.selectedTask;
+      // 如果有选中任务，切换到任务编辑Tab（索引1）
+      if (this.selectedTask) {
+        this.currentTabIndex = 1;
+      }
     } else if (this.selectedTask && this.selectedTaskForEditor) {
       // 如果ID相同但内容可能不同，同步更新内容
       this.selectedTaskForEditor = this.selectedTask;
@@ -343,29 +353,67 @@ export struct Sidebar {
       Column() {
         // 只有当项目加载完成后才显示内容
         if (this.project) {
-          if (this.selectedTaskForEditor === null) {
-            this.ProjectView()
-            } else {
-              TaskEditor({
-                task: this.selectedTaskForEditor,
-                onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
-                  this.onUpdateTask(taskId, updates);
-                },
-                onUpdateChecklist: this.onUpdateChecklist,
-                onAddChecklistItem: this.onAddChecklistItem,
-                onDeleteChecklistItem: this.onDeleteChecklistItem,
-                onDeleteTask: this.onDeleteTask,
-                onStartConnecting: this.onStartConnecting,
-                onAddReminder: (task: TaskNode) => {
-                  // 由父页面通过 onUpdateTask / 外部服务真正创建提醒
-                  // 这里仅保留回调链路，具体实现放在页面层
-                  console.log('[Sidebar] onAddReminder triggered for task', task.id); this.onAddReminder(task);
-                },
-                onBack: () => {
-                  this.selectedTaskForEditor = null;
-                }
-              })
+          // 使用Tabs组件整合总览和任务编辑
+          Tabs({ barPosition: BarPosition.Start, index: this.currentTabIndex }) {
+            // Tab 1: 总览（项目概览）
+            TabContent() {
+              this.ProjectView()
             }
+            .tabBar('总览')
+
+            // Tab 2: 任务编辑（动态显示任务名称）
+            TabContent() {
+              if (this.selectedTaskForEditor) {
+                TaskEditor({
+                  task: this.selectedTaskForEditor,
+                  onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => {
+                    this.onUpdateTask(taskId, updates);
+                  },
+                  onUpdateChecklist: this.onUpdateChecklist,
+                  onAddChecklistItem: this.onAddChecklistItem,
+                  onDeleteChecklistItem: this.onDeleteChecklistItem,
+                  onDeleteTask: this.onDeleteTask,
+                  onStartConnecting: this.onStartConnecting,
+                  onAddReminder: (task: TaskNode) => {
+                    // 由父页面通过 onUpdateTask / 外部服务真正创建提醒
+                    // 这里仅保留回调链路，具体实现放在页面层
+                    console.log('[Sidebar] onAddReminder triggered for task', task.id); 
+                    this.onAddReminder(task);
+                  },
+                  onBack: () => {
+                    this.selectedTaskForEditor = null;
+                    this.currentTabIndex = 0; // 返回总览Tab
+                  }
+                })
+              } else {
+                // 没有选中任务时显示提示
+                Column({ space: ThemeConfig.spacingXL }) {
+                  Image($r('app.media.ic_empty_box'))
+                    .width(64)
+                    .height(64)
+                    .opacity(0.4)
+                  Text('请选择一个任务进行编辑')
+                    .fontSize(ThemeConfig.fontSizeL)
+                    .fontColor(ColorResource.textTertiary)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                }
+                .width('100%')
+                .height('100%')
+                .justifyContent(FlexAlign.Center)
+                .alignItems(HorizontalAlign.Center)
+              }
+            }
+            .tabBar(this.selectedTaskForEditor?.name || '编辑任务')
+          }
+          .onChange((index: number) => {
+            this.currentTabIndex = index;
+            // 如果切换到总览Tab，清除选中的任务
+            if (index === 0) {
+              this.selectedTaskForEditor = null;
+            }
+          })
+          .width('100%')
+          .height('100%')
         } else {
           // 项目加载中或加载失败时显示的内容 - 现代化毛玻璃设计
           Column({ space: ThemeConfig.spacingXL }) {
@@ -739,6 +787,7 @@ export struct Sidebar {
                   .margin({ bottom: ThemeConfig.spacingS })
                   .onClick(() => {
                     this.selectedTask = task;
+                    this.currentTabIndex = 1; // 切换到任务编辑Tab
                   })
                   .onTouch((event: TouchEvent) => {
                     if (event.type === TouchType.Down) {
@@ -749,6 +798,7 @@ export struct Sidebar {
                     TapGesture({ count: 1 })
                       .onAction(() => {
                         this.selectedTask = task;
+                        this.currentTabIndex = 1; // 切换到任务编辑Tab
                       })
                   )
                 }

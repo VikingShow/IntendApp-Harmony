@@ -286,6 +286,11 @@ export struct DashboardView {
     return tasks;
   }
 
+  // 当前视图下所有任务数量（受筛选和排序影响）
+  private getAllTasksCount(): number {
+    return this.getAllTasksSorted().length;
+  }
+
   // 在点击健康/遗漏标签时切换筛选；再次点击同一标签则清除筛选
   private toggleTaskFilter(filter: string): void {
     if (this.taskFilter === filter) {
@@ -439,7 +444,19 @@ export struct DashboardView {
 
   // 任务列表/时间轴的统一滚动高度，保证两种视图体验一致
   private getAllTasksScrollHeight(): number {
-    return this.isFloatingCard ? 360 : (this.isPhone ? 420 : 560);
+    // 时间轴视图仍然使用统一高度，列表视图已改为使用 layoutWeight + Scroll 自适应剩余空间
+    const taskCount: number = this.getAllTasksSorted().length;
+    if (taskCount <= 0) {
+      return 0;
+    }
+
+    const spacing: number = ThemeConfig.spacingS;
+    const baseItemHeight: number = this.isFloatingCard ? 32 : (this.isPhone ? 34 : 36);
+    const maxVisibleItems: number = this.isPhone ? 4 : 5;
+    const visibleItems: number = Math.min(taskCount, maxVisibleItems);
+    const contentHeight: number = visibleItems * baseItemHeight + (visibleItems - 1) * spacing;
+    const fallbackTimeline: number = this.isFloatingCard ? 320 : (this.isPhone ? 380 : 520);
+    return Math.min(contentHeight, fallbackTimeline);
   }
 
   // 切换视图或筛选时重置滚动位置，避免停留在底部导致看不到列表
@@ -775,9 +792,6 @@ export struct DashboardView {
   }
 
   build() {
-    // build() 方法现在是纯粹的UI描述，不再包含业务逻辑计算
-    // 注意：不再在DashboardView中渲染Canvas，使用Home页面的Canvas作为背景
-    // 顶部整体间距进一步收紧，让信息更集中
     Column({ space: BreakpointSystem.getResponsiveSpacing(10, this.screenWidth) }) {
       // 1. 项目标题和进入编辑按钮 - 紧凑单行布局（大屏）
       Column({ space: BreakpointSystem.getResponsiveSpacing(6, this.screenWidth) }) {
@@ -1337,7 +1351,7 @@ export struct DashboardView {
                   (this.isPhone ? ThemeConfig.fontSizeM : ThemeConfig.fontSizeL))
                 .fontWeight(ThemeConfig.fontWeightBold)
                 .fontColor(ColorResource.surfaceDeep)
-              Text(`(${this.getAllTasksSorted().length} 个)`)
+              Text(`(${this.getAllTasksCount()} 个)`)
                 .fontSize(this.isFloatingCard ? 10 :
                   (this.isPhone ? 11 : ThemeConfig.fontSizeS))
                 .fontColor(ColorResource.surfaceEmphasized)
@@ -1418,6 +1432,7 @@ export struct DashboardView {
           .alignItems(VerticalAlign.Center)
 
           if (this.taskViewMode === 'LIST') {
+            // 列表视图：使用 Scroll 占据剩余高度，内部内容自然决定滚动范围
             Column({ space: ThemeConfig.spacingS }) {
               Scroll() {
                 Column({ space: ThemeConfig.spacingS }) {
@@ -1427,13 +1442,13 @@ export struct DashboardView {
                 }
               }
               .width('100%')
-              .height(this.getAllTasksScrollHeight())
               .edgeEffect(EdgeEffect.Spring)
-              .scrollBar(BarState.On)
+              .scrollBar(BarState.Off)
               .scrollable(ScrollDirection.Vertical)
               .key(`all-tasks-scroll-${this.allTasksScrollKey}`)
             }
             .width('100%')
+            .layoutWeight(1)
             .padding({
               top: 0, // 顶部去掉内边距，避免滚动区域上方出现空白
               bottom: ThemeConfig.spacingS,
@@ -1486,13 +1501,13 @@ export struct DashboardView {
                 }
               }
               .width('100%')
-              .height(this.getAllTasksScrollHeight())
               .edgeEffect(EdgeEffect.Spring)
-              .scrollBar(BarState.On)
+              .scrollBar(BarState.Off)
               .scrollable(ScrollDirection.Vertical)
               .key(`all-tasks-scroll-${this.allTasksScrollKey}`)
             }
             .width('100%')
+            .layoutWeight(1)
             .padding({
               top: 0, // 顶部去掉内边距，避免滚动区域上方出现空白
               bottom: ThemeConfig.spacingS,
@@ -1505,17 +1520,16 @@ export struct DashboardView {
           }
         }
         .width('100%')
+        .layoutWeight(1)
       }
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%')
+    .height('100%')
     .padding(BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingL, this.screenWidth))
-    .backgroundColor
-    (ColorResource.transparent)
-    .backdropBlur
-    (this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge: ThemeConfig.backdropBlurNone)
-    .opacity
-    (this.fadeOpacity)
+    .backgroundColor(ColorResource.transparent)
+    .backdropBlur(this.showCanvasBackground ? ThemeConfig.backdropBlurXLarge : ThemeConfig.backdropBlurNone)
+    .opacity(this.fadeOpacity)
     .scale({ x: this.scaleValue, y: this.scaleValue })
     .translate({ x: 0, y: this.translateY })
     .animation({

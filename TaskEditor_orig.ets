@@ -1,34 +1,20 @@
-// File: entry/src/main/ets/components/TaskEditor.ets
+﻿// File: entry/src/main/ets/components/TaskEditor.ets
 /**
- * 任务编辑器组件模块
+ * 浠诲姟缂栬緫鍣ㄧ粍浠舵ā鍧? * 
+ * 鏈粍浠舵槸浠诲姟璇︽儏缂栬緫鐨勬牳蹇冪晫闈紝鎻愪緵浠诲姟灞炴€х紪杈戙€佹鏌ユ竻鍗曠鐞嗐€? * 渚濊禆鍏崇郴鍒涘缓绛夊畬鏁村姛鑳姐€傞噰鐢ㄨ嫻鏋滈鏍艰璁★紝鎻愪緵浼橀泤鐨勭敤鎴蜂綋楠屻€? * 
+ * 涓昏鍔熻兘锛? * 1. 浠诲姟灞炴€х紪杈戯細缂栬緫浠诲姟鍚嶇О銆佸紑濮嬫椂闂淬€佺粨鏉熸椂闂寸瓑鍩烘湰淇℃伅
+ * 2. 妫€鏌ユ竻鍗曠鐞嗭細娣诲姞銆佺紪杈戙€佸垹闄や换鍔＄殑妫€鏌ユ竻鍗曢」鐩? * 3. 杩涘害璺熻釜锛氶€氳繃妫€鏌ユ竻鍗曞畬鎴愭儏鍐佃窡韪换鍔¤繘搴? * 4. 渚濊禆鍏崇郴锛氬垱寤哄拰绠＄悊浠诲姟闂寸殑渚濊禆鍏崇郴
+ * 5. 浠诲姟鎿嶄綔锛氬垹闄や换鍔°€佽繑鍥炲垪琛ㄧ瓑鍩烘湰鎿嶄綔
+ * 6. 鏁版嵁楠岃瘉锛氭彁渚涜緭鍏ユ暟鎹殑鏈夋晥鎬ч獙璇佸拰閿欒鎻愮ず
  * 
- * 本组件是任务详情编辑的核心界面，提供任务属性编辑、检查清单管理、
- * 依赖关系创建等完整功能。采用苹果风格设计，提供优雅的用户体验。
+ * 璁捐鐗圭偣锛? * - 鑻规灉椋庢牸锛氶噰鐢ㄨ嫻鏋滆璁¤瑷€锛屾彁渚涗紭闆呯殑瑙嗚浣撻獙
+ * - 鍝嶅簲寮忓竷灞€锛氭牴鎹唴瀹瑰姩鎬佽皟鏁寸晫闈㈠竷灞€
+ * - 瀹炴椂楠岃瘉锛氭彁渚涘疄鏃剁殑杈撳叆楠岃瘉鍜岄敊璇彁绀? * - 浜や簰鍙嬪ソ锛氭彁渚涗赴瀵岀殑浜や簰鍙嶉鍜岀姸鎬佹寚绀? * - 妯″潡鍖栬璁★細灏嗕笉鍚屽姛鑳芥ā鍧楀寲涓虹嫭绔嬬殑UI缁勪欢
  * 
- * 主要功能：
- * 1. 任务属性编辑：编辑任务名称、开始时间、结束时间等基本信息
- * 2. 检查清单管理：添加、编辑、删除任务的检查清单项目
- * 3. 进度跟踪：通过检查清单完成情况跟踪任务进度
- * 4. 依赖关系：创建和管理任务间的依赖关系
- * 5. 任务操作：删除任务、返回列表等基本操作
- * 6. 数据验证：提供输入数据的有效性验证和错误提示
+ * 鐣岄潰缁撴瀯锛? * - 澶撮儴淇℃伅锛氫换鍔″熀鏈俊鎭拰缂栬緫鐘舵€? * - 灞炴€х紪杈戯細浠诲姟鍚嶇О銆佹椂闂寸瓑灞炴€х紪杈戝尯鍩? * - 妫€鏌ユ竻鍗曪細浠诲姟妫€鏌ユ竻鍗曠殑绠＄悊鍜岀紪杈? * - 鎿嶄綔鎸夐挳锛氫换鍔＄浉鍏崇殑鍚勭鎿嶄綔鎸夐挳
+ * - 搴曢儴瀵艰埅锛氳繑鍥炪€佸垹闄ょ瓑瀵艰埅鎿嶄綔
  * 
- * 设计特点：
- * - 苹果风格：采用苹果设计语言，提供优雅的视觉体验
- * - 响应式布局：根据内容动态调整界面布局
- * - 实时验证：提供实时的输入验证和错误提示
- * - 交互友好：提供丰富的交互反馈和状态指示
- * - 模块化设计：将不同功能模块化为独立的UI组件
- * 
- * 界面结构：
- * - 头部信息：任务基本信息和编辑状态
- * - 属性编辑：任务名称、时间等属性编辑区域
- * - 检查清单：任务检查清单的管理和编辑
- * - 操作按钮：任务相关的各种操作按钮
- * - 底部导航：返回、删除等导航操作
- * 
- * @author EasyFlow开发团队
- * @version 1.0.0
+ * @author EasyFlow寮€鍙戝洟闃? * @version 1.0.0
  * @since 2024-01-01
  */
 
@@ -39,24 +25,18 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { PromptAction } from '@kit.ArkUI';
 
 /**
- * 任务编辑器组件
+ * 浠诲姟缂栬緫鍣ㄧ粍浠? * 
+ * 瀹炵幇浠诲姟璇︽儏缂栬緫鐨勬牳蹇僓I缁勪欢锛屾彁渚涘畬鏁寸殑浠诲姟绠＄悊鍔熻兘銆? * 閲囩敤鑻规灉椋庢牸璁捐锛岀‘淇濈敤鎴风晫闈㈢殑涓€鑷存€у拰鏄撶敤鎬с€? * 
+ * 缁勪欢鐗规€э細
+ * - 鍝嶅簲寮忔暟鎹粦瀹氾細浣跨敤@Prop瀹炵幇鏁版嵁鐨勮嚜鍔ㄥ悓姝? * - 瀹炴椂楠岃瘉锛氭彁渚涜緭鍏ユ暟鎹殑瀹炴椂楠岃瘉鍜岄敊璇彁绀? * - 妯″潡鍖栬璁★細灏嗗姛鑳藉垎瑙ｄ负鐙珛鐨刄I妯″潡
+ * - 浜や簰鍙嶉锛氭彁渚涗赴瀵岀殑鐢ㄦ埛鎿嶄綔鍙嶉
  * 
- * 实现任务详情编辑的核心UI组件，提供完整的任务管理功能。
- * 采用苹果风格设计，确保用户界面的一致性和易用性。
- * 
- * 组件特性：
- * - 响应式数据绑定：使用@Prop实现数据的自动同步
- * - 实时验证：提供输入数据的实时验证和错误提示
- * - 模块化设计：将功能分解为独立的UI模块
- * - 交互反馈：提供丰富的用户操作反馈
- * 
- * @author EasyFlow开发团队
- * @version 1.0.0
+ * @author EasyFlow寮€鍙戝洟闃? * @version 1.0.0
  * @since 2024-01-01
  */
 @Component
 export struct TaskEditor {
-  /** 当前编辑的任务对象 */
+  /** 褰撳墠缂栬緫鐨勪换鍔″璞?*/
   @Prop task: TaskNode | null;
   @State newChecklistItemText: string = '';
   @State private localTask: TaskNode | null = null;
@@ -80,8 +60,7 @@ export struct TaskEditor {
   };
   onDeleteChecklistItem: (taskId: string, itemId: string) => void = () => {
   };
-  // 为当前任务添加日历提醒的回调（由父组件实现具体逻辑）
-  onAddReminder: (task: TaskNode) => void = () => {
+  // 涓哄綋鍓嶄换鍔℃坊鍔犳棩鍘嗘彁閱掔殑鍥炶皟锛堢敱鐖剁粍浠跺疄鐜板叿浣撻€昏緫锛?  onAddReminder: (task: TaskNode) => void = () => {
   };
 
   aboutToAppear() {
@@ -89,12 +68,11 @@ export struct TaskEditor {
   }
 
   aboutToDisappear() {
-    // 组件销毁时保存未保存的更改
+    // 缁勪欢閿€姣佹椂淇濆瓨鏈繚瀛樼殑鏇存敼
     if (this.hasUnsavedChanges && this.localTask) {
       this.saveTaskChanges();
     }
-    // 清理定时器
-    if (this.autoSaveTimer) {
+    // 娓呯悊瀹氭椂鍣?    if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
     if (this.debounceTimer) {
@@ -103,23 +81,22 @@ export struct TaskEditor {
   }
 
   aboutToUpdate() {
-    // 当task变化时，更新localTask
+    // 褰搕ask鍙樺寲鏃讹紝鏇存柊localTask
     if (this.localTask?.id !== this.task?.id) {
       console.log(`[TaskEditor] Task changed, updating localTask`);
       this.localTask = this.task;
     } else if (this.task && this.localTask) {
-      // 如果ID相同但内容可能不同，同步更新内容
+      // 濡傛灉ID鐩稿悓浣嗗唴瀹瑰彲鑳戒笉鍚岋紝鍚屾鏇存柊鍐呭
       const oldChecklistLength = this.localTask.checklist?.length || 0;
       const newChecklistLength = this.task.checklist?.length || 0;
       
-      // 检查checklist长度变化
+      // 妫€鏌hecklist闀垮害鍙樺寲
       if (oldChecklistLength !== newChecklistLength) {
         console.log(`[TaskEditor] Checklist length updated: ${oldChecklistLength} -> ${newChecklistLength}`);
         this.forceUpdateKey++;
       }
       
-      // 检查checklist内容变化（勾选状态等）
-      if (this.localTask.checklist && this.task.checklist && 
+      // 妫€鏌hecklist鍐呭鍙樺寲锛堝嬀閫夌姸鎬佺瓑锛?      if (this.localTask.checklist && this.task.checklist && 
           this.localTask.checklist.length === this.task.checklist.length) {
         const hasContentChange = this.localTask.checklist.some((oldItem, index) => {
           const newItem = this.task!.checklist[index];
@@ -132,7 +109,7 @@ export struct TaskEditor {
         }
       }
       
-      // 强制更新localTask以触发响应式更新
+      // 寮哄埗鏇存柊localTask浠ヨЕ鍙戝搷搴斿紡鏇存柊
       this.localTask = this.task;
     }
   }
@@ -144,11 +121,9 @@ export struct TaskEditor {
     return Math.max(1, diffDays);
   }
 
-  // 封装一个统一的添加函数
-  private submitNewChecklistItem() {
+  // 灏佽涓€涓粺涓€鐨勬坊鍔犲嚱鏁?  private submitNewChecklistItem() {
     if (this.localTask && this.newChecklistItemText.trim() !== '') {
-      // 验证清单项
-      const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
+      // 楠岃瘉娓呭崟椤?      const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
       if (!validation.isValid) {
         this.promptAction.showToast({ message: validation.message });
         return;
@@ -156,7 +131,7 @@ export struct TaskEditor {
 
       console.log(`[TaskEditor] Adding new checklist item: ${this.newChecklistItemText}`);
       
-      // 先更新localTask以立即反映UI变化
+      // 鍏堟洿鏂發ocalTask浠ョ珛鍗冲弽鏄燯I鍙樺寲
       const newItem: ChecklistItem = {
         id: `item_${Date.now()}`,
         text: this.newChecklistItemText,
@@ -167,57 +142,52 @@ export struct TaskEditor {
       this.forceUpdateKey++;
       this.newChecklistItemText = '';
       
-      // 然后通知父组件更新数据
-      this.onAddChecklistItem(this.localTask.id, newItem.text);
+      // 鐒跺悗閫氱煡鐖剁粍浠舵洿鏂版暟鎹?      this.onAddChecklistItem(this.localTask.id, newItem.text);
     }
   }
 
-  // 删除子任务
-  private deleteChecklistItem(itemId: string) {
+  // 鍒犻櫎瀛愪换鍔?  private deleteChecklistItem(itemId: string) {
     if (this.localTask && this.localTask.checklist) {
       console.log(`[TaskEditor] Deleting checklist item: ${itemId}`);
       
-      // 先更新localTask以立即反映UI变化
+      // 鍏堟洿鏂發ocalTask浠ョ珛鍗冲弽鏄燯I鍙樺寲
       const newChecklist = this.localTask.checklist.filter(item => item.id !== itemId);
       this.localTask.checklist = newChecklist;
       this.forceUpdateKey++;
       
-      // 然后通知父组件更新数据
-      this.onDeleteChecklistItem(this.localTask.id, itemId);
+      // 鐒跺悗閫氱煡鐖剁粍浠舵洿鏂版暟鎹?      this.onDeleteChecklistItem(this.localTask.id, itemId);
       
-      this.promptAction.showToast({ message: '子任务已删除' });
+      this.promptAction.showToast({ message: '瀛愪换鍔″凡鍒犻櫎' });
     }
   }
 
-  // 防抖的自动保存任务更改
-  private scheduleAutoSave() {
+  // 闃叉姈鐨勮嚜鍔ㄤ繚瀛樹换鍔℃洿鏀?  private scheduleAutoSave() {
     this.hasUnsavedChanges = true;
     
-    // 清除之前的防抖定时器
+    // 娓呴櫎涔嬪墠鐨勯槻鎶栧畾鏃跺櫒
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
     
-    // 设置防抖定时器（500ms后触发自动保存）
+    // 璁剧疆闃叉姈瀹氭椂鍣紙500ms鍚庤Е鍙戣嚜鍔ㄤ繚瀛橈級
     this.debounceTimer = setTimeout(() => {
       this.performAutoSave();
     }, 500);
   }
 
-  // 执行自动保存
+  // 鎵ц鑷姩淇濆瓨
   private performAutoSave() {
-    // 清除之前的自动保存定时器
+    // 娓呴櫎涔嬪墠鐨勮嚜鍔ㄤ繚瀛樺畾鏃跺櫒
     if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
     
-    // 设置新的自动保存定时器（1秒后保存）
-    this.autoSaveTimer = setTimeout(() => {
+    // 璁剧疆鏂扮殑鑷姩淇濆瓨瀹氭椂鍣紙1绉掑悗淇濆瓨锛?    this.autoSaveTimer = setTimeout(() => {
       this.saveTaskChanges();
     }, 1000);
   }
 
-  // 保存任务更改
+  // 淇濆瓨浠诲姟鏇存敼
   private saveTaskChanges() {
     if (this.localTask && this.hasUnsavedChanges) {
       console.log(`[TaskEditor] Auto-saving task: ${this.localTask.id}`);
@@ -228,63 +198,23 @@ export struct TaskEditor {
         checklist: this.localTask.checklist
       });
       this.hasUnsavedChanges = false;
-
-      // 显示保存提示
+      
+      // 鏄剧ず淇濆瓨鎻愮ず
       this.promptAction.showToast({
-        message: '已自动保存',
-        duration: 1000
+        message: '宸茶嚜鍔ㄤ繚瀛?, 
+        duration: 1000 
       });
-
     }
   }
 
   build() {
-    // 使用localTask来确保响应式更新
+    // 浣跨敤localTask鏉ョ‘淇濆搷搴斿紡鏇存柊
     if (this.localTask) {
       Scroll() {
-        Column({ space: 20 }) { /* TOP ACTION ROW START */
-          Row({ space: 12 }) {
-            // 返回列表按钮
-            Button() {
-              Text('←')
-                .fontSize(ThemeConfig.fontSizeXL)
-                .fontColor(ColorResource.surfaceBold)
-                .fontWeight(ThemeConfig.fontWeightBold)
-            }
-            .width(52)
-            .height(52)
-            .type(ButtonType.Circle)
-            .backgroundColor(ColorResource.surfaceLight)
-            .borderRadius(26)
-            .shadow(ThemeConfig.shadowMedium)
-            .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 26 })
-            .onClick(() => {
-              this.onBack();
-            })
-
-            // 创建依赖按钮（从当前任务开始）
-            Button({ type: ButtonType.Circle }) {
-              Text('链')
-                .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(Color.White)
-                .fontWeight(ThemeConfig.fontWeightBold)
-            }
-            .width(52)
-            .height(52)
-            .backgroundColor(ColorResource.primaryColor)
-            .borderRadius(26)
-            .shadow(ThemeConfig.shadowMedium)
-            .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 26 })
-            .margin({ left: 12 })
-            .onClick(() => {
-              this.onStartConnecting();
-            })
-          }
-          .width('100%')
-
+        Column({ space: 20 }) {
           Column({ space: 16 }) {
             Row({ space: 12 }) {
-              Text('编辑任务')
+              Text('缂栬緫浠诲姟')
                  .fontSize(ThemeConfig.fontSizeXXL)
                  .fontWeight(ThemeConfig.fontWeightMedium)
                  .fontColor(ColorResource.surfaceDeep)
@@ -294,11 +224,11 @@ export struct TaskEditor {
             .alignItems(VerticalAlign.Center)
 
             Column({ space: 8 }) {
-              Text('任务名称')
+              Text('浠诲姟鍚嶇О')
                 .fontSize(ThemeConfig.fontSizeS)
                 .fontWeight(ThemeConfig.fontWeightMedium)
                 .fontColor(ColorResource.surfaceEmphasized)
-              TextInput({ text: this.localTask.name || '', placeholder: '请输入任务名称' })
+              TextInput({ text: this.localTask.name || '', placeholder: '璇疯緭鍏ヤ换鍔″悕绉? })
                 .backgroundColor(ColorResource.transparent)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
@@ -313,45 +243,43 @@ export struct TaskEditor {
                   radius: ThemeConfig.radiusMedium 
                 })
                 .onFocus(() => {
-                  // 聚焦时的视觉反馈
+                  // 鑱氱劍鏃剁殑瑙嗚鍙嶉
                   console.log('[TaskEditor] Task name input focused');
                 })
                 .onBlur(() => {
-                  // 失焦时保存数据
-                  if (this.localTask) {
+                  // 澶辩劍鏃朵繚瀛樻暟鎹?                  if (this.localTask) {
                     this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
                   }
                 })
                 .enterKeyType(EnterKeyType.Done)
                 .onSubmit(() => {
-                  // 提交时保存并聚焦到下一个输入框
+                  // 鎻愪氦鏃朵繚瀛樺苟鑱氱劍鍒颁笅涓€涓緭鍏ユ
                   if (this.localTask) {
                     this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
                   }
                 })
                 .onChange((value: string) => {
                   if (this.localTask) {
-                    // 验证任务名称
+                    // 楠岃瘉浠诲姟鍚嶇О
                     const validation = ValidationUtils.validateProjectName(value);
                     if (!validation.isValid) {
                       this.promptAction.showToast({ message: validation.message });
                       return;
                     }
 
-                    // 更新本地任务名称
+                    // 鏇存柊鏈湴浠诲姟鍚嶇О
                     this.localTask.name = value;
                     
-                    // 触发自动保存
+                    // 瑙﹀彂鑷姩淇濆瓨
                     this.scheduleAutoSave();
                   }
                 })
             }
 
-             // 日期选择区域
+             // 鏃ユ湡閫夋嫨鍖哄煙
              Column({ space: 12 }) {
-               // 开始日期 - 独占一行，确保有足够宽度
-               Column({ space: 8 }) {
-                 Text('开始日期')
+               // 寮€濮嬫棩鏈?- 鐙崰涓€琛岋紝纭繚鏈夎冻澶熷搴?               Column({ space: 8 }) {
+                 Text('寮€濮嬫棩鏈?)
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
                    .fontColor(ColorResource.textTertiary)
@@ -370,7 +298,7 @@ export struct TaskEditor {
                        const newStartDate = value;
                        const newEndDate = this.localTask.endDate < newStartDate ? newStartDate : this.localTask.endDate;
                        
-                       // 只传递需要更新的字段
+                       // 鍙紶閫掗渶瑕佹洿鏂扮殑瀛楁
                        this.onUpdateTask(this.localTask.id, { 
                          startDate: newStartDate,
                          endDate: newEndDate
@@ -379,9 +307,8 @@ export struct TaskEditor {
                    })
                }
 
-               // 结束日期 - 独占一行，确保有足够宽度
-               Column({ space: 8 }) {
-                 Text('结束日期')
+               // 缁撴潫鏃ユ湡 - 鐙崰涓€琛岋紝纭繚鏈夎冻澶熷搴?               Column({ space: 8 }) {
+                 Text('缁撴潫鏃ユ湡')
                    .fontSize(13)
                    .fontWeight(FontWeight.Medium)
                    .fontColor(ColorResource.textTertiary)
@@ -400,7 +327,7 @@ export struct TaskEditor {
                        const newEndDate = value;
                        const newStartDate = this.localTask.startDate > newEndDate ? newEndDate : this.localTask.startDate;
                        
-                       // 只传递需要更新的字段
+                       // 鍙紶閫掗渶瑕佹洿鏂扮殑瀛楁
                        this.onUpdateTask(this.localTask.id, { 
                          startDate: newStartDate,
                          endDate: newEndDate
@@ -410,15 +337,14 @@ export struct TaskEditor {
                }
              }
 
-            // 工期显示与日历提醒
-            Row({ space: 8 }) {
-              Text(`工期: ${this.getDuration()} 天`)
+            // 宸ユ湡鏄剧ず涓庢棩鍘嗘彁閱?            Row({ space: 8 }) {
+              Text(`宸ユ湡: ${this.getDuration()} 澶ー)
                 .fontSize(13)
                 .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)
               if (this.localTask) {
                 CommonButton({
-                  text: '添加日历提醒',
+                  text: '娣诲姞鏃ュ巻鎻愰啋',
                   type: 'secondary',
                   buttonSize: 'small',
                   onButtonClick: () => {
@@ -437,11 +363,11 @@ export struct TaskEditor {
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
 
-          // --- 任务清单卡片  ---
+          // --- 浠诲姟娓呭崟鍗＄墖  ---
           Column({ space: 16 }) {
-            // 清单标题
+            // 娓呭崟鏍囬
             Row({ space: 8 }) {
-              Text('任务清单')
+              Text('浠诲姟娓呭崟')
                  .fontSize(18)
                  .fontWeight(FontWeight.Medium)
                  .fontColor(ColorResource.textPrimary)
@@ -449,10 +375,10 @@ export struct TaskEditor {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            // 添加新子任务
+            // 娣诲姞鏂板瓙浠诲姟
             Row({ space: 12 }) {
               TextInput({ 
-                placeholder: '添加一个子任务...', 
+                placeholder: '娣诲姞涓€涓瓙浠诲姟...', 
                 text: this.newChecklistItemText 
               })
                 .layoutWeight(1)
@@ -498,14 +424,14 @@ export struct TaskEditor {
               })
             }
 
-            // 子任务列表 
+            // 瀛愪换鍔″垪琛?
             if (!this.localTask || !this.localTask.checklist || this.localTask.checklist.length === 0) {
               Column({ space: 12 }) {
                 Image($r('app.media.ic_empty_box'))
                   .width(32)
                   .height(32)
                   .opacity(0.4)
-                Text('暂无子任务')
+                Text('鏆傛棤瀛愪换鍔?)
                   .fontSize(14)
                   .fontColor(ColorResource.textTertiary)
               }
@@ -534,12 +460,11 @@ export struct TaskEditor {
                             return i;
                           });
                           
-                          // 先更新localTask以立即反映UI变化
+                          // 鍏堟洿鏂發ocalTask浠ョ珛鍗冲弽鏄燯I鍙樺寲
                           this.localTask.checklist = newChecklist;
                           this.forceUpdateKey++;
                           
-                          // 然后通知父组件更新数据
-                          this.onUpdateChecklist(this.localTask.id, newChecklist);
+                          // 鐒跺悗閫氱煡鐖剁粍浠舵洿鏂版暟鎹?                          this.onUpdateChecklist(this.localTask.id, newChecklist);
                         }
                       })
                     Text(item.text)
@@ -549,9 +474,9 @@ export struct TaskEditor {
                       .layoutWeight(1)
                       .textAlign(TextAlign.Start)
                     
-                    // 删除按钮 - 现代化设计，增强交互反馈
+                    // 鍒犻櫎鎸夐挳 - 鐜颁唬鍖栬璁★紝澧炲己浜や簰鍙嶉
                     Button() {
-                      Text('×')
+                      Text('脳')
                         .fontSize(16)
                         .fontColor(ColorResource.errorColor)
                         .fontWeight(ThemeConfig.fontWeightBold)
@@ -588,10 +513,10 @@ export struct TaskEditor {
           .shadow(ThemeConfig.cardShadow)
           .border({ width: 0, color: 'transparent', radius: ThemeConfig.radiusXLarge })
 
-          // --- 底部操作按钮 - 苹果风格：更优雅的按钮设计 ---
+          // --- 搴曢儴鎿嶄綔鎸夐挳 - 鑻规灉椋庢牸锛氭洿浼橀泤鐨勬寜閽璁?---
           Column({ space: 12 }) {
             CommonButton({
-              text: '创建依赖从此任务开始',
+              text: '鍒涘缓渚濊禆浠庢浠诲姟寮€濮?,
               type: 'primary',
               onButtonClick: () => {
                 this.onStartConnecting()
@@ -600,8 +525,8 @@ export struct TaskEditor {
 
 
             CommonButton({
-              text: '返回列表',
-              icon: '←',
+              text: '杩斿洖鍒楄〃',
+              icon: '鈫?,
               type: 'secondary',
               onButtonClick: () => {
                 this.onBack()
@@ -609,11 +534,8 @@ export struct TaskEditor {
             })
           }
           .padding(20)
-          .opacity(0)
-          .height(0)
         }
-        .padding(20) // 苹果风格：更大的外边距
-      }
+        .padding(20) // 鑻规灉椋庢牸锛氭洿澶х殑澶栬竟璺?      }
     }
   }
 }

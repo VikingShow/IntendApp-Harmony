@@ -1002,6 +1002,9 @@ struct Index {
     if (dep) {
       dep.showArrow = dep.showArrow === false ? true : false;
       
+      // 保存项目数据
+      this.projectManager.getActions().saveProject();
+      
       // 强制立即重新渲染画布（跳过节流）
       this.forceDrawGraph();
       
@@ -2374,13 +2377,20 @@ struct Index {
         .color(ColorResource.surfaceNeutral)
         .opacity(0.2)
       
-      // 切换箭头
+      // 显示/隐藏箭头
       Row({ space: 12 }) {
         Text('→')
           .fontSize(22)
           .fontColor(ColorResource.primaryColor)
           .fontWeight(FontWeight.Bold)
-        Text('切换箭头')
+        Text(
+          this.selectedDependency && this.project
+            ? (this.project.dependencies.find(
+                d => d.fromId === this.selectedDependency!.fromId && 
+                     d.toId === this.selectedDependency!.toId
+              )?.showArrow === false ? '显示箭头' : '隐藏箭头')
+            : '显示箭头'
+        )
           .fontSize(ThemeConfig.fontSizeM)
           .fontColor(ColorResource.textPrimary)
           .fontWeight(FontWeight.Medium)

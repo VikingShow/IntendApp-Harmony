@@ -52,6 +52,8 @@ import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PerformanceService } from '../services/PerformanceService';
 import { CalendarService } from '../services/CalendarService';
+import { TutorialService, TutorialStep, TutorialPage } from '../services/TutorialService';
+import { TutorialGuide } from '../components/TutorialGuide';
 
 /**
  * 依赖选择信息接口
@@ -157,6 +159,13 @@ struct Index {
   @State zoomControlExpanded: boolean = false; // 是否展开
   @State zoomControlOpacity: number = 0.3; // 透明度
   private zoomControlHideTimer: number = -1; // 自动隐藏定时器
+
+  // 新手引导相关
+  private tutorialService: TutorialService = TutorialService.getInstance();
+  @State showTutorial: boolean = false;
+  @State tutorialSteps: TutorialStep[] = [];
+  @State currentTutorialStep: TutorialStep | null = null;
+  @State currentTutorialIndex: number = 0;
 
   async aboutToAppear() {
     // 从路由参数中提前获取renderMode信息（用于避免模式切换闪烁）
@@ -281,6 +290,13 @@ struct Index {
       // 项目创建完成后立即恢复画布位置
       this.restoreCanvasPosition();
     }
+    
+    // 【已禁用自动显示】如需启用编辑页引导，请取消下面的注释
+    /*
+    setTimeout(async () => {
+      await this.checkAndShowTutorial();
+    }, 1000);
+    */
   }
 
   aboutToDisappear() {
@@ -386,6 +402,52 @@ struct Index {
     }
 
     console.log(`[EasyFlow] Color mode updated: ${this.isDarkMode ? 'Dark' : 'Light'}`);
+  }
+
+  private async checkAndShowTutorial() {
+    const shouldShow = await this.tutorialService.shouldShowTutorial(TutorialPage.INDEX);
+    console.log(`[Index] Should show tutorial: ${shouldShow}`);
+    
+    if (shouldShow) {
+      this.startTutorial();
+    }
+  }
+
+  private startTutorial() {
+    this.tutorialSteps = this.tutorialService.getIndexSteps();
+    this.currentTutorialIndex = 0;
+    this.currentTutorialStep = this.tutorialSteps[0];
+    this.showTutorial = true;
+  }
+
+  private nextTutorialStep() {
+    if (this.currentTutorialIndex < this.tutorialSteps.length - 1) {
+      this.currentTutorialIndex++;
+      this.currentTutorialStep = this.tutorialSteps[this.currentTutorialIndex];
+    }
+  }
+
+  private previousTutorialStep() {
+    if (this.currentTutorialIndex > 0) {
+      this.currentTutorialIndex--;
+      this.currentTutorialStep = this.tutorialSteps[this.currentTutorialIndex];
+    }
+  }
+
+  private async skipTutorial() {
+    this.showTutorial = false;
+    this.currentTutorialStep = null;
+    await this.tutorialService.markTutorialCompleted(TutorialPage.INDEX);
+  }
+
+  private async finishTutorial() {
+    this.showTutorial = false;
+    this.currentTutorialStep = null;
+    await this.tutorialService.markTutorialCompleted(TutorialPage.INDEX);
+    this.promptAction.showToast({
+      message: '新手教程已完成！',
+      duration: 2000
+    });
   }
 
   // 更新屏幕尺寸和设备类型
@@ -2328,6 +2390,20 @@ struct Index {
       // 依赖线上下文菜单
       if (this.showDependencyMenu && this.selectedDependency) {
         this.DependencyContextMenu()
+      }
+      
+      // 新手引导浮层
+      if (this.showTutorial && this.currentTutorialStep) {
+        TutorialGuide({
+          currentStep: this.currentTutorialStep,
+          currentStepIndex: this.currentTutorialIndex,
+          totalSteps: this.tutorialSteps.length,
+          isDarkMode: this.isDarkMode,
+          onNext: (): void => this.nextTutorialStep(),
+          onPrevious: (): void => this.previousTutorialStep(),
+          onSkip: (): void => { this.skipTutorial(); },
+          onFinish: (): void => { this.finishTutorial(); }
+        })
       }
     }
     .width('100%')

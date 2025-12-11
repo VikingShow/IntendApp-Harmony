@@ -6,6 +6,7 @@ import { BreakpointSystem } from '../utils/BreakpointSystem';
 @Component
 export struct WelcomeView {
   @State private screenWidth: number = 0;
+  onShowTutorialSettings?: () => void;
 
   aboutToAppear() {
     this.updateScreenSize();
@@ -38,7 +39,7 @@ export struct WelcomeView {
             .fontWeight(ThemeConfig.fontWeightMedium)
             .textAlign(TextAlign.Center)
             .margin({ top: ThemeConfig.spacingXS })
-          Text('“君子终日乾乾。夕惕若，厉无咎。”')
+          Text('"君子终日乾乾。夕惕若，厉无咎。"')
             .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeM, this.screenWidth))
             .fontColor(ColorResource.surfaceEmphasized)
             .textAlign(TextAlign.Center)
@@ -57,6 +58,33 @@ export struct WelcomeView {
         top: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth), 
         bottom: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingXXL, this.screenWidth) 
       })
+      
+      // 帮助按钮 - 右下角
+      if (this.onShowTutorialSettings) {
+        Button() {
+          Text('?')
+            .fontSize(20)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+        }
+        .width(48)
+        .height(48)
+        .type(ButtonType.Circle)
+        .backgroundColor(ColorResource.primaryColor)
+        .position({ x: '100%', y: '100%' })
+        .translate({ x: -64, y: -64 })
+        .shadow({
+          radius: 12,
+          color: 'rgba(0, 0, 0, 0.15)',
+          offsetX: 0,
+          offsetY: 2
+        })
+        .onClick(() => {
+          if (this.onShowTutorialSettings) {
+            this.onShowTutorialSettings();
+          }
+        })
+      }
     }
     .width('100%')
     .height('100%')

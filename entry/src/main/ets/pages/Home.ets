@@ -52,6 +52,9 @@ import { ErrorHandler } from '../core/ErrorHandler';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
 import { AIService } from '../services/AIService';
+import { TutorialService, TutorialStep, TutorialPage } from '../services/TutorialService';
+import { TutorialGuide, TutorialWelcomeDialog } from '../components/TutorialGuide';
+import { TutorialSettingsDialog } from '../components/TutorialSettings';
 
 /**
  * ActionMenu按钮接口
@@ -537,6 +540,14 @@ struct HomePage {
   @State aiApiKey: string = '';
   @State aiBaseUrl: string = 'https://api.deepseek.com';
 
+  // 新手引导相关
+  private tutorialService: TutorialService = TutorialService.getInstance();
+  @State showTutorial: boolean = false;
+  @State tutorialSteps: TutorialStep[] = [];
+  @State currentTutorialStep: TutorialStep | null = null;
+  @State currentTutorialIndex: number = 0;
+  private tutorialWelcomeController: CustomDialogController | null = null;
+  private tutorialSettingsController: CustomDialogController | null = null;
 
   private storageService: StorageService | null = null;
   private loadingService: LoadingService = LoadingService.getInstance();
@@ -641,6 +652,16 @@ struct HomePage {
     await this.cleanupCorruptedFiles();
     
     await this.loadProjects();
+    
+    // 初始化新手引导服务
+    await this.tutorialService.initialize(this.uiContext.getHostContext() as common.UIAbilityContext);
+    
+    // 【已禁用自动显示】如需启用首次启动引导，请取消下面的注释
+    /*
+    setTimeout(async () => {
+      await this.checkAndShowTutorial();
+    }, 500);
+    */
   }
 
   onPageShow() {
@@ -728,6 +749,109 @@ struct HomePage {
         console.error('[Home] Failed to unregister theme listener:', error);
       }
     }
+  }
+
+  private async checkAndShowTutorial() {
+    const shouldShow = await this.tutorialService.shouldShowTutorial(TutorialPage.HOME);
+    console.log(`[Home] Should show tutorial: ${shouldShow}`);
+    
+    if (shouldShow) {
+      this.showTutorialWelcomeDialog();
+    }
+  }
+
+  private showTutorialWelcomeDialog() {
+    if (this.tutorialWelcomeController) {
+      this.tutorialWelcomeController.close();
+      this.tutorialWelcomeController = null;
+    }
+
+    this.tutorialWelcomeController = new CustomDialogController({
+      builder: TutorialWelcomeDialog({
+        onStart: () => {
+          this.startTutorial();
+        },
+        onNeverShowAgain: async (checked: boolean) => {
+          if (checked) {
+            await this.tutorialService.setNeverShowAgain(true);
+          }
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    });
+
+    this.tutorialWelcomeController.open();
+  }
+
+  private startTutorial() {
+    this.tutorialSteps = this.tutorialService.getHomeSteps();
+    this.currentTutorialIndex = 0;
+    this.currentTutorialStep = this.tutorialSteps[0];
+    this.showTutorial = true;
+    console.log(`[Home] Tutorial started, steps count: ${this.tutorialSteps.length}`);
+    console.log(`[Home] First step:`, JSON.stringify(this.currentTutorialStep));
+  }
+
+  private nextTutorialStep() {
+    if (this.currentTutorialIndex < this.tutorialSteps.length - 1) {
+      this.currentTutorialIndex++;
+      this.currentTutorialStep = this.tutorialSteps[this.currentTutorialIndex];
+    }
+  }
+
+  private previousTutorialStep() {
+    if (this.currentTutorialIndex > 0) {
+      this.currentTutorialIndex--;
+      this.currentTutorialStep = this.tutorialSteps[this.currentTutorialIndex];
+    }
+  }
+
+  private async skipTutorial() {
+    this.showTutorial = false;
+    this.currentTutorialStep = null;
+    await this.tutorialService.markTutorialCompleted(TutorialPage.HOME);
+  }
+
+  private async finishTutorial() {
+    this.showTutorial = false;
+    this.currentTutorialStep = null;
+    await this.tutorialService.markTutorialCompleted(TutorialPage.HOME);
+    this.promptAction.showToast({
+      message: '新手教程已完成！',
+      duration: 2000
+    });
+  }
+
+  startTutorialManually() {
+    this.startTutorial();
+  }
+
+  showTutorialSettings() {
+    if (this.tutorialSettingsController) {
+      this.tutorialSettingsController.close();
+      this.tutorialSettingsController = null;
+    }
+
+    this.tutorialSettingsController = new CustomDialogController({
+      builder: TutorialSettingsDialog({
+        onStartHomeTutorial: () => {
+          this.startTutorial();
+        },
+        onStartIndexTutorial: () => {
+          this.promptAction.showToast({
+            message: '请先进入项目编辑页面',
+            duration: 2000
+          });
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.tutorialSettingsController.open();
   }
 
   // 设置主题监听器
@@ -1815,6 +1939,20 @@ struct HomePage {
       }
 
       // 手机端不再需要侧边栏抽屉和菜单按钮（改用底部导航）
+      
+      // 新手引导浮层
+      if (this.showTutorial && this.currentTutorialStep) {
+        TutorialGuide({
+          currentStep: this.currentTutorialStep,
+          currentStepIndex: this.currentTutorialIndex,
+          totalSteps: this.tutorialSteps.length,
+          isDarkMode: this.isDarkMode,
+          onNext: (): void => this.nextTutorialStep(),
+          onPrevious: (): void => this.previousTutorialStep(),
+          onSkip: (): void => { this.skipTutorial(); },
+          onFinish: (): void => { this.finishTutorial(); }
+        })
+      }
     }
     .width('100%')
     .height('100%')
@@ -1918,7 +2056,9 @@ struct HomePage {
             .key(`dashboard-${this.selectedProjectId}-${this.dashboardKey}-${this.dashboardTimestamp}`)
         }
       } else {
-        WelcomeView()
+        WelcomeView({
+          onShowTutorialSettings: (): void => this.showTutorialSettings()
+        })
       }
     }
     .width('100%')
@@ -1995,6 +2135,7 @@ struct HomePage {
               .fontColor(Color.White)
               .fontWeight(ThemeConfig.fontWeightBold)
           }
+          .id('create_project_button')
           .accessibilityLevel('important')
           .width(this.isPhone ? 52 : 60)
           .height(this.isPhone ? 52 : 60)
@@ -2103,7 +2244,7 @@ struct HomePage {
         // 项目列表
         if (this.projectList.length > 0) {
           List({ space: ThemeConfig.spacingS }) {
-            ForEach(this.projectList, (meta: ProjectMeta) => {
+            ForEach(this.projectList, (meta: ProjectMeta, index: number) => {
               ListItem() {
               Row() {
                 // 主要内容区域
@@ -2670,7 +2811,9 @@ struct HomePage {
   PhoneWelcomePage() {
     Stack() {
       // 欢迎内容
-      WelcomeView()
+      WelcomeView({
+        onShowTutorialSettings: (): void => this.showTutorialSettings()
+      })
       
       // 上滑提示
       Column({ space: ThemeConfig.spacingS }) {

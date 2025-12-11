@@ -68,6 +68,8 @@ export class UpdateTaskCommand implements Command {
     const task = this.findTask();
     if (task) {
       this.applyState(task, this.newState);
+      // 更新项目的lastModified时间戳，确保触发@Prop更新
+      this.project.lastModified = Date.now();
       console.log(`[UpdateTaskCommand] 执行更新任务: ${task.name} (${this.taskId})`);
     } else {
       console.error(`[UpdateTaskCommand] 未找到任务: ${this.taskId}`);
@@ -81,6 +83,8 @@ export class UpdateTaskCommand implements Command {
     const task = this.findTask();
     if (task) {
       this.applyState(task, this.oldState);
+      // 更新项目的lastModified时间戳，确保触发@Prop更新
+      this.project.lastModified = Date.now();
       console.log(`[UpdateTaskCommand] 撤销更新任务: ${task.name} (${this.taskId})`);
     } else {
       console.error(`[UpdateTaskCommand] 撤销失败，未找到任务: ${this.taskId}`);

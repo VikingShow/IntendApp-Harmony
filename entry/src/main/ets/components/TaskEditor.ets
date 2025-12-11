@@ -198,7 +198,13 @@ export struct TaskEditor {
     
     // 如果任务存在，初始化数据
     if (this.task) {
-      console.log(`[TaskEditor] aboutToAppear: Initializing with task: ${currentTaskId}`);
+      console.log(`[TaskEditor] ===== aboutToAppear START =====`);
+      console.log(`[TaskEditor] Task ID: ${currentTaskId}, Name: ${this.task.name}`);
+      console.log(`[TaskEditor] Task checklist length: ${this.task.checklist?.length || 0}`);
+      if (this.task.checklist && this.task.checklist.length > 0) {
+        console.log(`[TaskEditor] Checklist items:`, this.task.checklist.map(item => `${item.text}(${item.isCompleted})`).join(', '));
+      }
+      
       this.lastTaskId = currentTaskId;
       this.lastTaskDataHash = this.computeTaskDataHash(this.task);
       // 直接设置数据，不触发动画（首次加载不需要动画）
@@ -209,8 +215,11 @@ export struct TaskEditor {
       this.newChecklistItemText = '';
       // 初始化显示数据
       this.updateDisplayData();
+      console.log(`[TaskEditor] After updateDisplayData, displayChecklist length: ${this.displayChecklist.length}`);
+      console.log(`[TaskEditor] ===== aboutToAppear END =====`);
     } else {
       // 任务不存在，直接设置
+      console.log(`[TaskEditor] aboutToAppear: No task provided`);
       this.lastTaskId = null;
       this.lastTaskDataHash = '';
       this.localTask = null;
@@ -611,7 +620,7 @@ export struct TaskEditor {
                if (this.dateTabIndex === 0) {
                  DatePicker({
                    start: new Date('2020-01-01'),
-                   end: new Date('2030-12-31'),
+                   end: this.displayEndDate, // 限制开始日期不能晚于结束日期
                    selected: this.displayStartDate
                  })
                    .backgroundColor(ColorResource.transparent)
@@ -623,36 +632,23 @@ export struct TaskEditor {
                     if (!this.localTask) return;
                     
                     const newStartDate = value;
-                    let newEndDate = this.displayEndDate;
-                    
-                    // 逻辑判断：开始日期不能晚于结束日期
-                    if (newStartDate > newEndDate) {
-                      newEndDate = newStartDate;
-                      this.promptAction.showToast({ 
-                        message: '开始日期不能晚于结束日期，已自动调整结束日期',
-                        duration: 2000
-                      });
-                    }
                     
                     // 更新显示数据
                     this.displayStartDate = newStartDate;
-                    this.displayEndDate = newEndDate;
                     
                     // 更新 localTask
                     this.localTask.startDate = newStartDate;
-                    this.localTask.endDate = newEndDate;
                     this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
                     this.forceUpdateKey++;
                     
                     // 通知父组件
                     this.onUpdateTask(this.localTask.id, { 
-                      startDate: newStartDate,
-                      endDate: newEndDate
+                      startDate: newStartDate
                     });
                   })
                } else {
                  DatePicker({
-                   start: new Date('2020-01-01'),
+                   start: this.displayStartDate, // 限制结束日期不能早于开始日期
                    end: new Date('2030-12-31'),
                    selected: this.displayEndDate
                  })
@@ -665,30 +661,17 @@ export struct TaskEditor {
                     if (!this.localTask) return;
                     
                     const newEndDate = value;
-                    let newStartDate = this.displayStartDate;
-                    
-                    // 逻辑判断：结束日期不能早于开始日期
-                    if (newEndDate < newStartDate) {
-                      newStartDate = newEndDate;
-                      this.promptAction.showToast({ 
-                        message: '结束日期不能早于开始日期，已自动调整开始日期',
-                        duration: 2000
-                      });
-                    }
                     
                     // 更新显示数据
-                    this.displayStartDate = newStartDate;
                     this.displayEndDate = newEndDate;
                     
                     // 更新 localTask
-                    this.localTask.startDate = newStartDate;
                     this.localTask.endDate = newEndDate;
                     this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
                     this.forceUpdateKey++;
                     
                     // 通知父组件
                     this.onUpdateTask(this.localTask.id, { 
-                      startDate: newStartDate,
                       endDate: newEndDate
                     });
                   })
@@ -803,13 +786,13 @@ export struct TaskEditor {
               .key(`empty-checklist-${this.forceUpdateKey}`)
             } else {
               Column({ space: 8 }) {
-                ForEach(this.displayChecklist, (item: ChecklistItem) => {
+                ForEach(this.displayChecklist, (item: ChecklistItem, index: number) => {
                   Row({ space: 12 }) {
                     Checkbox({ name: item.id, group: 'checklist' })
                       .select(item.isCompleted)
                       .onChange((value: boolean) => {
-                        if (displayTask) {
-                          console.log(`[TaskEditor] Checkbox changed for item ${item.id}: ${value}`);
+                        if (this.localTask) {
+                          console.log(`[TaskEditor] Checkbox changed for task ${this.localTask.id}, item ${item.id}: ${value}`);
                           
                           const newChecklist = this.displayChecklist.map(i => {
                             if (i.id === item.id) {
@@ -825,21 +808,14 @@ export struct TaskEditor {
                           // 更新显示清单
                           this.displayChecklist = newChecklist;
                           
-                          // 更新任务数据
-                          if (this.localTask) {
-                            this.localTask.checklist = newChecklist;
-                          }
-                          if (this.task) {
-                            this.task.checklist = newChecklist;
-                          }
+                          // 更新localTask
+                          this.localTask.checklist = newChecklist;
                           
                           // 更新数据哈希
-                          this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
+                          this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
                           
-                          this.forceUpdateKey++;
-                          
-                          // 然后通知父组件更新数据
-                          this.onUpdateChecklist(displayTask.id, newChecklist);
+                          // 通知父组件更新数据 - 使用localTask.id确保更新正确的任务
+                          this.onUpdateChecklist(this.localTask.id, newChecklist);
                         }
                       })
                     Text(item.text)
@@ -877,9 +853,9 @@ export struct TaskEditor {
                     radius: ThemeConfig.radiusMedium 
                   })
                   .margin({ bottom: ThemeConfig.spacingXS })
-                }, (item: ChecklistItem) => item.id)
+                }, (item: ChecklistItem, index: number) => `checklist-item-${this.forceUpdateKey}-${item.id}-${index}`)
               }
-              .key(`checklist-${displayTask.id}-${this.forceUpdateKey}`)
+              .key(`checklist-container-${this.forceUpdateKey}`)
             }
           }
           .padding(ThemeConfig.spacingXL)

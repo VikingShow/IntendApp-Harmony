@@ -505,6 +505,7 @@ export struct Sidebar {
         const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
         if (refreshedTask) {
           this.selectedTaskForEditor = refreshedTask;
+          console.log(`[Sidebar] Force switch: task ${refreshedTask.name} with ${refreshedTask.checklist?.length || 0} checklist items`);
         } else {
           this.selectedTaskForEditor = this.selectedTask;
         }
@@ -538,18 +539,25 @@ export struct Sidebar {
         const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
         if (refreshedTask) {
           this.selectedTaskForEditor = refreshedTask;
-          console.log(`[Sidebar] Updated selectedTaskForEditor from project: ${refreshedTask.name}`);
+          console.log(`[Sidebar] Updated selectedTaskForEditor from project: ${refreshedTask.name}, checklist: ${refreshedTask.checklist?.length || 0} items`);
         } else {
           this.selectedTaskForEditor = this.selectedTask;
           console.log(`[Sidebar] Task not found in project, using selectedTask: ${this.selectedTask.name}`);
         }
-      } else {
+      } else if (this.selectedTask) {
         this.selectedTaskForEditor = this.selectedTask;
         console.log(`[Sidebar] No project, using selectedTask: ${this.selectedTask?.name || 'null'}`);
+      } else {
+        this.selectedTaskForEditor = this.selectedTask;
       }
       if (this.selectedTask) {
         this.lastEditedTaskId = this.selectedTask.id;
       }
+      
+      // 增加刷新key，强制TaskEditor重新渲染
+      this.editorRefreshKey++;
+      console.log(`[Sidebar] Task switched, refreshKey: ${this.editorRefreshKey}`);
+
       
       // 如果当前在编辑Tab，确保保持在编辑Tab并更新任务
       // 如果不在编辑Tab，根据是否有选中任务来决定Tab

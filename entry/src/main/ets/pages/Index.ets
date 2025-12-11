@@ -487,6 +487,7 @@ struct Index {
   private updateStateFromManager() {
     const state = this.projectManager.getState();
     // 直接赋值，依赖@State的响应式机制
+    // 注意：project的lastModified已在UpdateTaskCommand中更新，可触发@Prop更新
     this.project = state.project;
     this.selectedTask = state.selectedTask;
   }

@@ -1164,56 +1164,45 @@ export struct DashboardView {
         radius: ThemeConfig.radiusLarge
       })
 
-        // 2. 核心指标统计 - 响应式布局
-          if (this.isPhone || this.isFloatingCard) {
-            // 手机端 / 浮动卡片：6 个指标拆成两页，每页展示 3 个，自动轮播
-            Swiper() {
-              // 第 1 页：规模与时间
-              Row({ space: 6 }) {
-                this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
-                  ColorResource.primaryColor)
-                this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
-                  ColorResource.infoColor)
-                this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
-                  ColorResource.warningColor)
-              }
-
-              // 第 2 页：风险与关键程度
-              Row({ space: 6 }) {
-                this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
-                  ColorResource.errorColor)
-                this.StatCard('已完成任务', `${this.getCompletedTasksCount()} 个`, ColorResource.successLight,
-                  ColorResource.successColor)
-                this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, ColorResource.infoLight,
-                  ColorResource.infoColor)
-              }
-            }
-            .width('100%')
-            .height(130)
-            .autoPlay(true)
-            .interval(3500)
-            .loop(true)
-            .key(`stats-${this.updateKey}`)
-          } else {
-          // 平板/大屏：单行展示更多统计项
+        // 2. 核心指标统计 - 响应式布局（所有设备均采用轮播模式）
+        Swiper() {
+          // 第 1 页：规模与完成度
           Row({ space: 6 }) {
             this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
               ColorResource.primaryColor)
-            this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, ColorResource.infoLight,
-              ColorResource.infoColor)
+            this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, '#FFE8D6',
+              '#FF8C42')
             this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
               ColorResource.warningColor)
+          }
+
+          // 第 2 页：任务状态
+          Row({ space: 6 }) {
             this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
               ColorResource.errorColor)
             this.StatCard('已完成任务', `${this.getCompletedTasksCount()} 个`, ColorResource.successLight,
               ColorResource.successColor)
-            this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, ColorResource.infoLight,
+            this.StatCard('进行中任务', `${this.getPendingTasksCount()} 个`, ColorResource.infoLight,
               ColorResource.infoColor)
           }
-          .width('100%')
-          .alignItems(VerticalAlign.Top)
-          .key(`stats-${this.updateKey}`)
+
+          // 第 3 页：关键指标与提醒
+          Row({ space: 6 }) {
+            this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, '#E6D5F5',
+              '#9B59D0')
+            this.StatCard('未拆解任务', `${this.getTasksWithoutChecklistCount()} 个`, '#FFE5E5',
+              '#FF6B6B')
+            this.StatCard('待办检查项', `${this.getOpenChecklistItemsCount()} 项`, '#D5F5E3',
+              '#28A745')
+          }
         }
+        .width('100%')
+        .height(130)
+        .autoPlay(true)
+        .interval(3500)
+        .loop(true)
+        .indicator(true)
+        .key(`stats-${this.updateKey}`)
       // 2. 统计卡片之后，项目进度条（仅平板 / 大屏完整视图展示；
       // 手机端和浮动卡片改为通过标题区域外边框体现进度）
       if (!this.isPhone && !this.isFloatingCard && this.project.tasks.length > 0) {

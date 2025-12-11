@@ -425,7 +425,7 @@ export struct TaskEditor {
     // 确保只有一个根节点 - 使用Column包裹条件渲染
     Column() {
       if (this.localTask || this.task) {
-        this.buildTaskEditor(this.localTask || this.task!)
+        this.buildTaskEditor()
       } else {
         Column() {
           Text('未选择任务')
@@ -443,7 +443,7 @@ export struct TaskEditor {
   }
 
   @Builder
-  buildTaskEditor(displayTask: TaskNode) {
+  buildTaskEditor() {
     Scroll() {
         Column({ space: 20 }) { /* TOP ACTION ROW START */
           Row({ space: 12 }) {
@@ -501,7 +501,7 @@ export struct TaskEditor {
                 .fontSize(ThemeConfig.fontSizeS)
                 .fontWeight(ThemeConfig.fontWeightMedium)
                 .fontColor(ColorResource.surfaceEmphasized)
-              TextInput({ text: displayTask.name || '', placeholder: '请输入任务名称' })
+              TextInput({ text: this.localTask?.name || '', placeholder: '请输入任务名称' })
                 .backgroundColor(ColorResource.transparent)
                 .borderRadius(ThemeConfig.radiusMedium)
                 .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
@@ -685,13 +685,13 @@ export struct TaskEditor {
                 .fontSize(13)
                 .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)
-              if (displayTask) {
+              if (this.localTask) {
                 CommonButton({
                   text: '添加日历提醒',
                   type: 'secondary',
                   buttonSize: 'small',
                   onButtonClick: () => {
-                    this.onAddReminder(displayTask);
+                    this.onAddReminder(this.localTask!);
                   }
                 })
                   .width(140)
@@ -897,7 +897,7 @@ export struct TaskEditor {
             .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
 
             // 依赖关系管理
-            if (displayTask && this.displayDependencies.length > 0) {
+            if (this.localTask && this.displayDependencies.length > 0) {
               Column({ space: 8 }) {
                 Text('依赖关系')
                   .fontSize(ThemeConfig.fontSizeS)
@@ -944,7 +944,7 @@ export struct TaskEditor {
                 }, (dep: TaskDependencyInfo) => `${dep.fromId}-${dep.toId}`)
               }
               .width('100%')
-              .key(`dependencies-${displayTask.id}-${this.forceUpdateKey}`)
+              .key(`dependencies-${this.localTask?.id}-${this.forceUpdateKey}`)
             }
           }
           .padding(ThemeConfig.spacingXL)

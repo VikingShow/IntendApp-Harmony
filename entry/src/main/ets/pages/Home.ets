@@ -1252,10 +1252,17 @@ struct HomePage {
             await this.loadProjects();
             console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
             
-            // 设置新创建的项目为选中状态
+            // 设置新创建的项目为选中状态并启用画布背景
             this.selectedProjectId = newProject.id;
             this.selectedProjectDetail = newProject;
-            console.log(`[Home] 设置选中项目: ${newProject.id}`);
+            this.showCanvasBackground = true;
+            console.log(`[Home] 设置选中项目: ${newProject.id}, 已启用画布背景`);
+            
+            // 延迟渲染画布以确保组件已更新
+            setTimeout(() => {
+              this.canvasController.getRenderer().clearRenderCache();
+              this.renderProjectCanvas();
+            }, 100);
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
               this.getUIContext().getRouter().pushUrl({
@@ -1339,6 +1346,16 @@ struct HomePage {
               await this.loadProjects();
             } catch (error) {
               this.promptAction.showToast({ message: '删除失败，请重试' });
+              console.error('[Home] Delete project error:', error);
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+  // 显示创建项目选项的原生弹窗
   showCreateProjectOptions() {
     this.promptAction.showActionMenu({
       title: '创建新项目',
@@ -1354,7 +1371,7 @@ struct HomePage {
         {
           text: '导入项目',
           color: ColorResource.projectDevelopment
-        },
+        }
       ]
     }).then((result) => {
       if (result.index === 0) {
@@ -1585,10 +1602,17 @@ struct HomePage {
       await this.loadProjects();
       console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
       
-      // 设置新创建的项目为选中状态
+      // 设置新创建的项目为选中状态并启用画布背景
       this.selectedProjectId = newProject.id;
       this.selectedProjectDetail = newProject;
-      console.log(`[Home] 设置选中项目: ${newProject.id}`);
+      this.showCanvasBackground = true;
+      console.log(`[Home] 设置选中项目: ${newProject.id}, 已启用画布背景`);
+      
+      // 延迟渲染画布以确保组件已更新
+      setTimeout(() => {
+        this.canvasController.getRenderer().clearRenderCache();
+        this.renderProjectCanvas();
+      }, 100);
 
       // 延迟导航，让用户看到成功提示
       setTimeout(() => {
@@ -1658,10 +1682,18 @@ struct HomePage {
             await this.loadProjects();
             console.log(`[Home] 项目列表刷新完成，当前项目数量: ${this.projectList.length}`);
             
-            // 设置新创建的项目为选中状态
+            // 设置新创建的项目为选中状态并启用画布背景
             this.selectedProjectId = newProject.id;
             this.selectedProjectDetail = newProject;
-            console.log(`[Home] 设置选中项目: ${newProject.id}`);
+            this.showCanvasBackground = true;
+            console.log(`[Home] 设置选中项目: ${newProject.id}, 已启用画布背景`);
+            
+            // 延迟渲染画布以确保组件已更新
+            setTimeout(() => {
+              this.canvasController.getRenderer().clearRenderCache();
+              this.renderProjectCanvas();
+            }, 100);
+            
             // 延迟导航，让用户看到成功提示
             setTimeout(() => {
               this.getUIContext().getRouter().pushUrl({
@@ -2205,6 +2237,8 @@ struct HomePage {
         .width('100%')
         .layoutWeight(1)
         .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingS })
+        .backgroundColor(ColorResource.transparent)
+        .backdropBlur(ThemeConfig.backdropBlurXLarge)
         }
       }
     }

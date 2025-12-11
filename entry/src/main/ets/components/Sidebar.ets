@@ -566,48 +566,35 @@ export struct Sidebar {
         this.updateTabIndex();
       }
     } else if (this.selectedTask) {
-      // 3. 任务ID相同但对象引用可能不同，同步更新
-      // 如果当前在编辑Tab，确保selectedTaskForEditor是最新的
-      if (this.currentTabIndex === 1) {
-        // 从project中获取最新的任务对象，确保使用最新的引用
-        if (this.project) {
-          const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
-          if (refreshedTask) {
-            // 无论对象引用是否相同，都更新selectedTaskForEditor以确保数据同步
-            // 这样可以确保即使对象引用相同，但内容可能已更新时也能触发更新
-            if (this.selectedTaskForEditor !== refreshedTask || taskReferenceChanged) {
-              this.selectedTaskForEditor = refreshedTask;
-              console.log(`[Sidebar] Updated selectedTaskForEditor in editor tab: ${refreshedTask.name} (ID: ${refreshedTask.id})`);
-            }
-          } else {
-            // 如果project中找不到任务，使用selectedTask
-            if (this.selectedTaskForEditor !== this.selectedTask) {
-              this.selectedTaskForEditor = this.selectedTask;
-              console.log(`[Sidebar] Task not found in project, using selectedTask: ${this.selectedTask.name}`);
-            }
+      // 3. 任务ID相同但对象引用可能不同，强制同步更新
+      // 关键修复：无论当前在哪个Tab，都应该从 project 中获取最新的任务引用
+      if (this.project && this.selectedTask) {
+        const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
+        if (refreshedTask) {
+          // 强制更新 selectedTaskForEditor，确保总是使用 project 中的最新引用
+          const needsUpdate = this.selectedTaskForEditor !== refreshedTask;
+          this.selectedTaskForEditor = refreshedTask;
+          if (needsUpdate) {
+            console.log(`[Sidebar] Force updated selectedTaskForEditor: ${refreshedTask.name} (ID: ${refreshedTask.id})`);
           }
         } else {
-          // 没有project，直接使用selectedTask
-          if (this.selectedTaskForEditor !== this.selectedTask) {
-            this.selectedTaskForEditor = this.selectedTask;
-          }
-        }
-        this.lastEditedTaskId = this.selectedTask.id;
-      } else if (!this.forceSwitchToEditorTab) {
-        // 如果当前不在正确的Tab，进行切换（除非已经强制切换过）
-        this.updateTabIndex();
-        // 同步更新任务引用，确保使用最新的对象
-        if (this.project) {
-          const refreshedTask = this.project.tasks.find(t => t.id === this.selectedTask!.id);
-          if (refreshedTask) {
-            this.selectedTaskForEditor = refreshedTask;
-          } else {
-            this.selectedTaskForEditor = this.selectedTask;
-          }
-        } else {
+          // project 中找不到，使用 selectedTask
           this.selectedTaskForEditor = this.selectedTask;
+          console.log(`[Sidebar] Task not in project, using selectedTask: ${this.selectedTask.name}`);
         }
+      } else if (this.selectedTask) {
+        // 没有 project，直接使用 selectedTask
+        this.selectedTaskForEditor = this.selectedTask;
+      }
+      
+      // 更新最后编辑的任务ID
+      if (this.selectedTask) {
         this.lastEditedTaskId = this.selectedTask.id;
+      }
+      
+      // 处理 Tab 切换
+      if (this.currentTabIndex !== 1 && !this.forceSwitchToEditorTab) {
+        this.updateTabIndex();
       }
     } else {
       // 4. 没有选中任务时，确保切换到总览Tab
@@ -1191,7 +1178,7 @@ export struct Sidebar {
                       .shadow(ThemeConfig.shadowSmall)
                       .border({ 
                         width: 2, 
-                        color: ColorResource.errorColor, 
+                        color: ColorResource.errorColor,
                         radius: ThemeConfig.radiusMedium 
                       })
                       .onClick(() => {

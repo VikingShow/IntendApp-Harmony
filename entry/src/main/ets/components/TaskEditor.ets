@@ -162,7 +162,7 @@ export struct TaskEditor {
     console.log(`[TaskEditor] onTaskChanged: ${this.lastTaskId || 'null'} -> ${currentTaskId || 'null'}, changed: ${taskIdChanged}`);
     
     if (taskIdChanged && this.task) {
-      // 任务ID变化，需要切换任务
+      // 任务ID变化，切换任务
       this.lastTaskId = currentTaskId;
       this.lastTaskDataHash = this.computeTaskDataHash(this.task);
       
@@ -172,21 +172,21 @@ export struct TaskEditor {
         this.forceUpdateKey++;
         this.dateTabIndex = 0;
         this.newChecklistItemText = '';
-        // 更新显示数据
         this.updateDisplayData();
-        console.log(`[TaskEditor] Task switched to: ${this.task?.name}, forceUpdateKey: ${this.forceUpdateKey}`);
+        console.log(`[TaskEditor] Task switched to: ${this.task?.name}`);
       });
     } else if (this.task && !taskIdChanged) {
-      // 同一任务，但对象引用或数据可能变化
-      const currentTaskDataHash = this.computeTaskDataHash(this.task);
-      if (this.lastTaskDataHash !== currentTaskDataHash) {
-        console.log(`[TaskEditor] Task data updated for: ${this.task.name}`);
-        this.lastTaskDataHash = currentTaskDataHash;
-        this.localTask = this.task;
-        this.forceUpdateKey++;
-        // 更新显示数据
-        this.updateDisplayData();
-      }
+      // 同一任务，强制更新 localTask 以确保数据同步
+      console.log(`[TaskEditor] Same task, force updating localTask: ${this.task.name}`);
+      this.lastTaskDataHash = this.computeTaskDataHash(this.task);
+      this.localTask = this.task;
+      this.forceUpdateKey++;
+      this.updateDisplayData();
+    } else if (!this.task) {
+      // 任务被清空
+      this.lastTaskId = null;
+      this.lastTaskDataHash = '';
+      this.localTask = null;
     }
   }
 
@@ -231,83 +231,8 @@ export struct TaskEditor {
     }
   }
 
-  aboutToUpdate() {
-    const currentTaskId = this.task?.id || null;
-    const currentTaskDataHash = this.computeTaskDataHash(this.task);
-    const taskIdChanged = this.lastTaskId !== currentTaskId;
-    const taskDataChanged = this.lastTaskDataHash !== currentTaskDataHash;
-    const taskReferenceChanged = this.localTask !== this.task;
-    
-    // 情况1: 任务ID变化（切换到不同任务）
-    if (taskIdChanged) {
-      if (this.task) {
-        console.log(`[TaskEditor] Task ID changed: ${this.lastTaskId || 'null'} -> ${currentTaskId}`);
-        this.lastTaskId = currentTaskId;
-        this.lastTaskDataHash = currentTaskDataHash;
-        // 任务切换时触发动画
-        this.triggerTaskTransition(() => {
-          this.localTask = this.task;
-          this.forceUpdateKey++;
-          // 重置状态
-          this.dateTabIndex = 0;
-          this.newChecklistItemText = '';
-        });
-      } else {
-        // 任务被清空
-        console.log(`[TaskEditor] Task cleared`);
-        this.lastTaskId = null;
-        this.lastTaskDataHash = '';
-        this.triggerTaskTransition(() => {
-          this.localTask = null;
-          this.forceUpdateKey++;
-        });
-      }
-      return; // 任务ID变化时，不需要继续检查数据变化
-    }
-    
-    // 情况2: 任务ID相同，但数据内容变化（数据更新）
-    if (this.task && taskDataChanged) {
-      console.log(`[TaskEditor] Task data changed (ID: ${this.task.id}), updating without animation`);
-      this.lastTaskDataHash = currentTaskDataHash;
-      // 数据更新时不触发动画，直接更新，提升响应速度
-      this.localTask = this.task;
-      this.forceUpdateKey++;
-      // 注意：不重置dateTabIndex和newChecklistItemText，保持用户编辑状态
-      return;
-    }
-    
-    // 情况3: 任务ID相同，对象引用变化但数据未变化（可能是重新渲染）
-    if (this.task && taskReferenceChanged && !taskDataChanged) {
-      // 对象引用变化但数据相同，可能是父组件重新创建了对象
-      // 直接更新引用，不触发动画和状态重置
-      if (this.localTask?.id !== this.task.id) {
-        // 如果localTask为空或ID不匹配，需要更新
-        console.log(`[TaskEditor] Task reference changed but data same (ID: ${this.task.id}), updating reference`);
-        this.localTask = this.task;
-        this.forceUpdateKey++;
-      }
-      return;
-    }
-    
-    // 情况4: localTask为空但task存在（初始化场景）
-    if (this.task && !this.localTask) {
-      console.log(`[TaskEditor] Initializing localTask with task: ${this.task.id}`);
-      this.lastTaskId = currentTaskId;
-      this.lastTaskDataHash = currentTaskDataHash;
-      // 初始化时不触发动画
-      this.localTask = this.task;
-      this.forceUpdateKey++;
-      this.dateTabIndex = 0;
-      this.newChecklistItemText = '';
-      return;
-    }
-    
-    // 情况5: 没有变化，只更新跟踪变量
-    if (this.task) {
-      this.lastTaskId = currentTaskId;
-      this.lastTaskDataHash = currentTaskDataHash;
-    }
-  }
+  // 移除 aboutToUpdate，避免与 @Watch 冲突
+  // 所有数据同步由 onTaskChanged 处理
 
   // 触发任务切换动画
   // 优化：只在任务ID真正变化时触发动画，数据更新时不触发
@@ -366,30 +291,28 @@ export struct TaskEditor {
 
       console.log(`[TaskEditor] Adding new checklist item: ${this.newChecklistItemText}`);
       
-      // 更新任务数据
+      // 创建新的清单项
       const newItem: ChecklistItem = {
         id: `item_${Date.now()}`,
         text: this.newChecklistItemText,
         isCompleted: false
       };
       
+      // 只更新 localTask 用于本地显示（不修改 @Prop task）
       if (this.localTask) {
         this.localTask.checklist = (this.localTask.checklist || []).concat([newItem]);
-      }
-      if (this.task) {
-        this.task.checklist = (this.task.checklist || []).concat([newItem]);
       }
       
       // 更新显示清单
       this.displayChecklist = [...this.displayChecklist, newItem];
       
       // 更新数据哈希
-      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
+      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
       
       this.forceUpdateKey++;
       this.newChecklistItemText = '';
       
-      // 然后通知父组件更新数据
+      // 立即通知父组件更新数据（让数据从父组件流回来）
       this.onAddChecklistItem(task.id, newItem.text);
     }
   }
@@ -400,24 +323,23 @@ export struct TaskEditor {
     if (task && task.checklist) {
       console.log(`[TaskEditor] Deleting checklist item: ${itemId}`);
       
-      // 更新任务数据
+      // 创建新的清单数组
       const newChecklist = task.checklist.filter(item => item.id !== itemId);
+      
+      // 只更新 localTask 用于本地显示（不修改 @Prop task）
       if (this.localTask) {
         this.localTask.checklist = newChecklist;
-      }
-      if (this.task) {
-        this.task.checklist = newChecklist;
       }
       
       // 更新显示清单
       this.displayChecklist = this.displayChecklist.filter(item => item.id !== itemId);
       
       // 更新数据哈希
-      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
+      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
       
       this.forceUpdateKey++;
       
-      // 然后通知父组件更新数据
+      // 立即通知父组件更新数据（让数据从父组件流回来）
       this.onDeleteChecklistItem(task.id, itemId);
       
       this.promptAction.showToast({ message: '子任务已删除' });
@@ -482,24 +404,11 @@ export struct TaskEditor {
     return dependencies;
   }
 
-  // 保存任务更改
+  // 保存任务更改（现在主要用于清理状态，实际保存已在各个 onChange 中立即触发）
   private saveTaskChanges() {
-    if (this.localTask && this.hasUnsavedChanges) {
-      console.log(`[TaskEditor] Auto-saving task: ${this.localTask.id}`);
-      this.onUpdateTask(this.localTask.id, {
-        name: this.localTask.name,
-        startDate: this.localTask.startDate,
-        endDate: this.localTask.endDate,
-        checklist: this.localTask.checklist
-      });
+    if (this.hasUnsavedChanges) {
+      console.log(`[TaskEditor] Clearing unsaved changes flag`);
       this.hasUnsavedChanges = false;
-
-      // 显示保存提示
-      this.promptAction.showToast({
-        message: '已自动保存',
-        duration: 1000
-      });
-
     }
   }
 
@@ -603,42 +512,37 @@ export struct TaskEditor {
                 })
                 .onBlur(() => {
                   // 失焦时保存数据
-                  if (displayTask) {
-                    this.onUpdateTask(displayTask.id, { name: displayTask.name });
+                  if (this.localTask) {
+                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
                   }
                 })
                 .enterKeyType(EnterKeyType.Done)
                 .onSubmit(() => {
                   // 提交时保存并聚焦到下一个输入框
-                  if (displayTask) {
-                    this.onUpdateTask(displayTask.id, { name: displayTask.name });
+                  if (this.localTask) {
+                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
                   }
                 })
                 .onChange((value: string) => {
-                  if (displayTask) {
-                    // 验证任务名称
-                    const validation = ValidationUtils.validateProjectName(value);
-                    if (!validation.isValid) {
-                      this.promptAction.showToast({ message: validation.message });
-                      return;
-                    }
+                  // 验证任务名称
+                  const validation = ValidationUtils.validateProjectName(value);
+                  if (!validation.isValid) {
+                    this.promptAction.showToast({ message: validation.message });
+                    return;
+                  }
 
-                    // 更新任务名称（同时更新localTask和task）
-                    if (this.localTask) {
-                      this.localTask.name = value;
-                    }
-                    if (this.task) {
-                      this.task.name = value;
-                    }
+                  // 只更新 localTask 用于本地显示（不修改 @Prop task）
+                  if (this.localTask) {
+                    this.localTask.name = value;
                     
-                    // 更新数据哈希，确保aboutToUpdate能检测到变化
-                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
+                    // 更新数据哈希
+                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
                     
                     // 触发UI更新
                     this.forceUpdateKey++;
                     
-                    // 触发自动保存
-                    this.scheduleAutoSave();
+                    // 立即通知父组件更新数据（使用 this.localTask.id 而不是闭包中的 displayTask.id）
+                    this.onUpdateTask(this.localTask.id, { name: value });
                   }
                 })
             }
@@ -716,37 +620,35 @@ export struct TaskEditor {
                    .border({ width: 0, radius: 12 })
                    .width('100%')
                   .onDateChange((value: Date) => {
-                    if (displayTask) {
-                      const newStartDate = value;
-                      const newEndDate = this.displayEndDate < newStartDate ? newStartDate : this.displayEndDate;
-                      
-                      // 更新显示数据
-                      this.displayStartDate = newStartDate;
-                      this.displayEndDate = newEndDate;
-                      
-                      // 更新任务数据
-                      if (this.localTask) {
-                        this.localTask.startDate = newStartDate;
-                        this.localTask.endDate = newEndDate;
-                      }
-                      if (this.task) {
-                        this.task.startDate = newStartDate;
-                        this.task.endDate = newEndDate;
-                      }
-                      
-                      // 更新数据哈希
-                      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
-                      
-                      this.forceUpdateKey++;
-                      this.hasUnsavedChanges = true;
-                      this.scheduleAutoSave();
-                      
-                      // 只传递需要更新的字段
-                      this.onUpdateTask(displayTask.id, { 
-                        startDate: newStartDate,
-                        endDate: newEndDate
+                    if (!this.localTask) return;
+                    
+                    const newStartDate = value;
+                    let newEndDate = this.displayEndDate;
+                    
+                    // 逻辑判断：开始日期不能晚于结束日期
+                    if (newStartDate > newEndDate) {
+                      newEndDate = newStartDate;
+                      this.promptAction.showToast({ 
+                        message: '开始日期不能晚于结束日期，已自动调整结束日期',
+                        duration: 2000
                       });
                     }
+                    
+                    // 更新显示数据
+                    this.displayStartDate = newStartDate;
+                    this.displayEndDate = newEndDate;
+                    
+                    // 更新 localTask
+                    this.localTask.startDate = newStartDate;
+                    this.localTask.endDate = newEndDate;
+                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+                    this.forceUpdateKey++;
+                    
+                    // 通知父组件
+                    this.onUpdateTask(this.localTask.id, { 
+                      startDate: newStartDate,
+                      endDate: newEndDate
+                    });
                   })
                } else {
                  DatePicker({
@@ -760,37 +662,35 @@ export struct TaskEditor {
                    .border({ width: 0, radius: 12 })
                    .width('100%')
                   .onDateChange((value: Date) => {
-                    if (displayTask) {
-                      const newEndDate = value;
-                      const newStartDate = this.displayStartDate > newEndDate ? newEndDate : this.displayStartDate;
-                      
-                      // 更新显示数据
-                      this.displayStartDate = newStartDate;
-                      this.displayEndDate = newEndDate;
-                      
-                      // 更新任务数据
-                      if (this.localTask) {
-                        this.localTask.startDate = newStartDate;
-                        this.localTask.endDate = newEndDate;
-                      }
-                      if (this.task) {
-                        this.task.startDate = newStartDate;
-                        this.task.endDate = newEndDate;
-                      }
-                      
-                      // 更新数据哈希
-                      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask || this.task);
-                      
-                      this.forceUpdateKey++;
-                      this.hasUnsavedChanges = true;
-                      this.scheduleAutoSave();
-                      
-                      // 只传递需要更新的字段
-                      this.onUpdateTask(displayTask.id, { 
-                        startDate: newStartDate,
-                        endDate: newEndDate
+                    if (!this.localTask) return;
+                    
+                    const newEndDate = value;
+                    let newStartDate = this.displayStartDate;
+                    
+                    // 逻辑判断：结束日期不能早于开始日期
+                    if (newEndDate < newStartDate) {
+                      newStartDate = newEndDate;
+                      this.promptAction.showToast({ 
+                        message: '结束日期不能早于开始日期，已自动调整开始日期',
+                        duration: 2000
                       });
                     }
+                    
+                    // 更新显示数据
+                    this.displayStartDate = newStartDate;
+                    this.displayEndDate = newEndDate;
+                    
+                    // 更新 localTask
+                    this.localTask.startDate = newStartDate;
+                    this.localTask.endDate = newEndDate;
+                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+                    this.forceUpdateKey++;
+                    
+                    // 通知父组件
+                    this.onUpdateTask(this.localTask.id, { 
+                      startDate: newStartDate,
+                      endDate: newEndDate
+                    });
                   })
                }
              }

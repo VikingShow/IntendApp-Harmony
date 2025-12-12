@@ -4,13 +4,16 @@
  * 根据选中的组件类型显示相应的属性编辑器
  */
 
-import { NodeComponentType, NodeComponentSchema, FieldSchema } from '../model/NodeSchema';
+import { NodeComponentType, NodeComponentSchema, FieldSchema, NodeStyleSchema } from '../model/NodeSchema';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 @Component
 export struct ComponentPropertyPanel {
   @Prop selectedComponent: NodeComponentSchema | null;
   @Prop availableFields: FieldSchema[] = [];
+  @Prop schemaStyle: NodeStyleSchema | null = null;
+  onBorderColorChange?: (color: string) => void;
+  onBorderRadiusChange?: (radius: number) => void;
   
   onPropertyChange?: (component: NodeComponentSchema) => void;
 
@@ -89,6 +92,80 @@ export struct ComponentPropertyPanel {
       } else {
         Scroll() {
           Column({ space: 16 }) {
+            // 节点卡片边框
+            if (this.schemaStyle) {
+              Column({ space: 12 }) {
+                Text('节点卡片边框')
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorResource.textPrimary);
+
+                // 边框颜色
+                Column({ space: 6 }) {
+                  Text('边框颜色')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textTertiary);
+
+                  TextInput({
+                    text: this.schemaStyle.borderColor ? (this.schemaStyle.borderColor as string) : '',
+                    placeholder: '如 #007AFF（留空=默认）'
+                  })
+                    .width('100%')
+                    .height(40)
+                    .fontSize(ThemeConfig.fontSizeM)
+                    .backgroundColor(ColorResource.backgroundInput)
+                    .borderRadius(ThemeConfig.radiusMedium)
+                    .padding({ left: 12, right: 12 })
+                    .onChange((value: string) => {
+                      if (this.onBorderColorChange) {
+                        this.onBorderColorChange(value);
+                      }
+                    });
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start);
+
+                // 圆角
+                Column({ space: 6 }) {
+                  Row({ space: 8 }) {
+                    Text('圆角')
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .fontColor(ColorResource.textTertiary)
+                      .layoutWeight(1);
+
+                    Text(`${this.schemaStyle.borderRadius || 16}px`)
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.textPrimary)
+                      .fontWeight(FontWeight.Medium);
+                  }
+                  .width('100%');
+
+                  Slider({
+                    value: this.schemaStyle.borderRadius || 16,
+                    min: 0,
+                    max: 32,
+                    step: 2,
+                    style: SliderStyle.InSet
+                  })
+                    .width('100%')
+                    .trackColor(ColorResource.backgroundSecondary)
+                    .selectedColor(ColorResource.primaryColor)
+                    .onChange((value: number) => {
+                      if (this.onBorderRadiusChange) {
+                        this.onBorderRadiusChange(value);
+                      }
+                    });
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start);
+              }
+              .width('100%')
+              .padding(16)
+              .backgroundColor(ColorResource.surface)
+              .borderRadius(12)
+              .shadow(ThemeConfig.cardShadow);
+            }
+
             // 基本信息
             Column({ space: 12 }) {
               Text('基本信息')

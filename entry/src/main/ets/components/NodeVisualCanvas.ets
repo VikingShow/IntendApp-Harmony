@@ -363,7 +363,7 @@ export struct NodeVisualCanvas {
                 .opacity(0.3)
                 .margin({ top: 6, bottom: 6 });
               
-              Text('点击左侧“属性”Tab编辑详细样式')
+              Text('在右侧属性编辑器中编辑详细样式')
                 .fontSize(ThemeConfig.fontSizeXS)
                 .fontColor(ColorResource.textTertiary)
                 .lineHeight(16);

@@ -2241,43 +2241,39 @@ struct NodeWorkspacePage {
         .width('100%')
 
         
-        // Tabs 导航栏（固定在顶部）
+        // 可滚动的内容区域
         if (this.getSelectedSchema()) {
-          this.EditorTabBar();
+          Scroll() {
+            Column({ space: 16 }) {
+              this.AttributesTab()
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+            .padding({ left: 20, right: 20, top: 12, bottom: 20 });
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Auto)
+          .align(Alignment.Top);
+        } else {
+          Column({ space: 12 }) {
+            Text('请选择节点类型')
+              .fontSize(ThemeConfig.fontSizeM)
+              .fontColor(ColorResource.textTertiary)
+              .textAlign(TextAlign.Center);
+
+            Text('从左侧列表选择要编辑的节点类型')
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textTertiary)
+              .textAlign(TextAlign.Center);
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center);
         }
       }
       .width('100%')
       .padding({ left: 20, right: 20, top: 16, bottom: 12 });
-      
-      // 可滚动的内容区域
-      if (this.getSelectedSchema()) {
-        Scroll() {
-          Column({ space: 16 }) {
-            this.EditorTabContent();
-          }
-          .width('100%')
-          .alignItems(HorizontalAlign.Start)
-          .padding({ left: 20, right: 20, top: 12, bottom: 20 });
-        }
-        .layoutWeight(1)
-        .scrollBar(BarState.Auto)
-        .align(Alignment.Top);
-      } else {
-        Column({ space: 12 }) {
-          Text('请选择节点类型')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontColor(ColorResource.textTertiary)
-            .textAlign(TextAlign.Center);
-          
-          Text('从左侧列表选择要编辑的节点类型')
-            .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ColorResource.textTertiary)
-            .textAlign(TextAlign.Center);
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center);
-      }
     }
     .width('40%')
     .height('100%');
@@ -2287,11 +2283,11 @@ struct NodeWorkspacePage {
   @Builder
   private EditorTabBar() {
     Row({ space: 4 }) {
-      this.TabItem('属性', 0);
-      this.TabItem('布局', 1);
-      this.TabItem('样式', 2);
-      this.TabItem('规则', 3);
-      this.TabItem('JSON', 4);
+      this.TabItem('属性', 0)
+      this.TabItem('布局', 1)
+      this.TabItem('样式', 2)
+      this.TabItem('规则', 3)
+      this.TabItem('JSON', 4)
     }
     .width('100%')
     .height(44)
@@ -2320,17 +2316,7 @@ struct NodeWorkspacePage {
   // Tab 内容区域
   @Builder
   private EditorTabContent() {
-    if (this.currentEditorTab === 0) {
-      this.AttributesTab();
-    } else if (this.currentEditorTab === 1) {
-      this.LayoutTab();
-    } else if (this.currentEditorTab === 2) {
-      this.StyleTab();
-    } else if (this.currentEditorTab === 3) {
-      this.RulesTab();
-    } else if (this.currentEditorTab === 4) {
-      this.JsonTab();
-    }
+    this.AttributesTab()
   }
 
   // 属性 Tab
@@ -3339,64 +3325,6 @@ private JsonTab() {
             .layoutWeight(1);
 
           Row({ space: 8 }) {
-            // 四栏折叠控制
-            Row({ space: 4 }) {
-              Text('栏位:')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary);
-              
-              Button(this.panelCollapsed[0] ? '▶节点' : '节点')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .height(32)
-                .padding({ left: 8, right: 8 })
-                .backgroundColor(this.panelCollapsed[0] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
-                .fontColor(this.panelCollapsed[0] ? ColorResource.textSecondary : Color.White)
-                .borderRadius(6)
-                .onClick(() => {
-                  this.togglePanelCollapse(0);
-                });
-              
-              Button(this.panelCollapsed[1] ? '▶组件' : '组件')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .height(32)
-                .padding({ left: 8, right: 8 })
-                .backgroundColor(this.panelCollapsed[1] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
-                .fontColor(this.panelCollapsed[1] ? ColorResource.textSecondary : Color.White)
-                .borderRadius(6)
-                .onClick(() => {
-                  this.togglePanelCollapse(1);
-                });
-              
-              Button(this.panelCollapsed[2] ? '▶画布' : '画布')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .height(32)
-                .padding({ left: 8, right: 8 })
-                .backgroundColor(this.panelCollapsed[2] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
-                .fontColor(this.panelCollapsed[2] ? ColorResource.textSecondary : Color.White)
-                .borderRadius(6)
-                .onClick(() => {
-                  this.togglePanelCollapse(2);
-                });
-              
-              Button(this.panelCollapsed[3] ? '▶属性' : '属性')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .height(32)
-                .padding({ left: 8, right: 8 })
-                .backgroundColor(this.panelCollapsed[3] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
-                .fontColor(this.panelCollapsed[3] ? ColorResource.textSecondary : Color.White)
-                .borderRadius(6)
-                .onClick(() => {
-                  this.togglePanelCollapse(3);
-                });
-            }
-            
-            Divider()
-              .vertical(true)
-              .height(24)
-              .strokeWidth(1)
-              .color(ColorResource.surfaceEmphasized)
-              .opacity(0.3);
-            
             Button('重置')
               .fontSize(ThemeConfig.fontSizeS)
               .height(36)
@@ -3520,6 +3448,13 @@ private JsonTab() {
             ComponentPropertyPanel({
               selectedComponent: this.getSelectedComponent(),
               availableFields: this.getSelectedSchema()?.fields || [],
+              schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+              onBorderColorChange: (color: string) => {
+                this.updateSelectedSchemaBorderColor(color);
+              },
+              onBorderRadiusChange: (radius: number) => {
+                this.updateSelectedSchemaBorderRadius(radius);
+              },
               onPropertyChange: (component: NodeComponentSchema) => {
                 this.handleComponentPropertyChange(component);
               }
@@ -3606,6 +3541,13 @@ private JsonTab() {
                   ComponentPropertyPanel({
                     selectedComponent: this.getSelectedComponent(),
                     availableFields: this.getSelectedSchema()?.fields || [],
+                    schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+                    onBorderColorChange: (color: string) => {
+                      this.updateSelectedSchemaBorderColor(color);
+                    },
+                    onBorderRadiusChange: (radius: number) => {
+                      this.updateSelectedSchemaBorderRadius(radius);
+                    },
                     onPropertyChange: (component: NodeComponentSchema) => {
                       this.handleComponentPropertyChange(component);
                     }

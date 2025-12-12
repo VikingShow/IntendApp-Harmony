@@ -464,6 +464,7 @@ struct NodeWorkspacePage {
 
   @State schemas: NodeSchema[] = [];
   @State selectedSchemaId: string | null = null;
+  @State selectedSchemaObject: NodeSchema | null = null;
   @State schemaJson: string = '';
   @State showColorPicker: boolean = false;
   @State editingColorType: 'fill' | 'border' | 'critical' = 'fill';
@@ -511,6 +512,7 @@ struct NodeWorkspacePage {
     this.refreshSchemaJson();
     // 初始化错误边界快照
     this.errorBoundary.saveSnapshot(this.schemas);
+    this.updateSelectedSchemaObject();
   }
 
   aboutToDisappear() {
@@ -534,6 +536,8 @@ struct NodeWorkspacePage {
       if (!this.selectedSchemaId && this.schemas.length > 0) {
         this.selectedSchemaId = this.schemas[0].id;
       }
+      this.updateSelectedSchemaObject();
+      this.updateSelectedSchemaObject();
       // 保留组件选择（仅在组件确实不存在时清空）
       if (this.selectedSchemaId && preservedComponentId) {
         const schema = this.schemaService.getSchemaById(this.selectedSchemaId);
@@ -759,6 +763,10 @@ struct NodeWorkspacePage {
         duration: 2000
       });
     }
+  }
+
+  private updateSelectedSchemaObject(): void {
+    this.selectedSchemaObject = this.getSelectedSchema();
   }
 
   private getSelectedSchema(): NodeSchema | null {
@@ -1735,8 +1743,7 @@ struct NodeWorkspacePage {
           if (this.getFilteredSchemas().length === 0) {
             Text('暂无类型')
               .fontSize(ThemeConfig.fontSizeS)
-              .fontColor(ColorResource.textTertiary)
-              .padding({ top: 8, bottom: 20 });
+              .fontColor(ColorResource.textTertiary);
           } else {
             ForEach(this.getFilteredSchemas(), (schema: NodeSchema) => {
               Row({ space: 10 }) {
@@ -1796,6 +1803,7 @@ struct NodeWorkspacePage {
               .borderRadius(6)
               .onClick(() => {
                 this.selectedSchemaId = schema.id;
+                this.updateSelectedSchemaObject();
               });
             }, (schema: NodeSchema) => schema.id);
           }
@@ -3481,7 +3489,7 @@ private JsonTab() {
           // 中右: 可视化画布
           Column({ space: 0 }) {
             NodeVisualCanvas({
-              schema: this.getSelectedSchema(),
+              schema: this.selectedSchemaObject,
               selectedComponentId: this.selectedComponentId,
               draggedLibraryType: this.draggedLibraryType,
               onComponentSelect: (componentId: string) => {

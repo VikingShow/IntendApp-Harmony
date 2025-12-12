@@ -110,7 +110,7 @@ export struct NodeComponentPreview {
   @Prop nodeColor: string = '#007AFF';
   handleClick?: () => void;
   handleDelete?: () => void;
-  handleDragStart?: () => void;
+  handleDragStart?: (event?: DragEvent) => void;
   handleDragEnd?: () => void;
 
   build() {
@@ -133,7 +133,7 @@ export struct NodeComponentPreview {
       })
       .onDragStart((event?: DragEvent) => {
         if (this.handleDragStart) {
-          this.handleDragStart();
+          this.handleDragStart(event);
         }
       })
       .onDragEnd(() => {

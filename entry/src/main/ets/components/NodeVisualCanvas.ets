@@ -6,7 +6,13 @@
 
 import { NodeComponentType, NodeComponentSchema, NodeSchema } from '../model/NodeSchema';
 import { NodeComponentPreview } from './NodeComponentRenderer';
+import { unifiedDataChannel, uniformTypeDescriptor } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+
+interface DragInfo {
+  action: 'reorder';
+  index: number;
+}
 
 @Component
 export struct NodeVisualCanvas {
@@ -103,21 +109,22 @@ export struct NodeVisualCanvas {
                     color: ColorResource.surfaceEmphasized,
                     style: BorderStyle.Dashed
                   })
-                  .onDrop((event?: DragEvent) => {
-                    if (this.onComponentAdd) {
-                      let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
-                      if (!typeToAdd && event) {
-                        try {
-                          const data = event.getData ? event.getData() : null;
-                          if (data) {
-                            typeToAdd = String(data) as NodeComponentType;
+                  .allowDrop([uniformTypeDescriptor.UniformDataType.PLAIN_TEXT])
+                  .onDragMove(() => {})
+                  .onDrop(async (event?: DragEvent) => {
+                    if (this.onComponentAdd && event) {
+                      try {
+                        const unifiedData = await event.getData();
+                        const records = unifiedData.getRecords();
+                        if (records.length > 0) {
+                          const data: unifiedDataChannel.UnifiedRecord = records[0];
+                          if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
+                            const typeToAdd = (data as unifiedDataChannel.PlainText).textContent as NodeComponentType;
+                            this.onComponentAdd(typeToAdd, 0);
                           }
-                        } catch (e) {
-                          console.error('Drop error:', e);
                         }
-                      }
-                      if (typeToAdd) {
-                        this.onComponentAdd(typeToAdd, 0);
+                      } catch (e) {
+                        console.error('Drop error:', e);
                       }
                     }
                     this.isDragOver = false;
@@ -143,29 +150,32 @@ export struct NodeVisualCanvas {
                           this.isDragOver = true;
                           this.dragOverIndex = index;
                         })
-                        .onDrop((event?: DragEvent) => {
-                          if (this.draggedComponentIndex >= 0 && this.draggedComponentIndex !== index) {
-                            // 内部排序
-                            if (this.onComponentReorder) {
-                              this.onComponentReorder(this.draggedComponentIndex, index);
-                            }
-                          } else if (event) {
-                            // 从组件库拖入
-                            if (this.onComponentAdd) {
-                              let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
-                              if (!typeToAdd) {
-                                try {
-                                  const data = event.getData ? event.getData() : null;
-                                  if (data) {
-                                    typeToAdd = String(data) as NodeComponentType;
+                        .allowDrop([uniformTypeDescriptor.UniformDataType.PLAIN_TEXT])
+                        .onDragMove(() => {})
+                        .onDrop(async (event?: DragEvent) => {
+                          if (event) {
+                            try {
+                              const unifiedData = await event.getData();
+                              const records = unifiedData.getRecords();
+                              if (records.length > 0) {
+                                const data: unifiedDataChannel.UnifiedRecord = records[0];
+                                if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
+                                  const content = (data as unifiedDataChannel.PlainText).textContent;
+                                  try {
+                                    const dropData: DragInfo = JSON.parse(content);
+                                    if (dropData.action === 'reorder' && this.onComponentReorder) {
+                                      this.onComponentReorder(dropData.index, index);
+                                    }
+                                  } catch (e) {
+                                    // 解析失败，说明是组件库拖入
+                                    if (this.onComponentAdd) {
+                                      this.onComponentAdd(content as NodeComponentType, index);
+                                    }
                                   }
-                                } catch (e) {
-                                  console.error('Drop error:', e);
                                 }
                               }
-                              if (typeToAdd) {
-                                this.onComponentAdd(typeToAdd, index);
-                              }
+                            } catch (e) {
+                              console.error('Drop error:', e);
                             }
                           }
                           this.isDragOver = false;
@@ -187,8 +197,16 @@ export struct NodeVisualCanvas {
                             this.onComponentDelete(component.id);
                           }
                         },
-                        handleDragStart: () => {
+                        handleDragStart: (event?: DragEvent) => {
                           this.draggedComponentIndex = index;
+                          if (event) {
+                            const unifiedData = new unifiedDataChannel.UnifiedData();
+                            const plainText = new unifiedDataChannel.PlainText();
+                            const dragInfo: DragInfo = { action: 'reorder', index: index };
+                            plainText.textContent = JSON.stringify(dragInfo);
+                            unifiedData.addRecord(plainText);
+                            event.setData(unifiedData);
+                          }
                         },
                         handleDragEnd: () => {
                           this.draggedComponentIndex = -1;
@@ -209,27 +227,32 @@ export struct NodeVisualCanvas {
                             this.isDragOver = true;
                             this.dragOverIndex = index + 1;
                           })
-                          .onDrop((event?: DragEvent) => {
-                            if (this.draggedComponentIndex >= 0) {
-                              if (this.onComponentReorder) {
-                                this.onComponentReorder(this.draggedComponentIndex, index + 1);
-                              }
-                            } else if (event) {
-                              if (this.onComponentAdd) {
-                                let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
-                                if (!typeToAdd) {
-                                  try {
-                                    const data = event.getData ? event.getData() : null;
-                                    if (data) {
-                                      typeToAdd = String(data) as NodeComponentType;
+                          .allowDrop([uniformTypeDescriptor.UniformDataType.PLAIN_TEXT])
+                          .onDragMove(() => {})
+                          .onDrop(async (event?: DragEvent) => {
+                            if (event) {
+                              try {
+                                const unifiedData = await event.getData();
+                                const records = unifiedData.getRecords();
+                                if (records.length > 0) {
+                                  const data: unifiedDataChannel.UnifiedRecord = records[0];
+                                  if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
+                                    const content = (data as unifiedDataChannel.PlainText).textContent;
+                                    try {
+                                      const dropData: DragInfo = JSON.parse(content);
+                                      if (dropData.action === 'reorder' && this.onComponentReorder) {
+                                        this.onComponentReorder(dropData.index, index + 1);
+                                      }
+                                    } catch (e) {
+                                      // 解析失败，说明是组件库拖入
+                                      if (this.onComponentAdd) {
+                                        this.onComponentAdd(content as NodeComponentType, index + 1);
+                                      }
                                     }
-                                  } catch (e) {
-                                    console.error('Drop error:', e);
                                   }
                                 }
-                                if (typeToAdd) {
-                                  this.onComponentAdd(typeToAdd, index + 1);
-                                }
+                              } catch (e) {
+                                console.error('Drop error:', e);
                               }
                             }
                             this.isDragOver = false;

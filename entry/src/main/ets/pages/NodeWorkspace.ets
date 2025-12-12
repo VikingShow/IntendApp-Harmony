@@ -3464,16 +3464,10 @@ private JsonTab() {
           // 中左: 组件库面板
           Column({ space: 0 }) {
             ComponentLibrary({
-              onComponentClick: (type: NodeComponentType) => {
-                this.handleComponentLibraryClick(type);
-              },
-              onComponentDragStart: (type: NodeComponentType) => {
-                this.handleComponentDragStart(type);
-              },
-              onComponentDragEnd: () => {
-                this.handleComponentDragEnd();
-              }
-            });
+              onComponentClick: (type: NodeComponentType) => this.handleComponentLibraryClick(type),
+              onComponentDragStart: (type: NodeComponentType) => this.handleComponentDragStart(type),
+              onComponentDragEnd: () => this.handleComponentDragEnd()
+            })
           }
           .width(this.getActualPanelWidth(1))
           .height('100%');

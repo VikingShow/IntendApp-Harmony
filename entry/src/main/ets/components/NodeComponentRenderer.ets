@@ -5,6 +5,7 @@
  */
 
 import { NodeComponentType, NodeComponentSchema } from '../model/NodeSchema';
+import { unifiedDataChannel } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 /**
@@ -49,16 +50,53 @@ export struct DraggableComponentItem {
     .borderRadius(8)
     .shadow(this.isDragging ? { radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 } : { radius: 2, color: 'rgba(0,0,0,0.05)', offsetY: 1 })
     .onDragStart((event?: DragEvent) => {
+      if (event) {
+        const unifiedData = new unifiedDataChannel.UnifiedData();
+        const plainText = new unifiedDataChannel.PlainText();
+        plainText.textContent = this.type;
+        unifiedData.addRecord(plainText);
+        event.setData(unifiedData);
+      }
+
       if (this.handleDragStart) {
         this.handleDragStart(this.type);
       }
+
+      // 返回一个 DragItemInfo 对象来自定义拖拽预览图，如果不需要则可以不返回
+      return {
+        builder: this.dragPreviewBuilder()
+      };
     })
     .onDragEnd(() => {
       if (this.handleDragEnd) {
         this.handleDragEnd();
       }
     })
-    .draggable(true);
+    .draggable(true)
+    .priorityGesture(PanGesture({}))
+  }
+
+  @Builder
+  dragPreviewBuilder() {
+    Row({ space: 10 }) {
+      Text(this.icon)
+        .fontSize(20)
+        .fontColor(ColorResource.primaryColor);
+      
+      Column({ space: 2 }) {
+        Text(this.label)
+          .fontSize(ThemeConfig.fontSizeS)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary);
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1);
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .backgroundColor(ColorResource.surface)
+    .borderRadius(8)
+    .shadow({ radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 });
   }
 }
 
@@ -103,7 +141,8 @@ export struct NodeComponentPreview {
           this.handleDragEnd();
         }
       })
-      .draggable(true);
+      .draggable(true)
+      .priorityGesture(PanGesture({}));
 
       if (this.isSelected && this.handleDelete) {
         Button() {

@@ -43,6 +43,7 @@ import { StorageService } from '../services/StorageService';
 import { CalendarService } from '../services/CalendarService';
 import { PromptAction } from '@kit.ArkUI';
 import common from '@ohos.app.ability.common';
+import { ProjectPreviewDialog, CardType } from './ProjectPreviewDialog';
 
 
 /**
@@ -100,6 +101,8 @@ export struct DashboardView {
   private promptAction: PromptAction = this.getUIContext().getPromptAction();
   /** 列表/时间轴的重建键，用于切换视图或筛选时回到顶部 */
   @State private allTasksScrollKey: number = 0;
+  /** 项目预览弹窗控制器 */
+  private previewDialogController: CustomDialogController | null = null;
 
   // aboutToAppear 会在组件首次创建和显示时调用
   aboutToAppear() {
@@ -831,6 +834,26 @@ export struct DashboardView {
     return this.isFloatingCard ? 8 : ThemeConfig.radiusLarge;
   }
 
+  private showPreviewDialog(cardType: CardType): void {
+    if (this.previewDialogController) {
+      this.previewDialogController.close();
+      this.previewDialogController = null;
+    }
+
+    this.previewDialogController = new CustomDialogController({
+      builder: ProjectPreviewDialog({
+        project: this.project,
+        cardType: cardType,
+        isDarkMode: this.isDarkMode
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.previewDialogController.open();
+  }
+
   private getTimeFrameProgress(): number {
     const completion: number = this.getProjectTimeProgress();
     const clampedCompletion: number = Math.max(0, Math.min(100, completion));
@@ -1169,31 +1192,31 @@ export struct DashboardView {
           // 第 1 页：规模与完成度
           Row({ space: 6 }) {
             this.StatCard('总任务数', `${this.project.tasks.length} 个`, ColorResource.primaryLight,
-              ColorResource.primaryColor)
+              ColorResource.primaryColor, CardType.TOTAL_TASKS)
             this.StatCard('本周到期', `${this.getTasksThisWeekCount()} 个`, '#FFE8D6',
-              '#FF8C42')
+              '#FF8C42', CardType.THIS_WEEK)
             this.StatCard('整体完成度', `${this.getOverallCompletion()}%`, ColorResource.warningLight,
-              ColorResource.warningColor)
+              ColorResource.warningColor, CardType.OVERALL_COMPLETION)
           }
 
           // 第 2 页：任务状态
           Row({ space: 6 }) {
             this.StatCard('已逾期任务', `${this.getOverdueTasksCount()} 个`, ColorResource.errorLight,
-              ColorResource.errorColor)
+              ColorResource.errorColor, CardType.OVERDUE)
             this.StatCard('已完成任务', `${this.getCompletedTasksCount()} 个`, ColorResource.successLight,
-              ColorResource.successColor)
+              ColorResource.successColor, CardType.COMPLETED)
             this.StatCard('进行中任务', `${this.getPendingTasksCount()} 个`, ColorResource.infoLight,
-              ColorResource.infoColor)
+              ColorResource.infoColor, CardType.PENDING)
           }
 
           // 第 3 页：关键指标与提醒
           Row({ space: 6 }) {
             this.StatCard('关键任务', `${this.getCriticalTasksCount()} 个`, '#E6D5F5',
-              '#9B59D0')
+              '#9B59D0', CardType.CRITICAL)
             this.StatCard('未拆解任务', `${this.getTasksWithoutChecklistCount()} 个`, '#FFE5E5',
-              '#FF6B6B')
+              '#FF6B6B', CardType.NO_CHECKLIST)
             this.StatCard('待办检查项', `${this.getOpenChecklistItemsCount()} 项`, '#D5F5E3',
-              '#28A745')
+              '#28A745', CardType.OPEN_CHECKLIST)
           }
         }
         .width('100%')
@@ -1710,7 +1733,7 @@ export struct DashboardView {
 
   // 构建器：统计卡片 - 紧凑设计
   @Builder
-  StatCard(title: string, value: string, bgColor: string | Resource, textColor: string | Resource, icon?: string) {
+  StatCard(title: string, value: string, bgColor: string | Resource, textColor: string | Resource, cardType?: CardType, icon?: string) {
     Column({ space: BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingS, this.screenWidth) }) {
       // 图标 - 增强视觉效果
       if (icon) {
@@ -1755,6 +1778,22 @@ export struct DashboardView {
       curve: ThemeConfig.animationEaseOut,
       iterations: 1,
       playMode: PlayMode.Normal
+    })
+    .onClick(() => {
+      if (cardType !== undefined && this.project.tasks.length > 0) {
+        try {
+          vibrator.startVibration({
+            type: 'time',
+            duration: 30
+          }, {
+            id: 0,
+            usage: 'alarm'
+          });
+        } catch (error) {
+          console.log('[DashboardView] Haptic feedback not available:', error);
+        }
+        this.showPreviewDialog(cardType);
+      }
     })
   }
 

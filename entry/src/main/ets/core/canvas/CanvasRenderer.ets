@@ -66,6 +66,10 @@ export interface RenderConfig {
   renderMode?: RenderMode;
   /** 是否显示依赖连线箭头 */
   showDependencyArrows?: boolean;
+  /** 闪烁节点ID列表 */
+  blinkingTaskIds?: string[];
+  /** 闪烁透明度 (0-1) */
+  blinkOpacity?: number;
 }
 
 /**
@@ -545,20 +549,21 @@ export class CanvasRenderer {
    * 节点显示为小圆圈，旁边显示名称
    */
   private renderTasksCompact(project: Project, config: RenderConfig): void {
-    const CIRCLE_RADIUS = 24; // 圆圈半径
-    const NAME_OFFSET_X = 36; // 名称相对圆圈中心的X偏移
-    const NAME_OFFSET_Y = 8; // 名称相对圆圈中心的Y偏移
-    
+    const CIRCLE_RADIUS = 35;
+    const NAME_OFFSET_X = 45;
+    const NAME_OFFSET_Y = 0;
+
+    const blinkingTaskIds = config.blinkingTaskIds || [];
+    const blinkOpacity = config.blinkOpacity !== undefined ? config.blinkOpacity : 1;
+
     project.tasks.forEach((task: TaskNode) => {
       const isSelected = task.id === config.selectedTaskId;
-      // 圆圈中心点（相对于节点原始位置）
-      const centerX = task.x + config.canvasOffsetX + 100; // 节点宽度200的一半
-      const centerY = task.y + config.canvasOffsetY + 60; // 节点高度120的一半
+      const isBlinking = blinkingTaskIds.includes(task.id);
+      const centerX = task.x + config.canvasOffsetX + 100;
+      const centerY = task.y + config.canvasOffsetY + 60;
 
-      // 根据任务状态确定圆圈颜色
       const circleColor = this.getTaskColor(task);
       
-      // 绘制外圈（选中状态）
       if (isSelected) {
         this.context.beginPath();
         this.context.arc(centerX, centerY, CIRCLE_RADIUS + 4, 0, Math.PI * 2);
@@ -567,57 +572,57 @@ export class CanvasRenderer {
         this.context.stroke();
       }
 
-      // 绘制圆圈主体
+      if (isBlinking) {
+        const nodeAlpha = 0.3 + 0.7 * blinkOpacity;
+        this.context.globalAlpha = nodeAlpha;
+      }
+
       this.context.beginPath();
       this.context.arc(centerX, centerY, CIRCLE_RADIUS, 0, Math.PI * 2);
       this.context.fillStyle = circleColor;
       this.context.fill();
       
-      // 绘制圆圈边框
-      this.context.strokeStyle = this.isDarkMode ? '#48484A' : '#D1D1D6';
-      this.context.lineWidth = 2;
+      this.context.strokeStyle = this.isDarkMode ? '#FFFFFF' : '#000000';
+      this.context.lineWidth = isBlinking ? 3 : 2;
       this.context.stroke();
 
-      // 绘制外圈进度环（完成度）- 白色
-      const completionProgress = this.getCompletionProgress(task);
-      if (completionProgress > 0) {
-        this.context.beginPath();
-        const startAngle = -Math.PI / 2; // 从12点钟方向开始
-        const endAngle = startAngle + (Math.PI * 2 * completionProgress / 100);
-        this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
-        this.context.strokeStyle = '#FFFFFF';
-        this.context.lineWidth = 4;
-        this.context.stroke();
+      if (isBlinking) {
+        this.context.globalAlpha = 1;
       }
 
-      // 绘制内圈进度环（时间进度）- 半透明白色或黄色
-      const timeProgress = this.getTimeProgress(task);
-      if (timeProgress > 0) {
-        this.context.beginPath();
-        const startAngle = -Math.PI / 2; // 从12点钟方向开始
-        const endAngle = startAngle + (Math.PI * 2 * timeProgress / 100);
-        this.context.arc(centerX, centerY, CIRCLE_RADIUS - 10, startAngle, endAngle);
-        // 根据时间进度和完成进度的对比使用不同颜色
-        if (timeProgress > completionProgress + 10) {
-          // 时间进度远超完成进度 - 黄色警告
-          this.context.strokeStyle = this.isDarkMode ? 'rgba(255, 214, 10, 0.9)' : 'rgba(255, 204, 0, 0.9)';
-        } else {
-          // 正常进度 - 半透明白色
-          this.context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      if (!isBlinking) {
+        const completionProgress = this.getCompletionProgress(task);
+        if (completionProgress > 0) {
+          this.context.beginPath();
+          const startAngle = -Math.PI / 2;
+          const endAngle = startAngle + (Math.PI * 2 * completionProgress / 100);
+          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
+          this.context.strokeStyle = '#FFFFFF';
+          this.context.lineWidth = 4;
+          this.context.stroke();
         }
-        this.context.lineWidth = 3;
-        this.context.stroke();
+
+        const timeProgress = this.getTimeProgress(task);
+        if (timeProgress > 0) {
+          this.context.beginPath();
+          const startAngle = -Math.PI / 2;
+          const endAngle = startAngle + (Math.PI * 2 * timeProgress / 100);
+          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 10, startAngle, endAngle);
+          if (timeProgress > completionProgress + 10) {
+            this.context.strokeStyle = this.isDarkMode ? 'rgba(255, 214, 10, 0.9)' : 'rgba(255, 204, 0, 0.9)';
+          } else {
+            this.context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          }
+          this.context.lineWidth = 3;
+          this.context.stroke();
+        }
       }
 
-      // 缩略模式下不需要额外的关键路径标记，因为整个圆圈已经是红色了
-
-      // 绘制任务名称
       this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
       this.context.font = `28px HarmonyOS Sans`;
       this.context.textAlign = 'left';
       this.context.textBaseline = 'middle';
       
-      // 限制名称长度，避免过长
       const maxNameLength = 8;
       const displayName = task.name.length > maxNameLength 
         ? task.name.substring(0, maxNameLength) + '...' 
@@ -625,7 +630,6 @@ export class CanvasRenderer {
       
       this.context.fillText(displayName, centerX + NAME_OFFSET_X, centerY + NAME_OFFSET_Y);
       
-      // 重置文本对齐方式
       this.context.textAlign = 'left';
       this.context.textBaseline = 'alphabetic';
     });

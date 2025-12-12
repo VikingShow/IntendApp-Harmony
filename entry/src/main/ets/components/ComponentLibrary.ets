@@ -22,6 +22,8 @@ export struct ComponentLibrary {
   @State draggedComponentType: NodeComponentType | null = null;
   
   onComponentClick?: (type: NodeComponentType) => void;
+  onComponentDragStart?: (type: NodeComponentType) => void;
+  onComponentDragEnd?: () => void;
 
   private componentTypes: ComponentTypeInfo[] = [
     // 基础组件
@@ -128,8 +130,14 @@ export struct ComponentLibrary {
                 isDragging: this.draggedComponentType === component.type,
                 handleDragStart: (type: NodeComponentType) => {
                   this.draggedComponentType = type;
-                  if (this.onComponentClick) {
-                    this.onComponentClick(type);
+                  if (this.onComponentDragStart) {
+                    this.onComponentDragStart(type);
+                  }
+                },
+                handleDragEnd: () => {
+                  this.draggedComponentType = null;
+                  if (this.onComponentDragEnd) {
+                    this.onComponentDragEnd();
                   }
                 }
               })

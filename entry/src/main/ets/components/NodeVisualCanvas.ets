@@ -12,6 +12,7 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 export struct NodeVisualCanvas {
   @Prop schema: NodeSchema | null;
   @Prop selectedComponentId: string | null;
+  @Prop draggedLibraryType: NodeComponentType | null = null;
   @State dragOverIndex: number = -1;
   @State isDragOver: boolean = false;
   @State draggedComponentIndex: number = -1;
@@ -103,15 +104,20 @@ export struct NodeVisualCanvas {
                     style: BorderStyle.Dashed
                   })
                   .onDrop((event?: DragEvent) => {
-                    if (event && this.onComponentAdd) {
-                      try {
-                        const data = event.getData();
-                        if (data) {
-                          const typeStr = String(data);
-                          this.onComponentAdd(typeStr as NodeComponentType, 0);
+                    if (this.onComponentAdd) {
+                      let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
+                      if (!typeToAdd && event) {
+                        try {
+                          const data = event.getData ? event.getData() : null;
+                          if (data) {
+                            typeToAdd = String(data) as NodeComponentType;
+                          }
+                        } catch (e) {
+                          console.error('Drop error:', e);
                         }
-                      } catch (e) {
-                        console.error('Drop error:', e);
+                      }
+                      if (typeToAdd) {
+                        this.onComponentAdd(typeToAdd, 0);
                       }
                     }
                     this.isDragOver = false;
@@ -145,14 +151,21 @@ export struct NodeVisualCanvas {
                             }
                           } else if (event) {
                             // 从组件库拖入
-                            try {
-                              const data = event.getData();
-                              if (data && this.onComponentAdd) {
-                                const typeStr = String(data);
-                                this.onComponentAdd(typeStr as NodeComponentType, index);
+                            if (this.onComponentAdd) {
+                              let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
+                              if (!typeToAdd) {
+                                try {
+                                  const data = event.getData ? event.getData() : null;
+                                  if (data) {
+                                    typeToAdd = String(data) as NodeComponentType;
+                                  }
+                                } catch (e) {
+                                  console.error('Drop error:', e);
+                                }
                               }
-                            } catch (e) {
-                              console.error('Drop error:', e);
+                              if (typeToAdd) {
+                                this.onComponentAdd(typeToAdd, index);
+                              }
                             }
                           }
                           this.isDragOver = false;
@@ -202,14 +215,21 @@ export struct NodeVisualCanvas {
                                 this.onComponentReorder(this.draggedComponentIndex, index + 1);
                               }
                             } else if (event) {
-                              try {
-                                const data = event.getData();
-                                if (data && this.onComponentAdd) {
-                                  const typeStr = String(data);
-                                  this.onComponentAdd(typeStr as NodeComponentType, index + 1);
+                              if (this.onComponentAdd) {
+                                let typeToAdd: NodeComponentType | null = this.draggedLibraryType;
+                                if (!typeToAdd) {
+                                  try {
+                                    const data = event.getData ? event.getData() : null;
+                                    if (data) {
+                                      typeToAdd = String(data) as NodeComponentType;
+                                    }
+                                  } catch (e) {
+                                    console.error('Drop error:', e);
+                                  }
                                 }
-                              } catch (e) {
-                                console.error('Drop error:', e);
+                                if (typeToAdd) {
+                                  this.onComponentAdd(typeToAdd, index + 1);
+                                }
                               }
                             }
                             this.isDragOver = false;

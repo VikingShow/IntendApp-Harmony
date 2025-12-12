@@ -17,6 +17,7 @@ export struct DraggableComponentItem {
   @Prop icon: string;
   @Prop isDragging: boolean = false;
   handleDragStart?: (type: NodeComponentType) => void;
+  handleDragEnd?: () => void;
 
   build() {
     Row({ space: 10 }) {
@@ -51,7 +52,13 @@ export struct DraggableComponentItem {
       if (this.handleDragStart) {
         this.handleDragStart(this.type);
       }
-    });
+    })
+    .onDragEnd(() => {
+      if (this.handleDragEnd) {
+        this.handleDragEnd();
+      }
+    })
+    .draggable(true);
   }
 }
 
@@ -95,7 +102,8 @@ export struct NodeComponentPreview {
         if (this.handleDragEnd) {
           this.handleDragEnd();
         }
-      });
+      })
+      .draggable(true);
 
       if (this.isSelected && this.handleDelete) {
         Button() {

@@ -478,6 +478,7 @@ struct NodeWorkspacePage {
   @State currentEditorTab: number = 0;
   @State selectedComponentId: string | null = null;
   @State currentViewMode: 'visual' | 'classic' = 'visual';
+  @State draggedLibraryType: NodeComponentType | null = null;
   
   // 布局管理状态
   @State panelWidths: number[] = [20, 25, 30, 25]; // 默认宽度百分比
@@ -526,14 +527,22 @@ struct NodeWorkspacePage {
 
   private reloadSchemas(): void {
     try {
+      const preservedComponentId: string | null = this.selectedComponentId;
       const newSchemas = this.schemaService.getAllSchemas();
       // 使用错误边界验证和应用更新
       this.schemas = this.errorBoundary.safeApplyUpdate(newSchemas, this.schemas);
       if (!this.selectedSchemaId && this.schemas.length > 0) {
         this.selectedSchemaId = this.schemas[0].id;
       }
-      // 清空组件选择
-      this.selectedComponentId = null;
+      // 保留组件选择（仅在组件确实不存在时清空）
+      if (this.selectedSchemaId && preservedComponentId) {
+        const schema = this.schemaService.getSchemaById(this.selectedSchemaId);
+        if (schema && schema.layout && schema.layout.some(c => c.id === preservedComponentId)) {
+          this.selectedComponentId = preservedComponentId;
+        } else {
+          this.selectedComponentId = null;
+        }
+      }
     } catch (error) {
       console.error('[NodeWorkspace] reloadSchemas error:', error);
       this.errorBoundary.recordError(
@@ -546,6 +555,14 @@ struct NodeWorkspacePage {
         duration: 2000
       });
     }
+  }
+
+  private handleComponentDragStart(type: NodeComponentType): void {
+    this.draggedLibraryType = type;
+  }
+
+  private handleComponentDragEnd(): void {
+    this.draggedLibraryType = null;
   }
 
   /**
@@ -1288,6 +1305,7 @@ struct NodeWorkspacePage {
     
     this.schemaService.upsertSchema(updated);
     this.selectedComponentId = newComponent.id;
+    this.draggedLibraryType = null;
     this.reloadSchemas();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
@@ -1809,26 +1827,34 @@ struct NodeWorkspacePage {
         
         if (this.getSelectedSchema()) {
           Row({ space: 8 }) {
-            Button((this.getSelectedSchema() as NodeSchema).isDraft ? '发布' : '存为草稿')
+            Button('发布')
               .layoutWeight(1)
               .height(36)
               .fontSize(ThemeConfig.fontSizeS)
-              .backgroundColor(ColorResource.surface)
-              .fontColor(ColorResource.primaryColor)
-              .borderRadius(8)
-              .onClick(() => {
-                this.toggleSchemaPublishState();
-              });
-            
-            Button('删除')
-              .layoutWeight(1)
-              .height(36)
-              .fontSize(ThemeConfig.fontSizeS)
-              .backgroundColor('#FF3B30')
+              .backgroundColor('#34C759')
               .fontColor(Color.White)
               .borderRadius(8)
+              .enabled((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem())
+              .opacity(((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
               .onClick(() => {
-                this.showDeleteSchemaDialog();
+                if ((this.getSelectedSchema() as NodeSchema).isDraft) {
+                  this.publishSelectedDraft();
+                }
+              });
+            
+            Button((this.getSelectedSchema() as NodeSchema).isDraft ? '删除' : '存为草稿')
+              .layoutWeight(1)
+              .height(36)
+              .fontSize(ThemeConfig.fontSizeS)
+              .backgroundColor((this.getSelectedSchema() as NodeSchema).isDraft ? '#FF3B30' : ColorResource.surface)
+              .fontColor((this.getSelectedSchema() as NodeSchema).isDraft ? Color.White : ColorResource.textPrimary)
+              .borderRadius(8)
+              .onClick(() => {
+                if ((this.getSelectedSchema() as NodeSchema).isDraft) {
+                  this.showDeleteSchemaDialog();
+                } else {
+                  this.createDraftFromSelectedPublished();
+                }
               });
           }
           .width('100%');
@@ -3440,6 +3466,12 @@ private JsonTab() {
             ComponentLibrary({
               onComponentClick: (type: NodeComponentType) => {
                 this.handleComponentLibraryClick(type);
+              },
+              onComponentDragStart: (type: NodeComponentType) => {
+                this.handleComponentDragStart(type);
+              },
+              onComponentDragEnd: () => {
+                this.handleComponentDragEnd();
               }
             });
           }
@@ -3457,6 +3489,7 @@ private JsonTab() {
             NodeVisualCanvas({
               schema: this.getSelectedSchema(),
               selectedComponentId: this.selectedComponentId,
+              draggedLibraryType: this.draggedLibraryType,
               onComponentSelect: (componentId: string) => {
                 this.handleComponentSelect(componentId);
               },
@@ -3541,12 +3574,19 @@ private JsonTab() {
                     onComponentClick: (type: NodeComponentType) => {
                       this.handleComponentLibraryClick(type);
                       this.togglePanelCollapse(1);
+                    },
+                    onComponentDragStart: (type: NodeComponentType) => {
+                      this.handleComponentDragStart(type);
+                    },
+                    onComponentDragEnd: () => {
+                      this.handleComponentDragEnd();
                     }
                   });
                 } else if (index === 2) {
                   NodeVisualCanvas({
                     schema: this.getSelectedSchema(),
                     selectedComponentId: this.selectedComponentId,
+                    draggedLibraryType: this.draggedLibraryType,
                     onComponentSelect: (componentId: string) => {
                       this.handleComponentSelect(componentId);
                     },

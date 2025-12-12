@@ -354,3 +354,152 @@ export struct NodeComponentPreview {
       .width('100%');
   }
 }
+
+@Component
+export struct NodeComponentContent {
+  @Prop component: NodeComponentSchema;
+
+  build() {
+    Column({ space: 0 }) {
+      if (this.component.type === 'TITLE') {
+        Text('任务标题示例')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorResource.textPrimary)
+          .width('100%');
+      } else if (this.component.type === 'DATE_RANGE') {
+        Row({ space: 4 }) {
+          Text('📅')
+            .fontSize(12);
+          Text('12/23 ~ 12/30 (8天)')
+            .fontSize(11)
+            .fontColor(ColorResource.textSecondary);
+        }
+        .width('100%');
+      } else if (this.component.type === 'TIME_PROGRESS') {
+        Column({ space: 3 }) {
+          Text('时间: 35%')
+            .fontSize(10)
+            .fontColor(ColorResource.textSecondary)
+            .width('100%');
+          
+          Stack({ alignContent: Alignment.Start }) {
+            Row()
+              .width('100%')
+              .height(6)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(3);
+            
+            Row()
+              .width('35%')
+              .height(6)
+              .backgroundColor('#409EFF')
+              .borderRadius(3);
+          }
+          .width('100%');
+        }
+        .width('100%');
+      } else if (this.component.type === 'TASK_PROGRESS') {
+        Column({ space: 3 }) {
+          Text('完成: 60%')
+            .fontSize(10)
+            .fontColor(ColorResource.textSecondary)
+            .width('100%');
+          
+          Stack({ alignContent: Alignment.Start }) {
+            Row()
+              .width('100%')
+              .height(6)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(3);
+            
+            Row()
+              .width('60%')
+              .height(6)
+              .backgroundColor('#67C23A')
+              .borderRadius(3);
+          }
+          .width('100%');
+        }
+        .width('100%');
+      } else if (this.component.type === 'CHECKLIST_SUMMARY') {
+        Row({ space: 6 }) {
+          Text('☑️')
+            .fontSize(12);
+          Text('3/5 项已完成')
+            .fontSize(11)
+            .fontColor(ColorResource.textSecondary);
+        }
+        .width('100%');
+      } else if (this.component.type === 'PRIORITY_BADGE') {
+        Row({ space: 6 }) {
+          Text('🔥')
+            .fontSize(12);
+          Text('高优先级')
+            .fontSize(11)
+            .fontColor('#FF3B30')
+            .fontWeight(FontWeight.Medium);
+        }
+        .width('100%');
+      } else if (this.component.type === 'ASSIGNEE') {
+        Row({ space: 6 }) {
+          Text('👤')
+            .fontSize(12);
+          Text('张三')
+            .fontSize(11)
+            .fontColor(ColorResource.textSecondary);
+        }
+        .width('100%');
+      } else if (this.component.type === 'TAGS') {
+        Row({ space: 6 }) {
+          Text('🏷️')
+            .fontSize(12);
+          
+          Row({ space: 4 }) {
+            Text('前端')
+              .fontSize(10)
+              .fontColor(ColorResource.primaryColor)
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .backgroundColor('rgba(0, 122, 255, 0.1)')
+              .borderRadius(4);
+            
+            Text('紧急')
+              .fontSize(10)
+              .fontColor('#FF3B30')
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .backgroundColor('rgba(255, 59, 48, 0.1)')
+              .borderRadius(4);
+          }
+        }
+        .width('100%');
+      } else if (this.component.type === 'STATUS_DOT') {
+        Row({ space: 6 }) {
+          Circle()
+            .width(8)
+            .height(8)
+            .fill('#67C23A');
+          
+          Text('进行中')
+            .fontSize(11)
+            .fontColor(ColorResource.textSecondary);
+        }
+        .width('100%');
+      } else if (this.component.type === 'CUSTOM_FIELD') {
+        Row({ space: 6 }) {
+          Text('✏️')
+            .fontSize(12);
+          Text(this.component.fieldId || '未绑定字段')
+            .fontSize(11)
+            .fontColor(ColorResource.textTertiary);
+        }
+        .width('100%');
+      } else {
+        Text('未知组件类型')
+          .fontSize(11)
+          .fontColor(ColorResource.textTertiary)
+          .width('100%');
+      }
+    }
+    .width('100%');
+  }
+}

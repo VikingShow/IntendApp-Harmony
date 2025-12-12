@@ -5,7 +5,7 @@
  */
 
 import { NodeComponentType, NodeComponentSchema, NodeSchema } from '../model/NodeSchema';
-import { NodeComponentPreview } from './NodeComponentRenderer';
+import { NodeComponentPreview, NodeComponentContent } from './NodeComponentRenderer';
 import { unifiedDataChannel, uniformTypeDescriptor } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
@@ -44,6 +44,27 @@ export struct NodeVisualCanvas {
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
           .backgroundColor(ColorResource.backgroundSecondary)
           .borderRadius(4);
+
+        Row()
+          .layoutWeight(1);
+
+        Button('使用提示')
+          .height(28)
+          .fontSize(ThemeConfig.fontSizeXS)
+          .backgroundColor(ColorResource.backgroundSecondary)
+          .fontColor(ColorResource.textSecondary)
+          .borderRadius(8)
+          .padding({ left: 10, right: 10 })
+          .onClick(() => {
+            AlertDialog.show({
+              title: '使用提示',
+              message: '1. 从左侧组件库拖拽组件到画布\n2. 在画布中拖拽可调整组件顺序\n3. 点击组件可在右侧编辑其属性\n4. 右侧样式区可调整普通/关键颜色与圆角',
+              confirm: {
+                value: '知道了',
+                action: () => {}
+              }
+            });
+          });
       }
       .width('100%')
       .padding({ left: 20, right: 20, top: 16, bottom: 12 });
@@ -312,132 +333,19 @@ export struct NodeVisualCanvas {
                   : 16
               )
               .border({
-                width: this.schema.style.borderColor ? 3 : 2,
+                width: this.schema.style.borderWidth || 2,
                 color: this.previewMode === 'critical'
                   ? (this.schema.style.criticalColor || '#FF3B30')
                   : (this.schema.style.borderColor || this.schema.style.fillColor)
               })
-              .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 2 });
+              .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 2 })
+              .margin({ top: 12 });
             }
             .width('100%')
-            .alignItems(HorizontalAlign.Center);
-
-            // 样式信息卡片
-            Column({ space: 10 }) {
-              Text('样式配置')
-                .fontSize(ThemeConfig.fontSizeM)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorResource.textPrimary);
-
-              Row({ space: 8 }) {
-                Text('主题色')
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.textTertiary)
-                  .width(70);
-                
-                Row({ space: 6 }) {
-                  Circle()
-                    .width(16)
-                    .height(16)
-                    .fill(this.schema.style.fillColor);
-                  
-                  Text(this.schema.style.fillColor)
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textPrimary)
-                    .fontWeight(FontWeight.Medium);
-                }
-              }
-
-              Row({ space: 8 }) {
-                Text('边框色')
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.textTertiary)
-                  .width(70);
-                
-                Row({ space: 6 }) {
-                  Circle()
-                    .width(16)
-                    .height(16)
-                    .fill(this.schema.style.borderColor || this.schema.style.fillColor);
-                  
-                  Text(this.schema.style.borderColor || '同主题色')
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textPrimary)
-                    .fontWeight(FontWeight.Medium);
-                }
-              }
-
-              Row({ space: 8 }) {
-                Text('圆角')
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.textTertiary)
-                  .width(70);
-                
-                Text(`${this.schema.style.borderRadius || 16}px`)
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.textPrimary);
-              }
-
-              Row({ space: 8 }) {
-                Text('组件数')
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.textTertiary)
-                  .width(70);
-                
-                Text(`${this.schema.layout.length} 个`)
-                  .fontSize(ThemeConfig.fontSizeS)
-                  .fontColor(ColorResource.primaryColor)
-                  .fontWeight(FontWeight.Medium);
-              }
-              
-              Divider()
-                .strokeWidth(0.5)
-                .color(ColorResource.surfaceEmphasized)
-                .opacity(0.3)
-                .margin({ top: 6, bottom: 6 });
-              
-              Text('在右侧属性编辑器中编辑详细样式')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .lineHeight(16);
-            }
-            .width('100%')
-            .padding(16)
-            .backgroundColor(ColorResource.surface)
-            .borderRadius(12)
-            .shadow(ThemeConfig.cardShadow);
-
-            // 提示信息
-            Column({ space: 8 }) {
-              Text('💡 使用提示')
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorResource.textPrimary);
-              
-              Text('• 从左侧组件库拖拽组件到画布')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textSecondary)
-                .lineHeight(18);
-              
-              Text('• 点击组件查看/编辑属性')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textSecondary)
-                .lineHeight(18);
-              
-              Text('• 点击右上角 × 删除组件')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textSecondary)
-                .lineHeight(18);
-            }
-            .width('100%')
-            .padding(12)
-            .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(8)
-            .alignItems(HorizontalAlign.Start);
+            .padding({ left: 20, right: 20, bottom: 20 });
           }
-          .width('100%')
-          .padding({ left: 20, right: 20, bottom: 20 });
         }
+        .width('100%')
         .layoutWeight(1)
         .scrollBar(BarState.Auto);
       }

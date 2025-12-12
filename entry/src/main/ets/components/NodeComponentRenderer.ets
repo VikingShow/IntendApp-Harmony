@@ -78,25 +78,16 @@ export struct DraggableComponentItem {
 
   @Builder
   dragPreviewBuilder() {
-    Row({ space: 10 }) {
-      Text(this.icon)
-        .fontSize(20)
-        .fontColor(ColorResource.primaryColor);
-      
-      Column({ space: 2 }) {
-        Text(this.label)
-          .fontSize(ThemeConfig.fontSizeS)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorResource.textPrimary);
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1);
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor(ColorResource.surface)
-    .borderRadius(8)
-    .shadow({ radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 });
+    // 直接复用 NodeComponentPreview 来渲染一个真实的预览
+    NodeComponentPreview({
+      // 在 @Builder 中，不能声明变量，因此以内联方式创建对象
+      component: { id: 'drag-preview', type: this.type } as NodeComponentSchema,
+      isSelected: false, // 预览项不是选中状态
+      nodeColor: '#007AFF' // 为预览项提供一个中性的颜色
+    })
+      .width(220) // 预览宽度与画布中的卡片宽度保持一致
+      .opacity(0.85) // 轻微透明，以区分于实际组件
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.2)', offsetY: 6 }); // 添加更明显的阴影
   }
 }
 

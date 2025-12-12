@@ -142,10 +142,14 @@ export struct NodeVisualCanvas {
                       // 上方拖放区（每个组件之间）
                       Row()
                         .width('100%')
-                        .height(this.dragOverIndex === index && this.isDragOver ? 24 : 4)
-                        .backgroundColor(this.dragOverIndex === index && this.isDragOver ? ColorResource.primaryColor : Color.Transparent)
-                        .borderRadius(2)
-                        .opacity(this.dragOverIndex === index && this.isDragOver ? 0.3 : 0)
+                        .height(this.dragOverIndex === index && this.isDragOver ? 32 : 8)
+                        .border({
+                          width: 2,
+                          color: ColorResource.primaryColor,
+                          style: BorderStyle.Dashed
+                        })
+                        .borderRadius(6)
+                        .opacity(this.dragOverIndex === index && this.isDragOver ? 0.5 : 0)
                         .onDragEnter(() => {
                           this.isDragOver = true;
                           this.dragOverIndex = index;
@@ -219,10 +223,14 @@ export struct NodeVisualCanvas {
                       if (this.schema && index === this.schema.layout.length - 1) {
                         Row()
                           .width('100%')
-                          .height(this.dragOverIndex === index + 1 && this.isDragOver ? 24 : 8)
-                          .backgroundColor(this.dragOverIndex === index + 1 && this.isDragOver ? ColorResource.primaryColor : Color.Transparent)
-                          .borderRadius(2)
-                          .opacity(this.dragOverIndex === index + 1 && this.isDragOver ? 0.3 : 0)
+                          .height(this.dragOverIndex === index + 1 && this.isDragOver ? 32 : 8)
+                          .border({
+                            width: 2,
+                            color: ColorResource.primaryColor,
+                            style: BorderStyle.Dashed
+                          })
+                          .borderRadius(6)
+                          .opacity(this.dragOverIndex === index + 1 && this.isDragOver ? 0.5 : 0)
                           .onDragEnter(() => {
                             this.isDragOver = true;
                             this.dragOverIndex = index + 1;

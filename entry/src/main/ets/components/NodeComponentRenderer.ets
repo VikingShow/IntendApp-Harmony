@@ -47,14 +47,11 @@ export struct DraggableComponentItem {
     .backgroundColor(this.isDragging ? ColorResource.backgroundSecondary : ColorResource.surface)
     .borderRadius(8)
     .shadow(this.isDragging ? { radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 } : { radius: 2, color: 'rgba(0,0,0,0.05)', offsetY: 1 })
-    .gesture(
-      LongPressGesture({ repeat: false, duration: 300 })
-        .onAction(() => {
-          if (this.handleDragStart) {
-            this.handleDragStart(this.type);
-          }
-        })
-    );
+    .onDragStart((event?: DragEvent) => {
+      if (this.handleDragStart) {
+        this.handleDragStart(this.type);
+      }
+    });
   }
 }
 
@@ -68,6 +65,8 @@ export struct NodeComponentPreview {
   @Prop nodeColor: string = '#007AFF';
   handleClick?: () => void;
   handleDelete?: () => void;
+  handleDragStart?: () => void;
+  handleDragEnd?: () => void;
 
   build() {
     Stack({ alignContent: Alignment.TopEnd }) {
@@ -85,6 +84,16 @@ export struct NodeComponentPreview {
       .onClick(() => {
         if (this.handleClick) {
           this.handleClick();
+        }
+      })
+      .onDragStart((event?: DragEvent) => {
+        if (this.handleDragStart) {
+          this.handleDragStart();
+        }
+      })
+      .onDragEnd(() => {
+        if (this.handleDragEnd) {
+          this.handleDragEnd();
         }
       });
 

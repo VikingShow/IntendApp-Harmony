@@ -14,6 +14,7 @@ export struct NodeVisualCanvas {
   @Prop selectedComponentId: string | null;
   @State dragOverIndex: number = -1;
   @State isDragOver: boolean = false;
+  @State draggedComponentIndex: number = -1;
   
   onComponentSelect?: (componentId: string) => void;
   onComponentDelete?: (componentId: string) => void;
@@ -100,20 +101,63 @@ export struct NodeVisualCanvas {
                     width: 2,
                     color: ColorResource.surfaceEmphasized,
                     style: BorderStyle.Dashed
+                  })
+                  .onDrop((event?: DragEvent) => {
+                    if (event && this.onComponentAdd) {
+                      try {
+                        const data = event.getData();
+                        if (data) {
+                          const typeStr = String(data);
+                          this.onComponentAdd(typeStr as NodeComponentType, 0);
+                        }
+                      } catch (e) {
+                        console.error('Drop error:', e);
+                      }
+                    }
+                    this.isDragOver = false;
+                  })
+                  .onDragEnter(() => {
+                    this.isDragOver = true;
+                  })
+                  .onDragLeave(() => {
+                    this.isDragOver = false;
                   });
                 } else {
                   // 渲染组件列表
                   ForEach(this.schema.layout, (component: NodeComponentSchema, index: number) => {
                     Column({ space: 0 }) {
-                      // 拖放区域指示器（上方）
-                      if (this.dragOverIndex === index && this.isDragOver) {
-                        Row()
-                          .width('100%')
-                          .height(4)
-                          .backgroundColor(ColorResource.primaryColor)
-                          .borderRadius(2)
-                          .margin({ bottom: 4 });
-                      }
+                      // 上方拖放区（每个组件之间）
+                      Row()
+                        .width('100%')
+                        .height(this.dragOverIndex === index && this.isDragOver ? 24 : 4)
+                        .backgroundColor(this.dragOverIndex === index && this.isDragOver ? ColorResource.primaryColor : Color.Transparent)
+                        .borderRadius(2)
+                        .opacity(this.dragOverIndex === index && this.isDragOver ? 0.3 : 0)
+                        .onDragEnter(() => {
+                          this.isDragOver = true;
+                          this.dragOverIndex = index;
+                        })
+                        .onDrop((event?: DragEvent) => {
+                          if (this.draggedComponentIndex >= 0 && this.draggedComponentIndex !== index) {
+                            // 内部排序
+                            if (this.onComponentReorder) {
+                              this.onComponentReorder(this.draggedComponentIndex, index);
+                            }
+                          } else if (event) {
+                            // 从组件库拖入
+                            try {
+                              const data = event.getData();
+                              if (data && this.onComponentAdd) {
+                                const typeStr = String(data);
+                                this.onComponentAdd(typeStr as NodeComponentType, index);
+                              }
+                            } catch (e) {
+                              console.error('Drop error:', e);
+                            }
+                          }
+                          this.isDragOver = false;
+                          this.dragOverIndex = -1;
+                        });
                       
                       // 组件预览
                       NodeComponentPreview({
@@ -129,17 +173,48 @@ export struct NodeVisualCanvas {
                           if (this.onComponentDelete) {
                             this.onComponentDelete(component.id);
                           }
+                        },
+                        handleDragStart: () => {
+                          this.draggedComponentIndex = index;
+                        },
+                        handleDragEnd: () => {
+                          this.draggedComponentIndex = -1;
+                          this.isDragOver = false;
+                          this.dragOverIndex = -1;
                         }
                       });
                       
-                      // 拖放区域指示器（下方）
-                      if (this.dragOverIndex === index + 1 && this.isDragOver) {
+                      // 最后一个组件后的拖放区
+                      if (this.schema && index === this.schema.layout.length - 1) {
                         Row()
                           .width('100%')
-                          .height(4)
-                          .backgroundColor(ColorResource.primaryColor)
+                          .height(this.dragOverIndex === index + 1 && this.isDragOver ? 24 : 8)
+                          .backgroundColor(this.dragOverIndex === index + 1 && this.isDragOver ? ColorResource.primaryColor : Color.Transparent)
                           .borderRadius(2)
-                          .margin({ top: 4 });
+                          .opacity(this.dragOverIndex === index + 1 && this.isDragOver ? 0.3 : 0)
+                          .onDragEnter(() => {
+                            this.isDragOver = true;
+                            this.dragOverIndex = index + 1;
+                          })
+                          .onDrop((event?: DragEvent) => {
+                            if (this.draggedComponentIndex >= 0) {
+                              if (this.onComponentReorder) {
+                                this.onComponentReorder(this.draggedComponentIndex, index + 1);
+                              }
+                            } else if (event) {
+                              try {
+                                const data = event.getData();
+                                if (data && this.onComponentAdd) {
+                                  const typeStr = String(data);
+                                  this.onComponentAdd(typeStr as NodeComponentType, index + 1);
+                                }
+                              } catch (e) {
+                                console.error('Drop error:', e);
+                              }
+                            }
+                            this.isDragOver = false;
+                            this.dragOverIndex = -1;
+                          });
                       }
                     }
                     .width('100%');
@@ -189,24 +264,22 @@ export struct NodeVisualCanvas {
                 }
               }
 
-              if (this.schema.style.borderColor) {
-                Row({ space: 8 }) {
-                  Text('边框色')
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textTertiary)
-                    .width(70);
+              Row({ space: 8 }) {
+                Text('边框色')
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.textTertiary)
+                  .width(70);
+                
+                Row({ space: 6 }) {
+                  Circle()
+                    .width(16)
+                    .height(16)
+                    .fill(this.schema.style.borderColor || this.schema.style.fillColor);
                   
-                  Row({ space: 6 }) {
-                    Circle()
-                      .width(16)
-                      .height(16)
-                      .fill(this.schema.style.borderColor);
-                    
-                    Text(this.schema.style.borderColor)
-                      .fontSize(ThemeConfig.fontSizeS)
-                      .fontColor(ColorResource.textPrimary)
-                      .fontWeight(FontWeight.Medium);
-                  }
+                  Text(this.schema.style.borderColor || '同主题色')
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.textPrimary)
+                    .fontWeight(FontWeight.Medium);
                 }
               }
 
@@ -232,6 +305,17 @@ export struct NodeVisualCanvas {
                   .fontColor(ColorResource.primaryColor)
                   .fontWeight(FontWeight.Medium);
               }
+              
+              Divider()
+                .strokeWidth(0.5)
+                .color(ColorResource.surfaceEmphasized)
+                .opacity(0.3)
+                .margin({ top: 6, bottom: 6 });
+              
+              Text('点击左侧“属性”Tab编辑详细样式')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .fontColor(ColorResource.textTertiary)
+                .lineHeight(16);
             }
             .width('100%')
             .padding(16)

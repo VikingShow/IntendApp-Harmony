@@ -220,6 +220,153 @@ struct NodeColorPickerDialog {
 }
 
 @CustomDialog
+struct ImportJsonDialog {
+  controller: CustomDialogController;
+  @State importJson: string = '';
+  @State importMode: 'paste' | 'file' = 'paste';
+  @State selectedFileName: string = '';
+  onConfirm: (json: string) => void = () => {};
+
+  build() {
+    Column({ space: 0 }) {
+      Column({ space: 12 }) {
+        Text('导入节点类型JSON')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary);
+        
+        // 导入方式切换
+        Row({ space: 8 }) {
+          Button('直接粘贴')
+            .layoutWeight(1)
+            .height(36)
+            .fontSize(ThemeConfig.fontSizeS)
+            .backgroundColor(this.importMode === 'paste' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+            .fontColor(this.importMode === 'paste' ? Color.White : ColorResource.textSecondary)
+            .borderRadius(8)
+            .onClick(() => {
+              this.importMode = 'paste';
+            });
+          
+          Button('从文件选择')
+            .layoutWeight(1)
+            .height(36)
+            .fontSize(ThemeConfig.fontSizeS)
+            .backgroundColor(this.importMode === 'file' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+            .fontColor(this.importMode === 'file' ? Color.White : ColorResource.textSecondary)
+            .borderRadius(8)
+            .onClick(() => {
+              this.importMode = 'file';
+            });
+        }
+        .width('100%');
+        
+        if (this.importMode === 'paste') {
+          // 直接粘贴模式
+          Text('请粘贴节点类型的JSON数据')
+            .fontSize(14)
+            .fontColor(ColorResource.textSecondary);
+          
+          TextArea({ text: this.importJson, placeholder: '{"id": "...", "name": "...", ...}' })
+            .width('100%')
+            .height(200)
+            .fontSize(ThemeConfig.fontSizeXS)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .borderRadius(8)
+            .onChange((value: string) => {
+              this.importJson = value;
+            });
+        } else {
+          // 文件选择模式
+          Text('选择JSON文件导入')
+            .fontSize(14)
+            .fontColor(ColorResource.textSecondary);
+          
+          Column({ space: 12 }) {
+            Button('选择文件')
+              .width('100%')
+              .height(44)
+              .fontSize(ThemeConfig.fontSizeS)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .fontColor(ColorResource.primaryColor)
+              .borderRadius(8)
+              .onClick(() => {
+                // TODO: 打开文件选择器
+                // 暂时提示用户使用粘贴模式
+                AlertDialog.show({
+                  title: '功能说明',
+                  message: '文件选择功能开发中，请先使用“直接粘贴”模式。\n\n您可以：\n1. 打开JSON文件\n2. 复制全部内容\n3. 切换到“直接粘贴”\n4. 粘贴并导入',
+                  confirm: {
+                    value: '知道了',
+                    action: () => {}
+                  }
+                });
+              });
+            
+            if (this.selectedFileName) {
+              Text(`已选择: ${this.selectedFileName}`)
+                .fontSize(ThemeConfig.fontSizeXS)
+                .fontColor(ColorResource.textSecondary);
+            }
+            
+            Text('提示：当前版本请使用“直接粘贴”功能')
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.textTertiary)
+              .lineHeight(16);
+          }
+          .width('100%')
+          .height(200)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor(ColorResource.backgroundSecondary)
+          .borderRadius(8)
+          .padding(16);
+        }
+      }
+      .width('100%')
+      .padding(16);
+
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3);
+
+      Row({ space: 12 }) {
+        Button('取消')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(15)
+          .type(ButtonType.Normal)
+          .backgroundColor(ColorResource.surfaceSubtle)
+          .fontColor(ColorResource.textPrimary)
+          .borderRadius(8)
+          .onClick(() => {
+            this.controller.close();
+          });
+        
+        Button('导入')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(15)
+          .type(ButtonType.Normal)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor(Color.White)
+          .borderRadius(8)
+          .onClick(() => {
+            this.onConfirm(this.importJson);
+            this.controller.close();
+          });
+      }
+      .width('100%')
+      .padding(16);
+    }
+    .width('90%')
+    .constraintSize({ maxWidth: 400 })
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(14);
+  }
+}
+
+@CustomDialog
 struct DeleteConfirmDialog {
   controller: CustomDialogController;
   schemaName: string = '';
@@ -332,9 +479,15 @@ struct NodeWorkspacePage {
   @State selectedComponentId: string | null = null;
   @State currentViewMode: 'visual' | 'classic' = 'visual';
   
+  // 布局管理状态
+  @State panelWidths: number[] = [20, 25, 30, 25]; // 默认宽度百分比
+  @State panelCollapsed: boolean[] = [false, false, false, false]; // 折叠状态
+  private readonly DEFAULT_WIDTHS = [20, 25, 30, 25];
+  
   private deleteDialogController: CustomDialogController | null = null;
   private importConflictDialogController: CustomDialogController | null = null;
   private colorPickerDialogController: CustomDialogController | null = null;
+  private importJsonDialogController: CustomDialogController | null = null;
   private previewThrottleTimer: number = -1;
   private readonly PREVIEW_THROTTLE_DELAY = 80;
 
@@ -633,7 +786,7 @@ struct NodeWorkspacePage {
     this.scheduleAutoSave();
   }
 
-  private showDeleteConfirmDialog(): void {
+  private showDeleteSchemaDialog(): void {
     const schema = this.getSelectedSchema();
     if (!schema) {
       return;
@@ -643,11 +796,6 @@ struct NodeWorkspacePage {
       return;
     }
 
-    if (this.deleteDialogController) {
-      this.deleteDialogController.close();
-      this.deleteDialogController = null;
-    }
-
     this.deleteDialogController = new CustomDialogController({
       builder: DeleteConfirmDialog({
         schemaName: schema.name,
@@ -655,12 +803,56 @@ struct NodeWorkspacePage {
           this.deleteSelectedSchema();
         }
       }),
-      alignment: DialogAlignment.Center,
       autoCancel: true,
-      customStyle: true
+      alignment: DialogAlignment.Center
     });
-
+    
     this.deleteDialogController.open();
+  }
+
+  private showImportDialog(): void {
+    this.importJsonDialogController = new CustomDialogController({
+      builder: ImportJsonDialog({
+        onConfirm: (json: string) => {
+          this.handleQuickImportFromJson(json);
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Center
+    });
+    
+    this.importJsonDialogController.open();
+  }
+
+  private handleQuickImportFromJson(json: string): void {
+    if (!json || json.trim().length === 0) {
+      this.promptAction.showToast({ message: '请输入JSON数据', duration: 2000 });
+      return;
+    }
+
+    try {
+      const schema = JSON.parse(json) as NodeSchema;
+      
+      // 验证必要字段
+      if (!schema.id || !schema.name || !schema.style || !schema.layout) {
+        this.promptAction.showToast({ message: 'JSON格式不正确，缺少必要字段', duration: 2000 });
+        return;
+      }
+
+      // 检查是否已存在
+      const existing = this.schemas.find(s => s.id === schema.id);
+      if (existing) {
+        this.promptAction.showToast({ message: `节点类型"${schema.name}"已存在，将覆盖旧版本`, duration: 2000 });
+      }
+
+      this.schemaService.upsertSchema(schema);
+      this.reloadSchemas();
+      this.selectedSchemaId = schema.id;
+      this.promptAction.showToast({ message: `导入成功：${schema.name}`, duration: 2000 });
+    } catch (error) {
+      console.error('导入JSON失败', error);
+      this.promptAction.showToast({ message: 'JSON格式错误，解析失败', duration: 2000 });
+    }
   }
 
   private deleteSelectedSchema(): void {
@@ -1262,6 +1454,19 @@ struct NodeWorkspacePage {
     }
   }
 
+  private toggleSchemaPublishState(): void {
+    const schema = this.getSelectedSchema();
+    if (!schema) {
+      return;
+    }
+    
+    if (schema.isDraft) {
+      this.publishSelectedDraft();
+    } else {
+      this.createDraftFromSelectedPublished();
+    }
+  }
+
   private createDraftFromSelectedPublished(): void {
     const schema = this.getSelectedSchema();
     if (!schema) {
@@ -1328,6 +1533,45 @@ struct NodeWorkspacePage {
     this.addComponentToSelectedSchema(type, -1);
   }
 
+  private handleComponentReorder(fromIndex: number, toIndex: number): void {
+    const schema = this.getSelectedSchema();
+    if (!schema) {
+      return;
+    }
+
+    const updatedLayout = [...schema.layout];
+    const movedItem = updatedLayout.splice(fromIndex, 1)[0];
+    
+    // 计算插入位置
+    let insertIndex = toIndex;
+    if (fromIndex < toIndex) {
+      insertIndex = toIndex - 1;
+    }
+    
+    updatedLayout.splice(insertIndex, 0, movedItem);
+
+    const updated: NodeSchema = {
+      id: schema.id,
+      version: schema.version,
+      name: schema.name,
+      description: schema.description,
+      meta: schema.meta,
+      ports: schema.ports,
+      style: schema.style,
+      fields: schema.fields,
+      layout: updatedLayout,
+      rules: schema.rules,
+      isSystem: schema.isSystem,
+      isDraft: schema.isDraft,
+      parentVersionId: schema.parentVersionId
+    };
+
+    this.schemaService.upsertSchema(updated);
+    this.reloadSchemas();
+    this.refreshSchemaJson();
+    this.scheduleAutoSave();
+  }
+
   private getSelectedComponent(): NodeComponentSchema | null {
     const schema = this.getSelectedSchema();
     if (!schema || !this.selectedComponentId) {
@@ -1335,6 +1579,46 @@ struct NodeWorkspacePage {
     }
     const component = schema.layout.find(c => c.id === this.selectedComponentId);
     return component || null;
+  }
+
+  // 布局管理方法
+  private togglePanelCollapse(index: number): void {
+    this.panelCollapsed[index] = !this.panelCollapsed[index];
+  }
+
+  private getPanelTitle(index: number): string {
+    const titles = ['节点类型库', '组件库', '可视化画布', '属性编辑器'];
+    return titles[index] || '';
+  }
+
+  private resetLayout(): void {
+    this.panelWidths = [...this.DEFAULT_WIDTHS];
+    this.panelCollapsed = [false, false, false, false];
+    this.promptAction.showToast({ message: '布局已重置', duration: 1500 });
+  }
+
+  private getActualPanelWidth(index: number): string {
+    if (this.panelCollapsed[index]) {
+      return '0px'; // 折叠后完全隐藏
+    }
+    
+    // 计算实际宽度百分比（排除已折叠的面板）
+    const collapsedCount = this.panelCollapsed.filter(c => c).length;
+    if (collapsedCount === 0) {
+      return `${this.panelWidths[index]}%`;
+    }
+    
+    // 重新分配剩余空间
+    const activeWidthSum = this.panelWidths
+      .filter((_, i) => !this.panelCollapsed[i])
+      .reduce((sum, w) => sum + w, 0);
+    
+    if (activeWidthSum === 0) {
+      return '25%';
+    }
+    
+    const ratio = 100 / activeWidthSum;
+    return `${this.panelWidths[index] * ratio}%`;
   }
   
   /**
@@ -1359,6 +1643,7 @@ struct NodeWorkspacePage {
   @Builder
   private SchemaList() {
     Column({ space: 0 }) {
+      
       // 标题区
       Column({ space: 8 }) {
         Row({ space: 8 }) {
@@ -1433,7 +1718,7 @@ struct NodeWorkspacePage {
             Text('暂无类型')
               .fontSize(ThemeConfig.fontSizeS)
               .fontColor(ColorResource.textTertiary)
-              .padding({ top: 8, bottom: 20, left: 16 });
+              .padding({ top: 8, bottom: 20 });
           } else {
             ForEach(this.getFilteredSchemas(), (schema: NodeSchema) => {
               Row({ space: 10 }) {
@@ -1498,14 +1783,61 @@ struct NodeWorkspacePage {
           }
         }
         .width('100%')
-        .alignItems(HorizontalAlign.Start)
-        .padding({ left: 12, right: 12, top: 0, bottom: 16 });
+        .padding({ left: 12, right: 12, top: 8 });
       }
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
       .align(Alignment.Top);
+
+      // 底部操作按钮区
+      Column({ space: 8 }) {
+        Divider()
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.3);
+        
+        Button('+ 新建类型')
+          .width('100%')
+          .height(40)
+          .fontSize(ThemeConfig.fontSizeS)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor(Color.White)
+          .borderRadius(8)
+          .onClick(() => {
+            this.createNewSchema();
+          });
+        
+        if (this.getSelectedSchema()) {
+          Row({ space: 8 }) {
+            Button((this.getSelectedSchema() as NodeSchema).isDraft ? '发布' : '存为草稿')
+              .layoutWeight(1)
+              .height(36)
+              .fontSize(ThemeConfig.fontSizeS)
+              .backgroundColor(ColorResource.surface)
+              .fontColor(ColorResource.primaryColor)
+              .borderRadius(8)
+              .onClick(() => {
+                this.toggleSchemaPublishState();
+              });
+            
+            Button('删除')
+              .layoutWeight(1)
+              .height(36)
+              .fontSize(ThemeConfig.fontSizeS)
+              .backgroundColor('#FF3B30')
+              .fontColor(Color.White)
+              .borderRadius(8)
+              .onClick(() => {
+                this.showDeleteSchemaDialog();
+              });
+          }
+          .width('100%');
+        }
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 8, bottom: 12 });
     }
-    .width('20%')
+    .width('100%')
     .height('100%')
     .backgroundColor(ColorResource.backgroundPage)
     .justifyContent(FlexAlign.Start)
@@ -1832,7 +2164,7 @@ struct NodeWorkspacePage {
           .enabled(!this.isSelectedSchemaSystem())
           .opacity(this.isSelectedSchemaSystem() ? 0.4 : 1)
           .onClick(() => {
-            this.showDeleteConfirmDialog();
+            this.showDeleteSchemaDialog();
           });
           
           // 草稿/发布操作按钮
@@ -2973,19 +3305,72 @@ private JsonTab() {
             .layoutWeight(1);
 
           Row({ space: 8 }) {
-            // 视图切换按钮
-            Button(this.currentViewMode === 'visual' ? '可视化' : '经典视图')
+            // 四栏折叠控制
+            Row({ space: 4 }) {
+              Text('栏位:')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .fontColor(ColorResource.textTertiary);
+              
+              Button(this.panelCollapsed[0] ? '▶节点' : '节点')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .height(32)
+                .padding({ left: 8, right: 8 })
+                .backgroundColor(this.panelCollapsed[0] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
+                .fontColor(this.panelCollapsed[0] ? ColorResource.textSecondary : Color.White)
+                .borderRadius(6)
+                .onClick(() => {
+                  this.togglePanelCollapse(0);
+                });
+              
+              Button(this.panelCollapsed[1] ? '▶组件' : '组件')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .height(32)
+                .padding({ left: 8, right: 8 })
+                .backgroundColor(this.panelCollapsed[1] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
+                .fontColor(this.panelCollapsed[1] ? ColorResource.textSecondary : Color.White)
+                .borderRadius(6)
+                .onClick(() => {
+                  this.togglePanelCollapse(1);
+                });
+              
+              Button(this.panelCollapsed[2] ? '▶画布' : '画布')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .height(32)
+                .padding({ left: 8, right: 8 })
+                .backgroundColor(this.panelCollapsed[2] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
+                .fontColor(this.panelCollapsed[2] ? ColorResource.textSecondary : Color.White)
+                .borderRadius(6)
+                .onClick(() => {
+                  this.togglePanelCollapse(2);
+                });
+              
+              Button(this.panelCollapsed[3] ? '▶属性' : '属性')
+                .fontSize(ThemeConfig.fontSizeXS)
+                .height(32)
+                .padding({ left: 8, right: 8 })
+                .backgroundColor(this.panelCollapsed[3] ? ColorResource.backgroundSecondary : ColorResource.primaryColor)
+                .fontColor(this.panelCollapsed[3] ? ColorResource.textSecondary : Color.White)
+                .borderRadius(6)
+                .onClick(() => {
+                  this.togglePanelCollapse(3);
+                });
+            }
+            
+            Divider()
+              .vertical(true)
+              .height(24)
+              .strokeWidth(1)
+              .color(ColorResource.surfaceEmphasized)
+              .opacity(0.3);
+            
+            Button('重置')
               .fontSize(ThemeConfig.fontSizeS)
               .height(36)
               .backgroundColor(ColorResource.backgroundSecondary)
-              .fontColor(ColorResource.primaryColor)
+              .fontColor(ColorResource.textSecondary)
               .borderRadius(8)
               .onClick(() => {
-                this.currentViewMode = this.currentViewMode === 'visual' ? 'classic' : 'visual';
-                this.promptAction.showToast({ 
-                  message: `已切换到${this.currentViewMode === 'visual' ? '可视化' : '经典'}视图`, 
-                  duration: 1500 
-                });
+                this.resetLayout();
               });
             
             Button('保存')
@@ -2997,6 +3382,16 @@ private JsonTab() {
               .onClick(() => {
                 this.schemaService.saveToStorage();
                 this.promptAction.showToast({ message: '已保存', duration: 2000 });
+              });
+            
+            Button('导入JSON')
+              .fontSize(ThemeConfig.fontSizeS)
+              .height(36)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .fontColor(ColorResource.primaryColor)
+              .borderRadius(8)
+              .onClick(() => {
+                this.showImportDialog();
               });
             
             Button('导出JSON')
@@ -3024,70 +3419,168 @@ private JsonTab() {
         .color(ColorResource.surfaceEmphasized)
         .opacity(0.2);
 
-      Row({ space: 0 }) {
-        // 左侧: 节点类型列表 (20%)
-        this.SchemaList();
-        
-        Divider()
-          .vertical(true)
-          .strokeWidth(1)
-          .color(ColorResource.surfaceEmphasized)
-          .opacity(0.2);
-        
-        // 中左: 组件库面板 (25%)
-        Column({ space: 0 }) {
-          ComponentLibrary({
-            onComponentClick: (type: NodeComponentType) => {
-              this.handleComponentLibraryClick(type);
-            }
-          });
+      Stack() {
+        // 主布局
+        Row({ space: 0 }) {
+          // 左侧: 节点类型列表
+          Column({ space: 0 }) {
+            this.SchemaList();
+          }
+          .width(this.getActualPanelWidth(0))
+          .height('100%');
+          
+          Divider()
+            .vertical(true)
+            .strokeWidth(1)
+            .color(ColorResource.surfaceEmphasized)
+            .opacity(0.2);
+          
+          // 中左: 组件库面板
+          Column({ space: 0 }) {
+            ComponentLibrary({
+              onComponentClick: (type: NodeComponentType) => {
+                this.handleComponentLibraryClick(type);
+              }
+            });
+          }
+          .width(this.getActualPanelWidth(1))
+          .height('100%');
+          
+          Divider()
+            .vertical(true)
+            .strokeWidth(1)
+            .color(ColorResource.surfaceEmphasized)
+            .opacity(0.2);
+          
+          // 中右: 可视化画布
+          Column({ space: 0 }) {
+            NodeVisualCanvas({
+              schema: this.getSelectedSchema(),
+              selectedComponentId: this.selectedComponentId,
+              onComponentSelect: (componentId: string) => {
+                this.handleComponentSelect(componentId);
+              },
+              onComponentDelete: (componentId: string) => {
+                this.handleComponentDelete(componentId);
+              },
+              onComponentAdd: (type: NodeComponentType, index: number) => {
+                this.addComponentToSelectedSchema(type, index);
+              },
+              onComponentReorder: (fromIndex: number, toIndex: number) => {
+                this.handleComponentReorder(fromIndex, toIndex);
+              }
+            });
+          }
+          .width(this.getActualPanelWidth(2))
+          .height('100%');
+          
+          Divider()
+            .vertical(true)
+            .strokeWidth(1)
+            .color(ColorResource.surfaceEmphasized)
+            .opacity(0.2);
+          
+          // 右侧: 属性编辑面板
+          Column({ space: 0 }) {
+            ComponentPropertyPanel({
+              selectedComponent: this.getSelectedComponent(),
+              availableFields: this.getSelectedSchema()?.fields || [],
+              onPropertyChange: (component: NodeComponentSchema) => {
+                this.handleComponentPropertyChange(component);
+              }
+            });
+          }
+          .width(this.getActualPanelWidth(3))
+          .height('100%');
         }
-        .width('25%')
+        .width('100%')
         .height('100%');
         
-        Divider()
-          .vertical(true)
-          .strokeWidth(1)
-          .color(ColorResource.surfaceEmphasized)
-          .opacity(0.2);
-        
-        // 中右: 可视化画布 (30%)
-        Column({ space: 0 }) {
-          NodeVisualCanvas({
-            schema: this.getSelectedSchema(),
-            selectedComponentId: this.selectedComponentId,
-            onComponentSelect: (componentId: string) => {
-              this.handleComponentSelect(componentId);
-            },
-            onComponentDelete: (componentId: string) => {
-              this.handleComponentDelete(componentId);
-            },
-            onComponentAdd: (type: NodeComponentType, index: number) => {
-              this.addComponentToSelectedSchema(type, index);
+        // 浮动面板（折叠时显示）
+        ForEach([0, 1, 2, 3], (index: number) => {
+          if (this.panelCollapsed[index]) {
+            Column({ space: 0 }) {
+              // 标题栏
+              Row({ space: 8 }) {
+                Text(this.getPanelTitle(index))
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorResource.textPrimary)
+                  .layoutWeight(1);
+                
+                Button({ type: ButtonType.Normal }) {
+                  Text('×')
+                    .fontSize(20)
+                    .fontColor(ColorResource.textSecondary);
+                }
+                .width(32)
+                .height(32)
+                .padding(0)
+                .backgroundColor(Color.Transparent)
+                .onClick(() => {
+                  this.togglePanelCollapse(index);
+                });
+              }
+              .width('100%')
+              .height(50)
+              .padding({ left: 16, right: 12 })
+              .backgroundColor(ColorResource.surface)
+              .borderRadius({ topLeft: 12, topRight: 12 });
+              
+              Divider()
+                .strokeWidth(1)
+                .color(ColorResource.surfaceEmphasized)
+                .opacity(0.2);
+              
+              // 面板内容
+              Column({ space: 0 }) {
+                if (index === 0) {
+                  this.SchemaList();
+                } else if (index === 1) {
+                  ComponentLibrary({
+                    onComponentClick: (type: NodeComponentType) => {
+                      this.handleComponentLibraryClick(type);
+                      this.togglePanelCollapse(1);
+                    }
+                  });
+                } else if (index === 2) {
+                  NodeVisualCanvas({
+                    schema: this.getSelectedSchema(),
+                    selectedComponentId: this.selectedComponentId,
+                    onComponentSelect: (componentId: string) => {
+                      this.handleComponentSelect(componentId);
+                    },
+                    onComponentDelete: (componentId: string) => {
+                      this.handleComponentDelete(componentId);
+                    },
+                    onComponentAdd: (type: NodeComponentType, index: number) => {
+                      this.addComponentToSelectedSchema(type, index);
+                    },
+                    onComponentReorder: (fromIndex: number, toIndex: number) => {
+                      this.handleComponentReorder(fromIndex, toIndex);
+                    }
+                  });
+                } else if (index === 3) {
+                  ComponentPropertyPanel({
+                    selectedComponent: this.getSelectedComponent(),
+                    availableFields: this.getSelectedSchema()?.fields || [],
+                    onPropertyChange: (component: NodeComponentSchema) => {
+                      this.handleComponentPropertyChange(component);
+                    }
+                  });
+                }
+              }
+              .layoutWeight(1);
             }
-          });
-        }
-        .width('30%')
-        .height('100%');
-        
-        Divider()
-          .vertical(true)
-          .strokeWidth(1)
-          .color(ColorResource.surfaceEmphasized)
-          .opacity(0.2);
-        
-        // 右侧: 属性编辑面板 (25%)
-        Column({ space: 0 }) {
-          ComponentPropertyPanel({
-            selectedComponent: this.getSelectedComponent(),
-            availableFields: this.getSelectedSchema()?.fields || [],
-            onPropertyChange: (component: NodeComponentSchema) => {
-              this.handleComponentPropertyChange(component);
-            }
-          });
-        }
-        .width('25%')
-        .height('100%');
+            .width(400)
+            .height('100%')
+            .backgroundColor(ColorResource.surface)
+            .shadow({ radius: 24, color: 'rgba(0,0,0,0.2)', offsetX: -4 })
+            .position({ x: index < 2 ? 0 : '100%', y: 0 })
+            .translate({ x: index < 2 ? 0 : '-100%' })
+            .zIndex(10);
+          }
+        });
       }
       .width('100%')
       .layoutWeight(1);

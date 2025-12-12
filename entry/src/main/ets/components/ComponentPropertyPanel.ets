@@ -12,6 +12,10 @@ export struct ComponentPropertyPanel {
   @Prop selectedComponent: NodeComponentSchema | null;
   @Prop availableFields: FieldSchema[] = [];
   @Prop schemaStyle: NodeStyleSchema | null = null;
+  onFillColorChange?: (color: string) => void;
+  onCriticalColorChange?: (color: string) => void;
+  onPickFillColor?: () => void;
+  onPickCriticalColor?: () => void;
   onBorderColorChange?: (color: string) => void;
   onBorderRadiusChange?: (radius: number) => void;
   
@@ -74,98 +78,157 @@ export struct ComponentPropertyPanel {
       .padding({ left: 20, right: 20, top: 16, bottom: 12 })
       .alignItems(HorizontalAlign.Start);
 
-      if (!this.selectedComponent) {
-        Column({ space: 12 }) {
-          Text('← 请选择组件')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontColor(ColorResource.textTertiary);
-          
-          Text('在画布中点击组件以编辑属性')
-            .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ColorResource.textTertiary)
-            .opacity(0.7)
-            .textAlign(TextAlign.Center);
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center);
-      } else {
-        Scroll() {
-          Column({ space: 16 }) {
-            // 节点卡片边框
-            if (this.schemaStyle) {
-              Column({ space: 12 }) {
-                Text('节点卡片边框')
-                  .fontSize(ThemeConfig.fontSizeM)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorResource.textPrimary);
+      Scroll() {
+        Column({ space: 16 }) {
+          // 节点卡片样式（始终显示）
+          if (this.schemaStyle) {
+            Column({ space: 12 }) {
+              Text('节点卡片样式')
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorResource.textPrimary);
 
-                // 边框颜色
-                Column({ space: 6 }) {
-                  Text('边框颜色')
+              // 普通节点颜色
+              Column({ space: 6 }) {
+                Row({ space: 8 }) {
+                  Text('普通节点颜色')
                     .fontSize(ThemeConfig.fontSizeXS)
-                    .fontColor(ColorResource.textTertiary);
+                    .fontColor(ColorResource.textTertiary)
+                    .layoutWeight(1);
 
-                  TextInput({
-                    text: this.schemaStyle.borderColor ? (this.schemaStyle.borderColor as string) : '',
-                    placeholder: '如 #007AFF（留空=默认）'
-                  })
-                    .width('100%')
-                    .height(40)
-                    .fontSize(ThemeConfig.fontSizeM)
-                    .backgroundColor(ColorResource.backgroundInput)
-                    .borderRadius(ThemeConfig.radiusMedium)
-                    .padding({ left: 12, right: 12 })
-                    .onChange((value: string) => {
-                      if (this.onBorderColorChange) {
-                        this.onBorderColorChange(value);
+                  Button('调色盘')
+                    .height(28)
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .backgroundColor(ColorResource.surface)
+                    .fontColor(ColorResource.primaryColor)
+                    .borderRadius(6)
+                    .onClick(() => {
+                      if (this.onPickFillColor) {
+                        this.onPickFillColor();
                       }
                     });
                 }
-                .width('100%')
-                .alignItems(HorizontalAlign.Start);
+                .width('100%');
 
-                // 圆角
-                Column({ space: 6 }) {
-                  Row({ space: 8 }) {
-                    Text('圆角')
-                      .fontSize(ThemeConfig.fontSizeXS)
-                      .fontColor(ColorResource.textTertiary)
-                      .layoutWeight(1);
-
-                    Text(`${this.schemaStyle.borderRadius || 16}px`)
-                      .fontSize(ThemeConfig.fontSizeS)
-                      .fontColor(ColorResource.textPrimary)
-                      .fontWeight(FontWeight.Medium);
-                  }
-                  .width('100%');
-
-                  Slider({
-                    value: this.schemaStyle.borderRadius || 16,
-                    min: 0,
-                    max: 32,
-                    step: 2,
-                    style: SliderStyle.InSet
-                  })
-                    .width('100%')
-                    .trackColor(ColorResource.backgroundSecondary)
-                    .selectedColor(ColorResource.primaryColor)
-                    .onChange((value: number) => {
-                      if (this.onBorderRadiusChange) {
-                        this.onBorderRadiusChange(value);
-                      }
-                    });
-                }
-                .width('100%')
-                .alignItems(HorizontalAlign.Start);
+                TextInput({
+                  text: this.schemaStyle.fillColor,
+                  placeholder: '支持 #RRGGBB / rgb(r,g,b)'
+                })
+                  .width('100%')
+                  .height(40)
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .backgroundColor(ColorResource.backgroundInput)
+                  .borderRadius(ThemeConfig.radiusMedium)
+                  .padding({ left: 12, right: 12 })
+                  .onChange((value: string) => {
+                    if (this.onFillColorChange) {
+                      this.onFillColorChange(value);
+                    }
+                  });
               }
               .width('100%')
-              .padding(16)
-              .backgroundColor(ColorResource.surface)
-              .borderRadius(12)
-              .shadow(ThemeConfig.cardShadow);
-            }
+              .alignItems(HorizontalAlign.Start);
 
+              // 关键节点颜色
+              Column({ space: 6 }) {
+                Row({ space: 8 }) {
+                  Text('关键节点颜色')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textTertiary)
+                    .layoutWeight(1);
+
+                  Button('调色盘')
+                    .height(28)
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .backgroundColor(ColorResource.surface)
+                    .fontColor(ColorResource.primaryColor)
+                    .borderRadius(6)
+                    .onClick(() => {
+                      if (this.onPickCriticalColor) {
+                        this.onPickCriticalColor();
+                      }
+                    });
+                }
+                .width('100%');
+
+                TextInput({
+                  text: this.schemaStyle.criticalColor ? (this.schemaStyle.criticalColor as string) : '',
+                  placeholder: '留空=默认（支持 # / rgb）'
+                })
+                  .width('100%')
+                  .height(40)
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .backgroundColor(ColorResource.backgroundInput)
+                  .borderRadius(ThemeConfig.radiusMedium)
+                  .padding({ left: 12, right: 12 })
+                  .onChange((value: string) => {
+                    if (this.onCriticalColorChange) {
+                      this.onCriticalColorChange(value);
+                    }
+                  });
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start);
+
+              // 圆角
+              Column({ space: 6 }) {
+                Row({ space: 8 }) {
+                  Text('圆角')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textTertiary)
+                    .layoutWeight(1);
+
+                  Text(`${this.schemaStyle.borderRadius || 16}px`)
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.textPrimary)
+                    .fontWeight(FontWeight.Medium);
+                }
+                .width('100%');
+
+                Slider({
+                  value: this.schemaStyle.borderRadius || 16,
+                  min: 0,
+                  max: 32,
+                  step: 2,
+                  style: SliderStyle.InSet
+                })
+                  .width('100%')
+                  .trackColor(ColorResource.backgroundSecondary)
+                  .selectedColor(ColorResource.primaryColor)
+                  .onChange((value: number) => {
+                    if (this.onBorderRadiusChange) {
+                      this.onBorderRadiusChange(value);
+                    }
+                  });
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start);
+            }
+            .width('100%')
+            .padding(16)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(12)
+            .shadow(ThemeConfig.cardShadow);
+          }
+
+          if (!this.selectedComponent) {
+            Column({ space: 12 }) {
+              Text('← 请选择组件')
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontColor(ColorResource.textTertiary);
+
+              Text('在画布中点击组件以编辑属性')
+                .fontSize(ThemeConfig.fontSizeS)
+                .fontColor(ColorResource.textTertiary)
+                .opacity(0.7)
+                .textAlign(TextAlign.Center);
+            }
+            .width('100%')
+            .padding(16)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .borderRadius(12)
+            .alignItems(HorizontalAlign.Start);
+          } else {
             // 基本信息
             Column({ space: 12 }) {
               Text('基本信息')
@@ -213,7 +276,7 @@ export struct ComponentPropertyPanel {
             .shadow(ThemeConfig.cardShadow);
 
             // 组件配置
-            this.renderComponentConfig();
+            this.renderComponentConfig()
 
             // 组件说明
             Column({ space: 8 }) {
@@ -233,16 +296,17 @@ export struct ComponentPropertyPanel {
             .borderRadius(8)
             .alignItems(HorizontalAlign.Start);
           }
-          .width('100%')
-          .padding({ left: 20, right: 20, bottom: 20 });
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Auto);
+        .width('100%')
+        .padding({ left: 20, right: 20, bottom: 20 });
       }
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto);
     }
     .width('100%')
     .height('100%')
     .backgroundColor(ColorResource.backgroundPage);
+
   }
 
   @Builder

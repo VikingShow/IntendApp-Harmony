@@ -139,10 +139,63 @@ struct NodeColorPickerDialog {
   controller: CustomDialogController;
   currentColor: string = '#007AFF';
   @State selectedColor: string = '#007AFF';
+  @State inputColor: string = '#007AFF';
   onConfirm: (color: string) => void = () => {};
 
   aboutToAppear() {
-    this.selectedColor = this.currentColor;
+    const normalized = this.normalizeToHex(this.currentColor);
+    this.selectedColor = normalized;
+    this.inputColor = normalized;
+  }
+
+  private normalizeToHex(color: string): string {
+    const trimmed = (color || '').trim();
+    if (trimmed.length === 0) {
+      return '#007AFF';
+    }
+
+    const hex3 = /^#([0-9A-Fa-f]{3})$/;
+    const hex6 = /^#([0-9A-Fa-f]{6})$/;
+    const rgb = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/;
+    const rgba = /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|1|0?\.\d+)\s*\)$/;
+
+    const m6 = hex6.exec(trimmed);
+    if (m6) {
+      return `#${m6[1].toUpperCase()}`;
+    }
+
+    const m3 = hex3.exec(trimmed);
+    if (m3) {
+      const s = m3[1];
+      return `#${(s[0] + s[0] + s[1] + s[1] + s[2] + s[2]).toUpperCase()}`;
+    }
+
+    const mrgb = rgb.exec(trimmed);
+    if (mrgb) {
+      const r = Math.max(0, Math.min(255, parseInt(mrgb[1], 10)));
+      const g = Math.max(0, Math.min(255, parseInt(mrgb[2], 10)));
+      const b = Math.max(0, Math.min(255, parseInt(mrgb[3], 10)));
+      return this.rgbToHex(r, g, b);
+    }
+
+    const mrgba = rgba.exec(trimmed);
+    if (mrgba) {
+      const r = Math.max(0, Math.min(255, parseInt(mrgba[1], 10)));
+      const g = Math.max(0, Math.min(255, parseInt(mrgba[2], 10)));
+      const b = Math.max(0, Math.min(255, parseInt(mrgba[3], 10)));
+      return this.rgbToHex(r, g, b);
+    }
+
+    return '#007AFF';
+  }
+
+  private rgbToHex(r: number, g: number, b: number): string {
+    return (
+      '#' +
+      r.toString(16).padStart(2, '0') +
+      g.toString(16).padStart(2, '0') +
+      b.toString(16).padStart(2, '0')
+    ).toUpperCase();
   }
 
   build() {
@@ -166,7 +219,30 @@ struct NodeColorPickerDialog {
             });
         }
         .width('100%');
-        
+
+        Column({ space: 8 }) {
+          Text('输入颜色（Hex / RGB / RGBA）')
+            .fontSize(ThemeConfig.fontSizeXS)
+            .fontColor(ColorResource.textSecondary);
+
+          TextInput({
+            text: this.inputColor,
+            placeholder: '#RRGGBB / rgb(0,0,0) / rgba(0,0,0,1)'
+          })
+            .width('100%')
+            .height(40)
+            .fontSize(ThemeConfig.fontSizeM)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .borderRadius(10)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string) => {
+              this.inputColor = value;
+              const normalized = this.normalizeToHex(value);
+              this.selectedColor = normalized;
+            });
+        }
+        .width('100%');
+
         ColorSelector({ selectedColor: $selectedColor });
       }
       .width('100%')
@@ -199,7 +275,7 @@ struct NodeColorPickerDialog {
           .fontColor(Color.White)
           .borderRadius(8)
           .onClick(() => {
-            this.onConfirm(this.selectedColor);
+            this.onConfirm(this.normalizeToHex(this.selectedColor));
             this.controller.close();
           });
       }
@@ -3449,6 +3525,18 @@ private JsonTab() {
               selectedComponent: this.getSelectedComponent(),
               availableFields: this.getSelectedSchema()?.fields || [],
               schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+              onFillColorChange: (color: string) => {
+                this.updateSelectedSchemaColor(color);
+              },
+              onCriticalColorChange: (color: string) => {
+                this.updateSelectedSchemaCriticalColor(color);
+              },
+              onPickFillColor: () => {
+                this.showColorPickerDialog('fill');
+              },
+              onPickCriticalColor: () => {
+                this.showColorPickerDialog('critical');
+              },
               onBorderColorChange: (color: string) => {
                 this.updateSelectedSchemaBorderColor(color);
               },
@@ -3542,6 +3630,18 @@ private JsonTab() {
                     selectedComponent: this.getSelectedComponent(),
                     availableFields: this.getSelectedSchema()?.fields || [],
                     schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+                    onFillColorChange: (color: string) => {
+                      this.updateSelectedSchemaColor(color);
+                    },
+                    onCriticalColorChange: (color: string) => {
+                      this.updateSelectedSchemaCriticalColor(color);
+                    },
+                    onPickFillColor: () => {
+                      this.showColorPickerDialog('fill');
+                    },
+                    onPickCriticalColor: () => {
+                      this.showColorPickerDialog('critical');
+                    },
                     onBorderColorChange: (color: string) => {
                       this.updateSelectedSchemaBorderColor(color);
                     },

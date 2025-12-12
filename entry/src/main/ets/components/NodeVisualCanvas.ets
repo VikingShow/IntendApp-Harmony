@@ -22,6 +22,7 @@ export struct NodeVisualCanvas {
   @State dragOverIndex: number = -1;
   @State isDragOver: boolean = false;
   @State draggedComponentIndex: number = -1;
+  @State previewMode: 'normal' | 'critical' = 'normal';
   
   onComponentSelect?: (componentId: string) => void;
   onComponentDelete?: (componentId: string) => void;
@@ -71,6 +72,36 @@ export struct NodeVisualCanvas {
                 .fontWeight(FontWeight.Medium)
                 .fontColor(ColorResource.textSecondary)
                 .margin({ bottom: 12 });
+
+              Row({ space: 6 }) {
+                Text('预览模式')
+                  .fontSize(ThemeConfig.fontSizeXS)
+                  .fontColor(ColorResource.textTertiary);
+
+                Row({ space: 4 }) {
+                  Text('普通')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(this.previewMode === 'normal' ? Color.White : ColorResource.textSecondary)
+                    .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                    .backgroundColor(this.previewMode === 'normal' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+                    .borderRadius(8)
+                    .onClick(() => {
+                      this.previewMode = 'normal';
+                    });
+
+                  Text('关键')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(this.previewMode === 'critical' ? Color.White : ColorResource.textSecondary)
+                    .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                    .backgroundColor(this.previewMode === 'critical' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+                    .borderRadius(8)
+                    .onClick(() => {
+                      this.previewMode = 'critical';
+                    });
+                }
+              }
+              .width('100%')
+              .margin({ bottom: 12 });
               
               // 真实节点卡片
               Column({ space: 8 }) {
@@ -282,7 +313,9 @@ export struct NodeVisualCanvas {
               )
               .border({
                 width: this.schema.style.borderColor ? 3 : 2,
-                color: this.schema.style.borderColor || this.schema.style.fillColor
+                color: this.previewMode === 'critical'
+                  ? (this.schema.style.criticalColor || '#FF3B30')
+                  : (this.schema.style.borderColor || this.schema.style.fillColor)
               })
               .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 2 });
             }

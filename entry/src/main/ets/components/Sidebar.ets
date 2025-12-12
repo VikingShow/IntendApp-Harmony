@@ -73,7 +73,7 @@ export struct Sidebar {
   onCreateProjectFromTemplate: (templateId: string, projectName: string) => void = () => {};
   onDeleteTask: (taskId: string) => void = () => {};
   onGetCanvasPixelMap: (() => Promise<image.PixelMap | null>) | null = null; // 获取 Canvas 截图的回调
-  exportService: ExportService | null = null; // 导出服务实例
+  @Prop exportService: ExportService | null = null; // 导出服务实例
   onToggleArrows: () => void = () => {}; // 切换箭头显示的回调
   onDeleteDependency: (fromId: string, toId: string) => void = () => {}; // 删除依赖关系的回调
   @Prop showDependencyArrows: boolean = true; // 箭头显示状态

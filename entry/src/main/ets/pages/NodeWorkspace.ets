@@ -13,13 +13,16 @@
  */
 
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
-import { NodeSchema, NodeComponentSchema, FieldSchema } from '../model/NodeSchema';
+import { NodeSchema, NodeComponentSchema, FieldSchema, FieldType, NodeComponentType } from '../model/NodeSchema';
 import { NodeSchemaService } from '../services/NodeSchemaService';
 import { SchemaErrorBoundary, ErrorType } from '../utils/ErrorBoundary';
 import { PromptAction } from '@kit.ArkUI';
 import util from '@ohos.util';
 import router from '@ohos.router';
 import { ColorSelector } from '../components/ColorPicker';
+import { ComponentLibrary } from '../components/ComponentLibrary';
+import { NodeVisualCanvas } from '../components/NodeVisualCanvas';
+import { ComponentPropertyPanel } from '../components/ComponentPropertyPanel';
 
 interface ConflictSchema {
   id: string;
@@ -132,6 +135,91 @@ struct ImportConflictDialog {
 }
 
 @CustomDialog
+struct NodeColorPickerDialog {
+  controller: CustomDialogController;
+  currentColor: string = '#007AFF';
+  @State selectedColor: string = '#007AFF';
+  onConfirm: (color: string) => void = () => {};
+
+  aboutToAppear() {
+    this.selectedColor = this.currentColor;
+  }
+
+  build() {
+    Column({ space: 0 }) {
+      Column({ space: 16 }) {
+        Row({ space: 8 }) {
+          Text('选择颜色')
+            .fontSize(17)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorResource.textPrimary)
+            .layoutWeight(1);
+          
+          Button('×')
+            .width(28)
+            .height(28)
+            .fontSize(24)
+            .fontColor(ColorResource.textSecondary)
+            .backgroundColor(Color.Transparent)
+            .onClick(() => {
+              this.controller.close();
+            });
+        }
+        .width('100%');
+        
+        ColorSelector({ selectedColor: $selectedColor });
+      }
+      .width('100%')
+      .padding({ top: 20, left: 20, right: 20, bottom: 16 });
+
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3);
+
+      Row({ space: 12 }) {
+        Button('取消')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(15)
+          .type(ButtonType.Normal)
+          .backgroundColor(ColorResource.surfaceSubtle)
+          .fontColor(ColorResource.textPrimary)
+          .borderRadius(8)
+          .onClick(() => {
+            this.controller.close();
+          });
+        
+        Button('确定')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(15)
+          .type(ButtonType.Normal)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor(Color.White)
+          .borderRadius(8)
+          .onClick(() => {
+            this.onConfirm(this.selectedColor);
+            this.controller.close();
+          });
+      }
+      .width('100%')
+      .padding(16);
+    }
+    .width('90%')
+    .constraintSize({ maxWidth: 360 })
+    .backgroundColor(ColorResource.backgroundPage)
+    .borderRadius(14)
+    .shadow({
+      radius: 24,
+      color: 'rgba(0, 0, 0, 0.12)',
+      offsetX: 0,
+      offsetY: 4
+    });
+  }
+}
+
+@CustomDialog
 struct DeleteConfirmDialog {
   controller: CustomDialogController;
   schemaName: string = '';
@@ -231,9 +319,8 @@ struct NodeWorkspacePage {
   @State selectedSchemaId: string | null = null;
   @State schemaJson: string = '';
   @State showColorPicker: boolean = false;
-  @State editingColorType: 'fill' | 'border' = 'fill';
-  @State selectedColor: string = '#007AFF';
-  @State selectedBorderColor: string = '#000000';
+  @State editingColorType: 'fill' | 'border' | 'critical' = 'fill';
+  @State tempColor: string = '#007AFF';
   @State showBasicSection: boolean = true;
   @State showStyleSection: boolean = true;
   @State showFieldsSection: boolean = false;
@@ -242,9 +329,12 @@ struct NodeWorkspacePage {
   @State searchKeyword: string = '';
   @State previewUpdatePending: boolean = false;
   @State currentEditorTab: number = 0;
+  @State selectedComponentId: string | null = null;
+  @State currentViewMode: 'visual' | 'classic' = 'visual';
   
   private deleteDialogController: CustomDialogController | null = null;
   private importConflictDialogController: CustomDialogController | null = null;
+  private colorPickerDialogController: CustomDialogController | null = null;
   private previewThrottleTimer: number = -1;
   private readonly PREVIEW_THROTTLE_DELAY = 80;
 
@@ -289,6 +379,8 @@ struct NodeWorkspacePage {
       if (!this.selectedSchemaId && this.schemas.length > 0) {
         this.selectedSchemaId = this.schemas[0].id;
       }
+      // 清空组件选择
+      this.selectedComponentId = null;
     } catch (error) {
       console.error('[NodeWorkspace] reloadSchemas error:', error);
       this.errorBoundary.recordError(
@@ -722,15 +814,13 @@ struct NodeWorkspacePage {
     this.scheduleAutoSave();
   }
 
-  private updateSelectedSchemaBorderRadius(radius: string): void {
+  private updateSelectedSchemaBorderRadius(radius: number): void {
     const schema = this.getSelectedSchema();
     if (!schema) {
       return;
     }
     
-    const numValue = parseInt(radius);
-    if (isNaN(numValue) || numValue < 0) {
-      this.promptAction.showToast({ message: '圆角半径必须为非负整数' });
+    if (radius < 0) {
       return;
     }
     
@@ -743,8 +833,9 @@ struct NodeWorkspacePage {
       ports: schema.ports,
       style: {
         fillColor: schema.style.fillColor,
+        criticalColor: schema.style.criticalColor,
         borderColor: schema.style.borderColor,
-        borderRadius: numValue,
+        borderRadius: radius,
         icon: schema.style.icon,
         badgeColor: schema.style.badgeColor
       },
@@ -759,6 +850,82 @@ struct NodeWorkspacePage {
     this.reloadSchemas();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
+  }
+
+  private updateSelectedSchemaCriticalColor(color: string): void {
+    const schema = this.getSelectedSchema();
+    if (!schema) {
+      return;
+    }
+    
+    const updated: NodeSchema = {
+      id: schema.id,
+      version: schema.version,
+      name: schema.name,
+      description: schema.description,
+      meta: schema.meta,
+      ports: schema.ports,
+      style: {
+        fillColor: schema.style.fillColor,
+        criticalColor: color.trim().length > 0 ? color.trim() : undefined,
+        borderColor: schema.style.borderColor,
+        borderRadius: schema.style.borderRadius,
+        icon: schema.style.icon,
+        badgeColor: schema.style.badgeColor
+      },
+      fields: schema.fields,
+      layout: schema.layout,
+      rules: schema.rules,
+      isSystem: schema.isSystem,
+      isDraft: schema.isDraft,
+      parentVersionId: schema.parentVersionId
+    };
+    this.schemaService.upsertSchema(updated);
+    this.reloadSchemas();
+    this.refreshSchemaJson();
+    this.scheduleAutoSave();
+  }
+
+  private showColorPickerDialog(colorType: 'fill' | 'border' | 'critical'): void {
+    const schema = this.getSelectedSchema();
+    if (!schema) {
+      return;
+    }
+
+    this.editingColorType = colorType;
+    
+    if (colorType === 'fill') {
+      this.tempColor = schema.style.fillColor;
+    } else if (colorType === 'border') {
+      this.tempColor = schema.style.borderColor || schema.style.fillColor;
+    } else if (colorType === 'critical') {
+      this.tempColor = schema.style.criticalColor || '#FF3B30';
+    }
+
+    if (this.colorPickerDialogController) {
+      this.colorPickerDialogController.close();
+      this.colorPickerDialogController = null;
+    }
+
+    this.colorPickerDialogController = new CustomDialogController({
+      builder: NodeColorPickerDialog({
+        currentColor: this.tempColor,
+        onConfirm: (color: string) => {
+          if (this.editingColorType === 'fill') {
+            this.updateSelectedSchemaColor(color);
+          } else if (this.editingColorType === 'border') {
+            this.updateSelectedSchemaBorderColor(color);
+          } else if (this.editingColorType === 'critical') {
+            this.updateSelectedSchemaCriticalColor(color);
+          }
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    });
+
+    this.colorPickerDialogController.open();
   }
 
   private updateSelectedSchemaIcon(icon: string): void {
@@ -893,7 +1060,7 @@ struct NodeWorkspacePage {
     this.scheduleAutoSave();
   }
 
-  private addComponentToSelectedSchema(): void {
+  private addComponentToSelectedSchema(type: NodeComponentType = 'TITLE', index: number = -1): void {
     const schema = this.getSelectedSchema();
     if (!schema) {
       return;
@@ -901,14 +1068,15 @@ struct NodeWorkspacePage {
     
     const newComponent: NodeComponentSchema = {
       id: `component_${Date.now()}`,
-      type: 'TITLE'
+      type: type
     };
     
-    const updatedLayout: NodeComponentSchema[] = [];
-    for (const component of schema.layout) {
-      updatedLayout.push(component);
+    const updatedLayout: NodeComponentSchema[] = [...schema.layout];
+    if (index >= 0 && index <= updatedLayout.length) {
+      updatedLayout.splice(index, 0, newComponent);
+    } else {
+      updatedLayout.push(newComponent);
     }
-    updatedLayout.push(newComponent);
     
     const updated: NodeSchema = {
       id: schema.id,
@@ -927,6 +1095,7 @@ struct NodeWorkspacePage {
     };
     
     this.schemaService.upsertSchema(updated);
+    this.selectedComponentId = newComponent.id;
     this.reloadSchemas();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
@@ -958,7 +1127,64 @@ struct NodeWorkspacePage {
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
     this.refreshSchemaJson();
-    this.schemaService.saveToStorage();
+    this.scheduleAutoSave();
+  }
+
+  private updateComponentInSelectedSchema(componentId: string, updatedComponent: NodeComponentSchema): void {
+    const schema = this.getSelectedSchema();
+    if (!schema) {
+      return;
+    }
+    
+    const updatedLayout = schema.layout.map(c => c.id === componentId ? updatedComponent : c);
+    const updated: NodeSchema = {
+      id: schema.id,
+      version: schema.version,
+      name: schema.name,
+      description: schema.description,
+      meta: schema.meta,
+      ports: schema.ports,
+      style: schema.style,
+      fields: schema.fields,
+      layout: updatedLayout,
+      rules: schema.rules,
+      isSystem: schema.isSystem,
+      isDraft: schema.isDraft,
+      parentVersionId: schema.parentVersionId
+    };
+    
+    this.schemaService.upsertSchema(updated);
+    this.reloadSchemas();
+    this.refreshSchemaJson();
+    this.scheduleAutoSave();
+  }
+
+  private getFieldTypeLabel(type: FieldType): string {
+    const typeMap: Record<string, string> = {
+      'text': '文本',
+      'number': '数字',
+      'date': '日期',
+      'boolean': '布尔',
+      'select': '选择',
+      'checklist': '清单'
+    };
+    return typeMap[type] || type;
+  }
+
+  private getComponentTypeLabel(type: NodeComponentType): string {
+    const typeMap: Record<string, string> = {
+      'TITLE': '标题',
+      'DATE_RANGE': '日期范围',
+      'TIME_PROGRESS': '时间进度',
+      'TASK_PROGRESS': '任务进度',
+      'CHECKLIST_SUMMARY': '清单统计',
+      'PRIORITY_BADGE': '优先级',
+      'ASSIGNEE': '负责人',
+      'TAGS': '标签',
+      'STATUS_DOT': '状态点',
+      'CUSTOM_FIELD': '自定义字段'
+    };
+    return typeMap[type] || type;
   }
 
   private duplicateSelectedSchema(): void {
@@ -1083,6 +1309,32 @@ struct NodeWorkspacePage {
     }
     
     return filtered;
+  }
+
+  private handleComponentSelect(componentId: string): void {
+    this.selectedComponentId = componentId;
+  }
+
+  private handleComponentDelete(componentId: string): void {
+    this.deleteComponentFromSelectedSchema(componentId);
+    this.selectedComponentId = null;
+  }
+
+  private handleComponentPropertyChange(component: NodeComponentSchema): void {
+    this.updateComponentInSelectedSchema(component.id, component);
+  }
+
+  private handleComponentLibraryClick(type: NodeComponentType): void {
+    this.addComponentToSelectedSchema(type, -1);
+  }
+
+  private getSelectedComponent(): NodeComponentSchema | null {
+    const schema = this.getSelectedSchema();
+    if (!schema || !this.selectedComponentId) {
+      return null;
+    }
+    const component = schema.layout.find(c => c.id === this.selectedComponentId);
+    return component || null;
   }
   
   /**
@@ -1638,10 +1890,12 @@ struct NodeWorkspacePage {
             this.EditorTabContent();
           }
           .width('100%')
+          .alignItems(HorizontalAlign.Start)
           .padding({ left: 20, right: 20, top: 12, bottom: 20 });
         }
         .layoutWeight(1)
-        .scrollBar(BarState.Auto);
+        .scrollBar(BarState.Auto)
+        .align(Alignment.Top);
       } else {
         Column({ space: 12 }) {
           Text('请选择节点类型')
@@ -1815,11 +2069,24 @@ struct NodeWorkspacePage {
               Column({ space: 14 }) {
                 // 普通任务颜色
                 Column({ space: 10 }) {
-                  Text('普通任务颜色')
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorResource.textPrimary)
-                    .width('100%');
+                  Row({ space: 8 }) {
+                    Text('普通任务颜色')
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(ColorResource.textPrimary)
+                      .layoutWeight(1);
+                    
+                    Button('调色盘')
+                      .height(28)
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .backgroundColor(ColorResource.surface)
+                      .fontColor(ColorResource.primaryColor)
+                      .borderRadius(6)
+                      .onClick(() => {
+                        this.showColorPickerDialog('fill');
+                      });
+                  }
+                  .width('100%');
                   
                   Row({ space: 8 }) {
                     ForEach(['#007AFF', '#34C759', '#5AC8FA', '#5856D6', '#8E8E93', '#FF9500'], (color: string) => {
@@ -1837,9 +2104,7 @@ struct NodeWorkspacePage {
                         }
                       }
                       .onClick(() => {
-                        (this.getSelectedSchema() as NodeSchema).style.fillColor = color;
-                        this.schemaService.upsertSchema(this.getSelectedSchema() as NodeSchema);
-                        this.reloadSchemas();
+                        this.updateSelectedSchemaColor(color);
                       });
                     });
                   }
@@ -1854,17 +2119,30 @@ struct NodeWorkspacePage {
 
                 // 关键任务颜色
                 Column({ space: 10 }) {
-                  Column({ space: 2 }) {
-                    Text('关键任务颜色')
-                      .fontSize(ThemeConfig.fontSizeS)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(ColorResource.textPrimary);
-                    Text('（关键路径/高优先级）')
-                      .fontSize(ThemeConfig.fontSizeXS - 1)
-                      .fontColor(ColorResource.textTertiary)
-                      .opacity(0.7);
+                  Row({ space: 8 }) {
+                    Column({ space: 2 }) {
+                      Text('关键任务颜色')
+                        .fontSize(ThemeConfig.fontSizeS)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(ColorResource.textPrimary);
+                      Text('（关键路径/高优先级）')
+                        .fontSize(ThemeConfig.fontSizeXS - 1)
+                        .fontColor(ColorResource.textTertiary)
+                        .opacity(0.7);
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1);
+                    
+                    Button('调色盘')
+                      .height(28)
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .backgroundColor(ColorResource.surface)
+                      .fontColor(ColorResource.primaryColor)
+                      .borderRadius(6)
+                      .onClick(() => {
+                        this.showColorPickerDialog('critical');
+                      });
                   }
-                  .alignItems(HorizontalAlign.Start)
                   .width('100%');
                   
                   Row({ space: 8 }) {
@@ -1883,13 +2161,7 @@ struct NodeWorkspacePage {
                         }
                       }
                       .onClick(() => {
-                        if (!(this.getSelectedSchema() as NodeSchema).style.criticalColor) {
-                          (this.getSelectedSchema() as NodeSchema).style.criticalColor = color;
-                        } else {
-                          (this.getSelectedSchema() as NodeSchema).style.criticalColor = color;
-                        }
-                        this.schemaService.upsertSchema(this.getSelectedSchema() as NodeSchema);
-                        this.reloadSchemas();
+                        this.updateSelectedSchemaCriticalColor(color);
                       });
                     });
                   }
@@ -1910,33 +2182,62 @@ struct NodeWorkspacePage {
 
                 // 额外边框色（高级）
                 Column({ space: 8 }) {
-                  Row({ space: 4 }) {
-                    Text('额外边框色')
+                  Row({ space: 8 }) {
+                    Column({ space: 2 }) {
+                      Text('额外边框色')
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.textTertiary);
+                      
+                      Text('（高级、可选，留空则使用主色）')
+                        .fontSize(ThemeConfig.fontSizeXS - 1)
+                        .fontColor(ColorResource.textTertiary)
+                        .opacity(0.6);
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1);
+
+                    Button('调色盘')
+                      .height(28)
                       .fontSize(ThemeConfig.fontSizeXS)
-                      .fontColor(ColorResource.textTertiary);
-                    
-                    Text('（高级、可选）')
-                      .fontSize(ThemeConfig.fontSizeXS - 1)
-                      .fontColor(ColorResource.textTertiary)
-                      .opacity(0.6);
+                      .backgroundColor(ColorResource.surface)
+                      .fontColor(ColorResource.primaryColor)
+                      .borderRadius(6)
+                      .onClick(() => {
+                        this.showColorPickerDialog('border');
+                      });
                   }
                   .width('100%');
 
-                  TextInput({ 
-                    text: (this.getSelectedSchema() as NodeSchema).style.borderColor 
-                      ? (this.getSelectedSchema() as NodeSchema).style.borderColor as string 
-                      : '', 
-                    placeholder: '如 #000000，留空则使用主色' 
-                  })
-                    .width('100%')
-                    .height(40)
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .backgroundColor(ColorResource.backgroundInput)
-                    .borderRadius(ThemeConfig.radiusMedium)
-                    .padding({ left: 12, right: 12 })
-                    .onChange((value: string) => {
-                      this.updateSelectedSchemaBorderColor(value);
-                    });
+                  Row({ space: 8 }) {
+                    TextInput({ 
+                      text: (this.getSelectedSchema() as NodeSchema).style.borderColor 
+                        ? (this.getSelectedSchema() as NodeSchema).style.borderColor as string 
+                        : '', 
+                      placeholder: '如 #000000' 
+                    })
+                      .layoutWeight(1)
+                      .height(40)
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .backgroundColor(ColorResource.backgroundInput)
+                      .borderRadius(ThemeConfig.radiusMedium)
+                      .padding({ left: 12, right: 12 })
+                      .onChange((value: string) => {
+                        this.updateSelectedSchemaBorderColor(value);
+                      });
+                    
+                    if ((this.getSelectedSchema() as NodeSchema).style.borderColor) {
+                      Button('清除')
+                        .height(40)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .backgroundColor(ColorResource.surfaceSubtle)
+                        .fontColor(ColorResource.textSecondary)
+                        .borderRadius(ThemeConfig.radiusMedium)
+                        .onClick(() => {
+                          this.updateSelectedSchemaBorderColor('');
+                        });
+                    }
+                  }
+                  .width('100%');
                 }
 
                 // 圆角半径滑块
@@ -1965,7 +2266,7 @@ struct NodeWorkspacePage {
                     .trackColor(ColorResource.backgroundSecondary)
                     .selectedColor(ColorResource.primaryColor)
                     .onChange((value: number) => {
-                      this.updateSelectedSchemaBorderRadius(value.toString());
+                      this.updateSelectedSchemaBorderRadius(value);
                     });
                 }
 
@@ -2054,27 +2355,74 @@ struct NodeWorkspacePage {
                   });
 
               if ((this.getSelectedSchema() as NodeSchema).fields.length === 0) {
-                Text('暂无字段，点击"添加字段"创建')
-                  .fontSize(ThemeConfig.fontSizeXS)
-                  .fontColor(ColorResource.textTertiary)
-                  .padding({ top: 8, bottom: 8 });
-              } else {
                 Column({ space: 8 }) {
-                  ForEach((this.getSelectedSchema() as NodeSchema).fields, (field: FieldSchema) => {
-                    Column({ space: 6 }) {
+                  Text('暂无字段')
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.textTertiary)
+                  
+                  Text('字段可用于存储任务的自定义数据，如优先级、负责人等')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textTertiary)
+                    .lineHeight(16)
+                    .opacity(0.8);
+                }
+                .width('100%')
+                .padding(16)
+                .backgroundColor(ColorResource.surface)
+                .borderRadius(8);
+              } else {
+                Column({ space: 10 }) {
+                  ForEach((this.getSelectedSchema() as NodeSchema).fields, (field: FieldSchema, index: number) => {
+                    Column({ space: 10 }) {
+                      // 标题栏
                       Row({ space: 8 }) {
-                        Text('字段标签')
-                          .fontSize(ThemeConfig.fontSizeXS)
-                          .fontColor(ColorResource.textTertiary)
-                          .width(60);
+                        Text(`字段 ${index + 1}`)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontWeight(FontWeight.Medium)
+                          .fontColor(ColorResource.textPrimary)
+                          .layoutWeight(1);
                         
-                        TextInput({ text: field.label, placeholder: '字段名称' })
-                          .layoutWeight(1)
-                          .height(ThemeConfig.inputHeightSmall)
+                        Row({ space: 6 }) {
+                          if (field.required) {
+                            Text('必填')
+                              .fontSize(ThemeConfig.fontSizeXS - 1)
+                              .fontColor('#FF3B30')
+                              .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+                              .backgroundColor('rgba(255, 59, 48, 0.1)')
+                              .borderRadius(3);
+                          }
+                          
+                          Button('删除')
+                            .height(24)
+                            .fontSize(ThemeConfig.fontSizeXS)
+                            .backgroundColor(Color.Transparent)
+                            .fontColor('#FF3B30')
+                            .padding({ left: 8, right: 8 })
+                            .onClick(() => {
+                              this.deleteFieldFromSelectedSchema(field.id);
+                            });
+                        }
+                      }
+                      .width('100%');
+
+                      Divider()
+                        .strokeWidth(0.5)
+                        .color(ColorResource.surfaceEmphasized)
+                        .opacity(0.2);
+
+                      // 字段标签
+                      Column({ space: 6 }) {
+                        Text('字段名称')
+                          .fontSize(ThemeConfig.fontSizeXS)
+                          .fontColor(ColorResource.textTertiary);
+                        
+                        TextInput({ text: field.label, placeholder: '如：优先级、负责人' })
+                          .width('100%')
+                          .height(36)
                           .fontSize(ThemeConfig.fontSizeS)
                           .backgroundColor(ColorResource.backgroundInput)
-                          .borderRadius(ThemeConfig.radiusSmall)
-                          .padding({ left: 8, right: 8 })
+                          .borderRadius(6)
+                          .padding({ left: 10, right: 10 })
                           .onChange((value: string) => {
                             const updated: FieldSchema = {
                               id: field.id,
@@ -2087,36 +2435,102 @@ struct NodeWorkspacePage {
                             this.updateFieldInSelectedSchema(field.id, updated);
                           });
                       }
+                      .width('100%')
+                      .alignItems(HorizontalAlign.Start);
 
-                      Row({ space: 8 }) {
+                      // 字段类型
+                      Column({ space: 6 }) {
                         Text('字段类型')
                           .fontSize(ThemeConfig.fontSizeXS)
-                          .fontColor(ColorResource.textTertiary)
-                          .width(60);
+                          .fontColor(ColorResource.textTertiary);
                         
-                        Button(field.type)
-                          .layoutWeight(1)
-                          .height(ThemeConfig.inputHeightSmall)
-                          .fontSize(ThemeConfig.fontSizeS)
-                          .backgroundColor(ColorResource.backgroundInput)
-                          .fontColor(ColorResource.textPrimary)
-                          .borderRadius(ThemeConfig.radiusSmall);
-                        
-                        Button('删除')
-                          .height(ThemeConfig.inputHeightSmall)
-                          .fontSize(ThemeConfig.fontSizeXS)
-                          .backgroundColor(ColorResource.surfaceSubtle)
-                          .fontColor('#FF3B30')
-                          .borderRadius(ThemeConfig.radiusSmall)
-                          .onClick(() => {
-                            this.deleteFieldFromSelectedSchema(field.id);
+                        Row({ space: 6 }) {
+                          ForEach(['text', 'number', 'date', 'select', 'checklist'] as FieldType[], (type: FieldType) => {
+                            Text(this.getFieldTypeLabel(type))
+                              .fontSize(ThemeConfig.fontSizeXS)
+                              .fontColor(field.type === type ? Color.White : ColorResource.textSecondary)
+                              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                              .backgroundColor(field.type === type ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+                              .borderRadius(6)
+                              .onClick(() => {
+                                const updated: FieldSchema = {
+                                  id: field.id,
+                                  label: field.label,
+                                  type: type,
+                                  required: field.required,
+                                  defaultValue: field.defaultValue,
+                                  options: field.options
+                                };
+                                this.updateFieldInSelectedSchema(field.id, updated);
+                              });
                           });
+                        }
+                        .width('100%');
+                      }
+                      .width('100%')
+                      .alignItems(HorizontalAlign.Start);
+
+                      // 必填选项
+                      Row({ space: 8 }) {
+                        Checkbox({ name: `required_${field.id}`, group: 'fieldOptions' })
+                          .select(field.required)
+                          .selectedColor(ColorResource.primaryColor)
+                          .onChange((value: boolean) => {
+                            const updated: FieldSchema = {
+                              id: field.id,
+                              label: field.label,
+                              type: field.type,
+                              required: value,
+                              defaultValue: field.defaultValue,
+                              options: field.options
+                            };
+                            this.updateFieldInSelectedSchema(field.id, updated);
+                          });
+                        
+                        Text('标记为必填字段')
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontColor(ColorResource.textSecondary);
+                      }
+                      .width('100%');
+
+                      // 默认值（可选）
+                      if (field.type === 'text' || field.type === 'number') {
+                        Column({ space: 6 }) {
+                          Text('默认值（可选）')
+                            .fontSize(ThemeConfig.fontSizeXS)
+                            .fontColor(ColorResource.textTertiary);
+                          
+                          TextInput({ 
+                            text: field.defaultValue ? String(field.defaultValue) : '', 
+                            placeholder: '输入默认值' 
+                          })
+                            .width('100%')
+                            .height(36)
+                            .fontSize(ThemeConfig.fontSizeS)
+                            .backgroundColor(ColorResource.backgroundInput)
+                            .borderRadius(6)
+                            .padding({ left: 10, right: 10 })
+                            .onChange((value: string) => {
+                              const updated: FieldSchema = {
+                                id: field.id,
+                                label: field.label,
+                                type: field.type,
+                                required: field.required,
+                                defaultValue: value.trim().length > 0 ? value : undefined,
+                                options: field.options
+                              };
+                              this.updateFieldInSelectedSchema(field.id, updated);
+                            });
+                        }
+                        .width('100%')
+                        .alignItems(HorizontalAlign.Start);
                       }
                     }
                     .width('100%')
-                    .padding({ top: 8, bottom: 8, left: 12, right: 12 })
-                    .backgroundColor(ColorResource.backgroundSecondary)
-                    .borderRadius(ThemeConfig.radiusMedium);
+                    .padding(14)
+                    .backgroundColor(ColorResource.surface)
+                    .borderRadius(10)
+                    .shadow({ radius: 4, color: 'rgba(0,0,0,0.05)', offsetY: 2 });
                   }, (field: FieldSchema) => field.id);
                 }
               }
@@ -2174,33 +2588,140 @@ struct NodeWorkspacePage {
                   });
 
               if ((this.getSelectedSchema() as NodeSchema).layout.length === 0) {
-                Text('暂无布局组件，点击"添加组件"创建')
-                  .fontSize(ThemeConfig.fontSizeXS)
-                  .fontColor(ColorResource.textTertiary)
-                  .padding({ top: 8, bottom: 8 });
-              } else {
                 Column({ space: 8 }) {
-                  ForEach((this.getSelectedSchema() as NodeSchema).layout, (component: NodeComponentSchema) => {
-                    Row({ space: 8 }) {
-                      Text(component.type)
-                        .fontSize(ThemeConfig.fontSizeS)
-                        .fontColor(ColorResource.textPrimary)
+                  Text('暂无布局组件')
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.textTertiary);
+                  
+                  Text('布局组件定义节点卡片内部的UI结构和显示方式')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textTertiary)
+                    .lineHeight(16)
+                    .opacity(0.8);
+                  
+                  Column({ space: 6 }) {
+                    Text('常用组件类型：')
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .fontColor(ColorResource.textTertiary)
+                      .fontWeight(FontWeight.Medium);
+                    
+                    Text('• TITLE - 标题显示')
+                      .fontSize(ThemeConfig.fontSizeXS - 1)
+                      .fontColor(ColorResource.textTertiary)
+                      .opacity(0.7);
+                    
+                    Text('• FIELD - 字段显示')
+                      .fontSize(ThemeConfig.fontSizeXS - 1)
+                      .fontColor(ColorResource.textTertiary)
+                      .opacity(0.7);
+                    
+                    Text('• PROGRESS - 进度条')
+                      .fontSize(ThemeConfig.fontSizeXS - 1)
+                      .fontColor(ColorResource.textTertiary)
+                      .opacity(0.7);
+                  }
+                  .alignItems(HorizontalAlign.Start)
+                  .margin({ top: 6 });
+                }
+                .width('100%')
+                .padding(16)
+                .backgroundColor(ColorResource.surface)
+                .borderRadius(8)
+                .alignItems(HorizontalAlign.Start);
+              } else {
+                Column({ space: 10 }) {
+                  ForEach((this.getSelectedSchema() as NodeSchema).layout, (component: NodeComponentSchema, index: number) => {
+                    Column({ space: 10 }) {
+                      Row({ space: 8 }) {
+                        Column({ space: 2 }) {
+                          Text(`组件 ${index + 1}`)
+                            .fontSize(ThemeConfig.fontSizeS)
+                            .fontWeight(FontWeight.Medium)
+                            .fontColor(ColorResource.textPrimary);
+                          
+                          Text(this.getComponentTypeLabel(component.type))
+                            .fontSize(ThemeConfig.fontSizeXS)
+                            .fontColor(ColorResource.primaryColor);
+                        }
+                        .alignItems(HorizontalAlign.Start)
                         .layoutWeight(1);
-                      
-                      Button('删除')
-                        .height(ThemeConfig.inputHeightSmall)
-                        .fontSize(ThemeConfig.fontSizeXS)
-                        .backgroundColor(ColorResource.surfaceSubtle)
-                        .fontColor('#FF3B30')
-                        .borderRadius(ThemeConfig.radiusSmall)
-                        .onClick(() => {
-                          this.deleteComponentFromSelectedSchema(component.id);
-                        });
+                        
+                        Button('删除')
+                          .height(28)
+                          .fontSize(ThemeConfig.fontSizeXS)
+                          .backgroundColor(Color.Transparent)
+                          .fontColor('#FF3B30')
+                          .padding({ left: 8, right: 8 })
+                          .onClick(() => {
+                            this.deleteComponentFromSelectedSchema(component.id);
+                          });
+                      }
+                      .width('100%');
+
+                      Divider()
+                        .strokeWidth(0.5)
+                        .color(ColorResource.surfaceEmphasized)
+                        .opacity(0.2);
+
+                      // 组件类型选择
+                      Column({ space: 6 }) {
+                        Text('组件类型')
+                          .fontSize(ThemeConfig.fontSizeXS)
+                          .fontColor(ColorResource.textTertiary);
+                        
+                        Row({ space: 6 }) {
+                          ForEach(['TITLE', 'CUSTOM_FIELD', 'TIME_PROGRESS', 'TASK_PROGRESS', 'TAGS'] as NodeComponentType[], (type: NodeComponentType) => {
+                            Text(this.getComponentTypeLabel(type))
+                              .fontSize(ThemeConfig.fontSizeXS)
+                              .fontColor(component.type === type ? Color.White : ColorResource.textSecondary)
+                              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                              .backgroundColor(component.type === type ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+                              .borderRadius(6)
+                              .onClick(() => {
+                                const updated: NodeComponentSchema = {
+                                  id: component.id,
+                                  type: type,
+                                  fieldId: component.fieldId
+                                };
+                                this.updateComponentInSelectedSchema(component.id, updated);
+                              });
+                          });
+                        }
+                        .width('100%');
+                      }
+                      .width('100%')
+                      .alignItems(HorizontalAlign.Start);
+
+                      // 如果是CUSTOM_FIELD类型，显示字段绑定
+                      if (component.type === 'CUSTOM_FIELD') {
+                        Column({ space: 6 }) {
+                          Text('绑定字段')
+                            .fontSize(ThemeConfig.fontSizeXS)
+                            .fontColor(ColorResource.textTertiary);
+                          
+                          Text(component.fieldId || '未绑定')
+                            .fontSize(ThemeConfig.fontSizeS)
+                            .fontColor(component.fieldId ? ColorResource.textPrimary : ColorResource.textTertiary)
+                            .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+                            .backgroundColor(ColorResource.backgroundInput)
+                            .borderRadius(6)
+                            .width('100%');
+                          
+                          Text('提示：在字段管理中创建字段后可绑定')
+                            .fontSize(ThemeConfig.fontSizeXS - 1)
+                            .fontColor(ColorResource.textTertiary)
+                            .opacity(0.7)
+                            .margin({ top: 2 });
+                        }
+                        .width('100%')
+                        .alignItems(HorizontalAlign.Start);
+                      }
                     }
                     .width('100%')
-                    .padding({ top: 8, bottom: 8, left: 12, right: 12 })
-                    .backgroundColor(ColorResource.backgroundSecondary)
-                    .borderRadius(ThemeConfig.radiusMedium);
+                    .padding(14)
+                    .backgroundColor(ColorResource.surface)
+                    .borderRadius(10)
+                    .shadow({ radius: 4, color: 'rgba(0,0,0,0.05)', offsetY: 2 });
                   }, (component: NodeComponentSchema) => component.id);
                 }
               }
@@ -2452,6 +2973,21 @@ private JsonTab() {
             .layoutWeight(1);
 
           Row({ space: 8 }) {
+            // 视图切换按钮
+            Button(this.currentViewMode === 'visual' ? '可视化' : '经典视图')
+              .fontSize(ThemeConfig.fontSizeS)
+              .height(36)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .fontColor(ColorResource.primaryColor)
+              .borderRadius(8)
+              .onClick(() => {
+                this.currentViewMode = this.currentViewMode === 'visual' ? 'classic' : 'visual';
+                this.promptAction.showToast({ 
+                  message: `已切换到${this.currentViewMode === 'visual' ? '可视化' : '经典'}视图`, 
+                  duration: 1500 
+                });
+              });
+            
             Button('保存')
               .fontSize(ThemeConfig.fontSizeS)
               .height(36)
@@ -2489,6 +3025,7 @@ private JsonTab() {
         .opacity(0.2);
 
       Row({ space: 0 }) {
+        // 左侧: 节点类型列表 (20%)
         this.SchemaList();
         
         Divider()
@@ -2497,7 +3034,16 @@ private JsonTab() {
           .color(ColorResource.surfaceEmphasized)
           .opacity(0.2);
         
-        this.PreviewPanel();
+        // 中左: 组件库面板 (25%)
+        Column({ space: 0 }) {
+          ComponentLibrary({
+            onComponentClick: (type: NodeComponentType) => {
+              this.handleComponentLibraryClick(type);
+            }
+          });
+        }
+        .width('25%')
+        .height('100%');
         
         Divider()
           .vertical(true)
@@ -2505,7 +3051,43 @@ private JsonTab() {
           .color(ColorResource.surfaceEmphasized)
           .opacity(0.2);
         
-        this.EditorPanel();
+        // 中右: 可视化画布 (30%)
+        Column({ space: 0 }) {
+          NodeVisualCanvas({
+            schema: this.getSelectedSchema(),
+            selectedComponentId: this.selectedComponentId,
+            onComponentSelect: (componentId: string) => {
+              this.handleComponentSelect(componentId);
+            },
+            onComponentDelete: (componentId: string) => {
+              this.handleComponentDelete(componentId);
+            },
+            onComponentAdd: (type: NodeComponentType, index: number) => {
+              this.addComponentToSelectedSchema(type, index);
+            }
+          });
+        }
+        .width('30%')
+        .height('100%');
+        
+        Divider()
+          .vertical(true)
+          .strokeWidth(1)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.2);
+        
+        // 右侧: 属性编辑面板 (25%)
+        Column({ space: 0 }) {
+          ComponentPropertyPanel({
+            selectedComponent: this.getSelectedComponent(),
+            availableFields: this.getSelectedSchema()?.fields || [],
+            onPropertyChange: (component: NodeComponentSchema) => {
+              this.handleComponentPropertyChange(component);
+            }
+          });
+        }
+        .width('25%')
+        .height('100%');
       }
       .width('100%')
       .layoutWeight(1);

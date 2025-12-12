@@ -55,6 +55,7 @@ import { AIService } from '../services/AIService';
 import { TutorialService, TutorialStep, TutorialPage } from '../services/TutorialService';
 import { TutorialGuide, TutorialWelcomeDialog } from '../components/TutorialGuide';
 import { TutorialSettingsDialog } from '../components/TutorialSettings';
+import { NodeSchemaService } from '../services/NodeSchemaService';
 
 /**
  * ActionMenu按钮接口
@@ -582,7 +583,14 @@ struct HomePage {
     }
 
     // 初始化存储服务
-    this.storageService = StorageService.getInstance((this.uiContext.getHostContext() as common.UIAbilityContext).filesDir);
+    const hostContext = this.uiContext.getHostContext() as common.UIAbilityContext;
+    const filesDir = hostContext.filesDir;
+    this.storageService = StorageService.getInstance(filesDir);
+
+    // 初始化节点 Schema 存储（在应用启动时加载一次）
+    const nodeSchemaService = NodeSchemaService.getInstance();
+    nodeSchemaService.initializeStorage(filesDir);
+    await nodeSchemaService.loadFromStorage();
     
     // 测试文件系统操作
     console.log('[Home] 开始测试文件系统操作...');
@@ -2096,6 +2104,23 @@ struct HomePage {
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+
+        // 节点工作台入口按钮（位于新增项目按钮左侧）
+        Button('节点工作台')
+          .height(36)
+          .padding({ left: 12, right: 12 })
+          .margin({ right: 12 })
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor(ColorResource.surface)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(18)
+          .shadow(ThemeConfig.shadowSmall)
+          .onClick(() => {
+            this.uiContext.getRouter().pushUrl({
+              url: 'pages/NodeWorkspace'
+            });
+          })
 
         // 新建项目按钮 - 现代化设计，增强视觉吸引力
         Stack() {

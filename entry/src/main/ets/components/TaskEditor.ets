@@ -33,6 +33,8 @@
  */
 
 import { TaskNode, ChecklistItem, Dependency, Project } from '../model/ProjectData';
+import { NodeSchema, TaskNodeWithSchema } from '../model/NodeSchema';
+import { NodeSchemaService } from '../services/NodeSchemaService';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
@@ -47,6 +49,14 @@ interface TaskDependencyInfo {
   fromName: string;
   toName: string;
   type: string;
+}
+
+/**
+ * 任务更新载荷类型
+ * 在原有 TaskNode 基础上扩展 schema 相关字段
+ */
+interface TaskUpdatePayload extends Partial<TaskNode> {
+  typeId?: string;
 }
 
 /**
@@ -150,6 +160,83 @@ export struct TaskEditor {
       this.displayDependencies = this.getTaskDependencies(task.id);
       console.log(`[TaskEditor] Updated display data: startDate=${task.startDate.toLocaleDateString()}, endDate=${task.endDate.toLocaleDateString()}, checklist=${this.displayChecklist.length} items, dependencies=${this.displayDependencies.length} items`);
     }
+  }
+
+  /**
+   * 获取可用的节点类型 Schema 列表
+   * 当前为内置静态定义，后续会接入节点工作台与持久化
+   */
+  private getAvailableNodeSchemas(): NodeSchema[] {
+    const service = NodeSchemaService.getInstance();
+    const schemas = service.getAllSchemas();
+    if (schemas && schemas.length > 0) {
+      return schemas;
+    }
+
+    // 兜底：服务里没有数据时，仍然用内置默认两种类型
+    return [
+      {
+        id: 'standard',
+        version: 1,
+        name: '标准任务',
+        description: '默认的标准任务节点',
+        style: {
+          fillColor: '#007AFF'
+        },
+        fields: [],
+        layout: [],
+        rules: [],
+        isSystem: true,
+        isDraft: false
+      },
+      {
+        id: 'milestone',
+        version: 1,
+        name: '里程碑',
+        description: '用于标记关键里程碑的节点',
+        style: {
+          fillColor: '#FF9500'
+        },
+        fields: [],
+        layout: [],
+        rules: [],
+        isSystem: true,
+        isDraft: false
+      }
+    ];
+  }
+
+  /**
+   * 获取当前任务的节点类型 ID
+   */
+  private getCurrentNodeTypeId(): string {
+    const task = (this.localTask || this.task) as TaskNodeWithSchema | null;
+    if (task && task.typeId) {
+      return task.typeId;
+    }
+    // 默认类型
+    return 'standard';
+  }
+
+  /**
+   * 处理节点类型选择
+   */
+  private onNodeTypeSelected(typeId: string): void {
+    if (!this.localTask) {
+      return;
+    }
+    const taskWithSchema = this.localTask as TaskNodeWithSchema;
+    if (taskWithSchema.typeId === typeId) {
+      return;
+    }
+
+    taskWithSchema.typeId = typeId;
+    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+    this.forceUpdateKey++;
+
+    // 通过 onUpdateTask 通知父组件，扩展更新载荷类型以兼容 typeId
+    const updates: TaskUpdatePayload = { typeId: typeId };
+    this.onUpdateTask(this.localTask.id, updates);
   }
 
   /**
@@ -557,6 +644,38 @@ export struct TaskEditor {
             }
 
              // 日期选择区域 - 使用自定义Tab切换（苹果风格）
+             // 节点类型选择
+             Column({ space: 8 }) {
+               Text('节点类型')
+                 .fontSize(ThemeConfig.fontSizeS)
+                 .fontWeight(ThemeConfig.fontWeightMedium)
+                 .fontColor(ColorResource.surfaceEmphasized)
+               Row({ space: 8 }) {
+                 ForEach(this.getAvailableNodeSchemas(), (schema: NodeSchema) => {
+                   Text(schema.name)
+                     .fontSize(ThemeConfig.fontSizeS)
+                     .fontWeight(schema.id === this.getCurrentNodeTypeId() ? ThemeConfig.fontWeightMedium : FontWeight.Normal)
+                     .fontColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryColor : ColorResource.textSecondary)
+                     .padding({
+                       left: ThemeConfig.spacingM,
+                       right: ThemeConfig.spacingM,
+                       top: ThemeConfig.spacingXS,
+                       bottom: ThemeConfig.spacingXS
+                     })
+                     .backgroundColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
+                     .borderRadius(ThemeConfig.radiusMedium)
+                     .border({
+                       width: 1,
+                       color: schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
+                       radius: ThemeConfig.radiusMedium
+                     })
+                     .onClick(() => {
+                       this.onNodeTypeSelected(schema.id);
+                     })
+                  }, (schema: NodeSchema, index: number) => `task-editor-node-schema-${schema.id}-${index}`)
+                }
+              }
+
              Column({ space: 0 }) {
                // Tab切换按钮栏
                Row({ space: 0 }) {

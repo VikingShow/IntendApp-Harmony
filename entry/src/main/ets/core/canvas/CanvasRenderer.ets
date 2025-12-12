@@ -33,7 +33,9 @@
  */
 
 import { Project, TaskNode, Dependency, ChecklistItem } from '../../model/ProjectData';
+import { TaskNodeWithSchema, NodeSchema } from '../../model/NodeSchema';
 import { ThemeConfig, ColorResource } from '../../utils/ThemeConfig';
+import { NodeSchemaService } from '../../services/NodeSchemaService';
 
 /**
  * 渲染模式枚举
@@ -100,6 +102,7 @@ export class CanvasRenderer {
   private context: CanvasRenderingContext2D;
   private settings: RenderingContextSettings;
   private isDarkMode: boolean = false;
+  private nodeSchemaService: NodeSchemaService | null = null;
   
   // 性能优化：离屏Canvas缓存
   private gridCache: CanvasRenderingContext2D | null = null;
@@ -108,10 +111,12 @@ export class CanvasRenderer {
   
   // 性能优化：上次渲染状态
   private lastRenderHash: string = '';
-
+ 
   constructor() {
     this.settings = new RenderingContextSettings(true);
     this.context = new CanvasRenderingContext2D(this.settings);
+    // 初始化节点 Schema 服务（单例）
+    this.nodeSchemaService = NodeSchemaService.getInstance();
     
     // 初始化离屏Canvas用于网格缓存
     this.gridCacheSettings = new RenderingContextSettings(true);
@@ -202,10 +207,20 @@ export class CanvasRenderer {
       `dark:${this.isDarkMode}`
     ];
     
-    // 添加任务的完整信息（包括名称、日期、子任务等，确保任务内容变化时触发重绘）
-    project.tasks.forEach(task => {
-      const checklistInfo = task.checklist ? `${task.checklist.length}:${task.checklist.filter(c => c.isCompleted).length}` : '0:0';
-      parts.push(`t:${task.id}:${task.x},${task.y}:${task.isCritical ? '1' : '0'}:${task.name}:${task.startDate}:${task.endDate}:${checklistInfo}`);
+    // 添加任务的完整信息（包括名称、日期、子任务、类型等，确保任务内容变化时触发重绘）
+    project.tasks.forEach((task: TaskNode) => {
+      const checklistInfo = task.checklist
+        ? `${task.checklist.length}:${task.checklist.filter((c: ChecklistItem) => c.isCompleted).length}`
+        : '0:0';
+
+      // 将 schema 的 typeId 也纳入哈希，确保切换节点类型时会重新渲染
+      const taskWithSchema = task as TaskNodeWithSchema;
+      const typeIdInfo = taskWithSchema.typeId ? taskWithSchema.typeId : 'default';
+
+      parts.push(
+        `t:${task.id}:${task.x},${task.y}:${task.isCritical ? '1' : '0'}:${task.name}:` +
+        `${task.startDate}:${task.endDate}:${checklistInfo}:${typeIdInfo}`
+      );
     });
     
     return parts.join('|');
@@ -367,6 +382,41 @@ export class CanvasRenderer {
         this.context.stroke();
       }
     });
+  }
+
+  private getTaskColorWithSchema(task: TaskNode): string {
+    const schemaColor = this.getSchemaTaskColor(task as TaskNodeWithSchema);
+    if (schemaColor) {
+      return schemaColor;
+    }
+    return this.getTaskColor(task);
+  }
+
+  private getSchemaTaskColor(task: TaskNodeWithSchema): string | null {
+    // If no schema info, fall back to default color logic
+    if (!task || !task.typeId) {
+      console.log('[CanvasRenderer] getSchemaTaskColor: no typeId on task');
+      return null;
+    }
+
+    console.log(`[CanvasRenderer] getSchemaTaskColor: typeId=${task.typeId}`);
+
+    // 使用节点 Schema 服务按 typeId 查找样式颜色
+    if (!this.nodeSchemaService) {
+      this.nodeSchemaService = NodeSchemaService.getInstance();
+    }
+
+    try {
+      const schema: NodeSchema | null = this.nodeSchemaService.getSchemaById(task.typeId);
+      if (!schema || !schema.style || !schema.style.fillColor) {
+        return null;
+      }
+      // 直接使用 Schema 中配置的填充色；如需深色模式适配，可在后续扩展
+      return schema.style.fillColor;
+    } catch (error) {
+      console.error('[CanvasRenderer] getSchemaTaskColor: failed to read schema color', error);
+      return null;
+    }
   }
 
   /**
@@ -562,7 +612,7 @@ export class CanvasRenderer {
       const centerX = task.x + config.canvasOffsetX + 100;
       const centerY = task.y + config.canvasOffsetY + 60;
 
-      const circleColor = this.getTaskColor(task);
+      const circleColor = this.getTaskColorWithSchema(task);
       
       if (isSelected) {
         this.context.beginPath();
@@ -718,5 +768,3 @@ export class CanvasRenderer {
     return Math.round((elapsed / totalDuration) * 100);
   }
 }
-
-

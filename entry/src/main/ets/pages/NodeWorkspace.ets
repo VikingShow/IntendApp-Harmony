@@ -2306,22 +2306,6 @@ struct NodeWorkspacePage {
   // 样式 Tab
   @Builder
   private StyleTab() {
-    Column({ space: 16 }) {
-      Text('详细样式设置')
-        .fontSize(ThemeConfig.fontSizeM)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(ColorResource.textPrimary);
-      
-      Text('配置节点的详细外观样式')
-        .fontSize(ThemeConfig.fontSizeS)
-        .fontColor(ColorResource.textSecondary);
-      
-      Column({ space: 8 }) {
-        Text('填充色')
-          .fontSize(ThemeConfig.fontSizeS)
-          .fontWeight(FontWeight.Medium);
-@Builder
-private StyleTab() {
   Column({ space: 16 }) {
     Text('详细样式设置')
       .fontSize(ThemeConfig.fontSizeM)
@@ -2440,58 +2424,8 @@ private JsonTab() {
       .enabled(false);
   }
   .width('100%')
-  .padding(12)
-  .backgroundColor(ColorResource.surface)
-  .borderRadius(8);
+  .alignItems(HorizontalAlign.Start);
 }
-
-build() {
-  Column({ space: 0 }) {
-    Column() {
-      Row({ space: 12 }) {
-        Row({ space: 6 }) {
-          Text('←')
-            .fontSize(20)
-            .fontColor(ColorResource.primaryColor);
-          Text('返回')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontColor(ColorResource.primaryColor);
-        }
-        .padding({ left: 8, right: 12, top: 8, bottom: 8 })
-      Row({ space: 8 }) {
-        Text('JSON 视图')
-          .fontSize(ThemeConfig.fontSizeM)
-          .fontWeight(FontWeight.Medium)
-          .layoutWeight(1);
-        
-        Button('复制')
-          .height(32)
-          .fontSize(ThemeConfig.fontSizeXS)
-          .onClick(() => {
-            this.promptAction.showToast({ message: '已复制到剪贴板（模拟）', duration: 2000 });
-          });
-      }
-      
-      Text('只读视图，查看当前节点类型的完整 JSON 配置')
-        .fontSize(ThemeConfig.fontSizeS)
-        .fontColor(ColorResource.textSecondary)
-        .lineHeight(18);
-      
-      TextArea({
-        text: JSON.stringify(this.getSelectedSchema(), null, 2)
-      })
-        .width('100%')
-        .height(400)
-        .fontSize(ThemeConfig.fontSizeXS)
-        .fontColor(ColorResource.textPrimary)
-        .backgroundColor(ColorResource.backgroundSecondary)
-        .borderRadius(8)
-        .padding(12)
-        .enabled(false);
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start);
-  }
 
   build() {
     Column({ space: 0 }) {

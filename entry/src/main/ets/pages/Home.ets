@@ -56,6 +56,7 @@ import { TutorialService, TutorialStep, TutorialPage } from '../services/Tutoria
 import { TutorialGuide, TutorialWelcomeDialog } from '../components/TutorialGuide';
 import { TutorialSettingsDialog } from '../components/TutorialSettings';
 import { NodeSchemaService } from '../services/NodeSchemaService';
+import { CustomComponentService } from '../services/CustomComponentService';
 
 /**
  * ActionMenu按钮接口
@@ -557,6 +558,7 @@ struct HomePage {
   private migrationService: DataMigrationService | null = null;
   private importService: ImportService | null = null;
   private errorHandler: ErrorHandler | null = null;
+  private customComponentService: CustomComponentService = CustomComponentService.getInstance();
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   private aiService: AIService = AIService.getInstance();
@@ -591,7 +593,10 @@ struct HomePage {
     const nodeSchemaService = NodeSchemaService.getInstance();
     nodeSchemaService.initializeStorage(filesDir);
     await nodeSchemaService.loadFromStorage();
-    
+
+    // 初始化全局自定义组件存储（在应用启动时加载一次）
+    this.customComponentService.initializeStorage(filesDir);
+
     // 测试文件系统操作
     console.log('[Home] 开始测试文件系统操作...');
     const fileSystemTestResult = await this.storageService.testFileSystem();

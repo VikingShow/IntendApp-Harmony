@@ -65,6 +65,10 @@ export interface ProjectState {
   error: string | null;
 }
 
+interface TaskNodeWithSchema extends TaskNode {
+  typeId?: string;
+}
+
 /**
  * 项目操作接口
  * 定义所有可用的项目操作命令
@@ -664,7 +668,7 @@ export class ProjectManager {
 
   // 辅助方法：复制TaskNode对象
   private copyTaskNode(task: TaskNode): TaskNode {
-    return {
+    const copied: TaskNode = {
       id: task.id,
       name: task.name,
       startDate: task.startDate,
@@ -685,6 +689,15 @@ export class ProjectManager {
       lateStart: task.lateStart,
       lateFinish: task.lateFinish
     };
+
+    // 兼容 schema 扩展字段：TaskNodeWithSchema.typeId
+    // 这里用显式接口做类型收窄，避免 any/unknown。
+    const typeIdValue = (task as TaskNodeWithSchema).typeId;
+    if (typeof typeIdValue === 'string') {
+      (copied as TaskNodeWithSchema).typeId = typeIdValue;
+    }
+
+    return copied;
   }
 
   private getDuration(task: TaskNode): number {

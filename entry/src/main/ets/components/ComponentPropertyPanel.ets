@@ -12,13 +12,13 @@ export struct ComponentPropertyPanel {
   @Prop selectedComponent: NodeComponentSchema | null;
   @Prop availableFields: FieldSchema[] = [];
   @Prop schemaStyle: NodeStyleSchema | null = null;
+
   onFillColorChange?: (color: string) => void;
   onCriticalColorChange?: (color: string) => void;
   onPickFillColor?: () => void;
   onPickCriticalColor?: () => void;
   onBorderColorChange?: (color: string) => void;
   onBorderRadiusChange?: (radius: number) => void;
-  
   onPropertyChange?: (component: NodeComponentSchema) => void;
 
   private getComponentTypeLabel(type: NodeComponentType): string {
@@ -61,10 +61,10 @@ export struct ComponentPropertyPanel {
           .fontSize(ThemeConfig.fontSizeL)
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.textPrimary);
-        
+
         Row()
           .layoutWeight(1);
-        
+
         Text('?')
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
@@ -88,9 +88,20 @@ export struct ComponentPropertyPanel {
       .width('100%')
       .padding({ left: 20, right: 20, top: 16, bottom: 12 });
 
-      // 上半部分：样式编辑（固定显示）
-      Column({ space: 12 }) {
-        if (this.schemaStyle) {
+      this.PropertiesTabContent();
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorResource.backgroundPage);
+  }
+
+  // ========== 组件属性 Tab ==========
+  @Builder
+  PropertiesTabContent() {
+    Column({ space: 0 }) {
+      // 样式编辑区
+      if (this.schemaStyle) {
+        Column({ space: 12 }) {
           Text('节点卡片样式')
             .fontSize(ThemeConfig.fontSizeM)
             .fontWeight(FontWeight.Medium)
@@ -212,19 +223,19 @@ export struct ComponentPropertyPanel {
           .width('100%')
           .alignItems(HorizontalAlign.Start);
         }
+        .width('100%')
+        .padding(16)
+        .backgroundColor(ColorResource.surface)
+        .borderRadius(12)
+        .margin({ left: 16, right: 16, top: 12, bottom: 12 });
       }
-      .width('100%')
-      .padding({ left: 20, right: 20, bottom: 12 })
-      .backgroundColor(ColorResource.surface)
-      .borderRadius(12)
-      .margin({ left: 20, right: 20, bottom: 12 });
 
       Divider()
         .strokeWidth(0.5)
         .color(ColorResource.surfaceEmphasized)
         .opacity(0.3);
 
-      // 下半部分：组件属性（可滚动）
+      // 组件属性区
       Column({ space: 0 }) {
         if (!this.selectedComponent) {
           Column({ space: 12 }) {
@@ -241,13 +252,13 @@ export struct ComponentPropertyPanel {
           .width('100%')
           .layoutWeight(1)
           .padding({ left: 20, right: 20, top: 16, bottom: 20 })
-          .alignItems(HorizontalAlign.Start);
+          .justifyContent(FlexAlign.Center);
         } else {
-          // 组件名称（放到下半区顶部）
+          // 组件名称
           Row({ space: 6 }) {
             Text(this.getComponentIcon(this.selectedComponent.type))
               .fontSize(16);
-            
+
             Text(this.getComponentTypeLabel(this.selectedComponent.type))
               .fontSize(ThemeConfig.fontSizeS)
               .fontColor(ColorResource.primaryColor)
@@ -258,226 +269,235 @@ export struct ComponentPropertyPanel {
 
           Scroll() {
             Column({ space: 16 }) {
-            // 基本信息
-            Column({ space: 12 }) {
-              Text('基本信息')
-                .fontSize(ThemeConfig.fontSizeM)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorResource.textPrimary);
+              // 基本信息
+              Column({ space: 12 }) {
+                Text('基本信息')
+                  .fontSize(ThemeConfig.fontSizeM)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorResource.textPrimary);
 
-              Column({ space: 10 }) {
-                Row({ space: 8 }) {
-                  Text('组件ID')
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textTertiary)
-                    .width(80);
-                  
-                  Text(this.selectedComponent.id)
-                    .fontSize(ThemeConfig.fontSizeXS)
-                    .fontColor(ColorResource.textSecondary)
-                    .fontFamily('monospace')
-                    .layoutWeight(1);
-                }
+                Column({ space: 10 }) {
+                  Row({ space: 8 }) {
+                    Text('组件ID')
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.textTertiary)
+                      .width(80);
 
-                Divider()
-                  .strokeWidth(0.5)
-                  .color(ColorResource.surfaceEmphasized)
-                  .opacity(0.3);
+                    Text(this.selectedComponent.id)
+                      .fontSize(ThemeConfig.fontSizeXS)
+                      .fontColor(ColorResource.textSecondary)
+                      .fontFamily('monospace')
+                      .layoutWeight(1);
+                  }
 
-                Row({ space: 8 }) {
-                  Text('类型')
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textTertiary)
-                    .width(80);
-                  
-                  Text(this.getComponentTypeLabel(this.selectedComponent.type))
-                    .fontSize(ThemeConfig.fontSizeS)
-                    .fontColor(ColorResource.textPrimary)
-                    .fontWeight(FontWeight.Medium)
-                    .layoutWeight(1);
+                  Divider()
+                    .strokeWidth(0.5)
+                    .color(ColorResource.surfaceEmphasized)
+                    .opacity(0.3);
+
+                  Row({ space: 8 }) {
+                    Text('类型')
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.textTertiary)
+                      .width(80);
+
+                    Text(this.getComponentTypeLabel(this.selectedComponent.type))
+                      .fontSize(ThemeConfig.fontSizeS)
+                      .fontColor(ColorResource.textPrimary)
+                      .fontWeight(FontWeight.Medium)
+                      .layoutWeight(1);
+                  }
                 }
               }
-            }
-            .width('100%')
-            .padding(16)
-            .backgroundColor(ColorResource.surface)
-            .borderRadius(12)
-            .shadow(ThemeConfig.cardShadow);
+              .width('100%')
+              .padding(16)
+              .backgroundColor(ColorResource.surface)
+              .borderRadius(12)
+              .shadow(ThemeConfig.cardShadow);
 
-            // 组件配置
-            this.renderComponentConfig()
+              // 组件配置
+              this.renderComponentConfig();
 
-            // 组件说明
-            Column({ space: 8 }) {
-              Text('组件说明')
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorResource.textPrimary);
-              
-              Text(this.getComponentDescription(this.selectedComponent.type))
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textSecondary)
-                .lineHeight(18);
+              // 组件说明
+              Column({ space: 8 }) {
+                Text('组件说明')
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorResource.textPrimary);
+
+                Text(this.getComponentDescription(this.selectedComponent.type))
+                  .fontSize(ThemeConfig.fontSizeXS)
+                  .fontColor(ColorResource.textSecondary)
+                  .lineHeight(18);
+              }
+              .width('100%')
+              .padding(12)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(8)
+              .alignItems(HorizontalAlign.Start);
             }
-            .width('100%')
-            .padding(12)
-            .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(8)
-            .alignItems(HorizontalAlign.Start);
           }
-            }
           .width('100%')
           .layoutWeight(1)
           .scrollBar(BarState.Auto)
-          .padding({ left: 20, right: 20, top: 16, bottom: 20 });
+          .padding({ left: 20, right: 20, top: 8, bottom: 20 });
         }
       }
       .width('100%')
       .layoutWeight(1);
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor(ColorResource.backgroundPage);
-
+    .layoutWeight(1);
   }
 
   @Builder
   renderComponentConfig() {
     if (this.selectedComponent) {
       Column({ space: 12 }) {
-      Text('组件配置')
-        .fontSize(ThemeConfig.fontSizeM)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(ColorResource.textPrimary);
+        Text('组件配置')
+          .fontSize(ThemeConfig.fontSizeM)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary);
 
-      if (this.selectedComponent.type === 'CUSTOM_FIELD') {
-        // 自定义字段需要绑定字段
-        Column({ space: 8 }) {
-          Text('绑定字段')
-            .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ColorResource.textTertiary);
-          
-          if (this.availableFields.length === 0) {
-            Column({ space: 6 }) {
-              Text('暂无可用字段')
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontColor(ColorResource.textTertiary);
-              
-              Text('请先在"字段管理"中添加字段')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textSecondary)
-                .lineHeight(16);
-            }
-            .width('100%')
-            .padding(12)
-            .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(8)
-            .alignItems(HorizontalAlign.Start);
-          } else {
-            Column({ space: 6 }) {
-              ForEach(this.availableFields, (field: FieldSchema) => {
-                Row({ space: 8 }) {
-                  Radio({ value: field.id, group: 'fieldBinding' })
-                    .checked(this.selectedComponent?.fieldId === field.id)
-                    .onChange((isChecked: boolean) => {
-                      if (isChecked && this.selectedComponent && this.onPropertyChange) {
-                        const updated: NodeComponentSchema = {
-                          id: this.selectedComponent.id,
-                          type: this.selectedComponent.type,
-                          fieldId: field.id,
-                          props: this.selectedComponent.props
-                        };
-                        this.onPropertyChange(updated);
-                      }
-                    });
-                  
-                  Column({ space: 2 }) {
-                    Text(field.label)
-                      .fontSize(ThemeConfig.fontSizeS)
-                      .fontColor(ColorResource.textPrimary);
-                    
-                    Text(field.type)
-                      .fontSize(ThemeConfig.fontSizeXS)
-                      .fontColor(ColorResource.textTertiary);
+        if (this.selectedComponent.type === 'CUSTOM_FIELD') {
+          // 自定义字段需要绑定字段
+          Column({ space: 8 }) {
+            Text('绑定字段')
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textTertiary);
+
+            if (this.availableFields.length === 0) {
+              Column({ space: 6 }) {
+                Text('暂无可用字段')
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.textTertiary);
+
+                Text('请先在"字段管理"中添加字段')
+                  .fontSize(ThemeConfig.fontSizeXS)
+                  .fontColor(ColorResource.textSecondary)
+                  .lineHeight(16);
+
+                Button('去添加字段')
+                  .height(32)
+                  .fontSize(ThemeConfig.fontSizeXS)
+                  .backgroundColor(ColorResource.primaryColor)
+                  .fontColor(Color.White)
+                  .borderRadius(6)
+                  .margin({ top: 8 })
+                  .onClick(() => {
+                    // 字段管理已迁移到独立页面
+                  });
+              }
+              .width('100%')
+              .padding(12)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(8)
+              .alignItems(HorizontalAlign.Start);
+            } else {
+              Column({ space: 6 }) {
+                ForEach(this.availableFields, (field: FieldSchema) => {
+                  Row({ space: 8 }) {
+                    Radio({ value: field.id, group: 'fieldBinding' })
+                      .checked(this.selectedComponent?.fieldId === field.id)
+                      .onChange((isChecked: boolean) => {
+                        if (isChecked && this.selectedComponent && this.onPropertyChange) {
+                          const updated: NodeComponentSchema = {
+                            id: this.selectedComponent.id,
+                            type: this.selectedComponent.type,
+                            fieldId: field.id,
+                            props: this.selectedComponent.props
+                          };
+                          this.onPropertyChange(updated);
+                        }
+                      });
+
+                    Column({ space: 2 }) {
+                      Text(field.label)
+                        .fontSize(ThemeConfig.fontSizeS)
+                        .fontColor(ColorResource.textPrimary);
+
+                      Text(field.type)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.textTertiary);
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1);
                   }
-                  .alignItems(HorizontalAlign.Start)
-                  .layoutWeight(1);
-                }
-                .width('100%')
-                .padding(10)
-                .backgroundColor(
-                  this.selectedComponent?.fieldId === field.id
-                    ? ColorResource.backgroundSecondary
-                    : Color.Transparent
-                )
-                .borderRadius(6);
-              }, (field: FieldSchema) => field.id);
+                  .width('100%')
+                  .padding(10)
+                  .backgroundColor(
+                    this.selectedComponent?.fieldId === field.id
+                      ? ColorResource.backgroundSecondary
+                      : Color.Transparent
+                  )
+                  .borderRadius(6);
+                }, (field: FieldSchema) => field.id);
+              }
             }
           }
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start);
-      } else if (this.needsMaxLinesConfig(this.selectedComponent.type)) {
-        // 需要最大行数配置
-        Column({ space: 8 }) {
-          Text('最大行数')
-            .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ColorResource.textTertiary);
-          
-          Row({ space: 12 }) {
-            ForEach([1, 2, 3], (lines: number) => {
-              Text(`${lines}行`)
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontColor(
-                  this.selectedComponent?.props?.maxLines === lines
-                    ? Color.White
-                    : ColorResource.textSecondary
-                )
-                .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-                .backgroundColor(
-                  this.selectedComponent?.props?.maxLines === lines
-                    ? ColorResource.primaryColor
-                    : ColorResource.backgroundSecondary
-                )
-                .borderRadius(8)
-                .onClick(() => {
-                  if (this.selectedComponent && this.onPropertyChange) {
-                    const updated: NodeComponentSchema = {
-                      id: this.selectedComponent.id,
-                      type: this.selectedComponent.type,
-                      fieldId: this.selectedComponent.fieldId,
-                      props: {
-                        maxLines: lines,
-                        highlight: this.selectedComponent.props?.highlight,
-                        color: this.selectedComponent.props?.color
-                      }
-                    };
-                    this.onPropertyChange(updated);
-                  }
-                });
-            });
+          .width('100%')
+          .alignItems(HorizontalAlign.Start);
+        } else if (this.needsMaxLinesConfig(this.selectedComponent.type)) {
+          // 需要最大行数配置
+          Column({ space: 8 }) {
+            Text('最大行数')
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textTertiary);
+
+            Row({ space: 12 }) {
+              ForEach([1, 2, 3], (lines: number) => {
+                Text(`${lines}行`)
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(
+                    this.selectedComponent?.props?.maxLines === lines
+                      ? Color.White
+                      : ColorResource.textSecondary
+                  )
+                  .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+                  .backgroundColor(
+                    this.selectedComponent?.props?.maxLines === lines
+                      ? ColorResource.primaryColor
+                      : ColorResource.backgroundSecondary
+                  )
+                  .borderRadius(8)
+                  .onClick(() => {
+                    if (this.selectedComponent && this.onPropertyChange) {
+                      const updated: NodeComponentSchema = {
+                        id: this.selectedComponent.id,
+                        type: this.selectedComponent.type,
+                        fieldId: this.selectedComponent.fieldId,
+                        props: {
+                          maxLines: lines,
+                          highlight: this.selectedComponent.props?.highlight,
+                          color: this.selectedComponent.props?.color
+                        }
+                      };
+                      this.onPropertyChange(updated);
+                    }
+                  });
+              });
+            }
           }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start);
+        } else {
+          // 其他组件的通用配置
+          Column({ space: 8 }) {
+            Text('该组件暂无特殊配置项')
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textTertiary);
+
+            Text('组件将使用默认样式渲染')
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.textSecondary)
+              .lineHeight(16);
+          }
+          .width('100%')
+          .padding(12)
+          .backgroundColor(ColorResource.backgroundSecondary)
+          .borderRadius(8)
+          .alignItems(HorizontalAlign.Start);
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start);
-      } else {
-        // 其他组件的通用配置
-        Column({ space: 8 }) {
-          Text('该组件暂无特殊配置项')
-            .fontSize(ThemeConfig.fontSizeS)
-            .fontColor(ColorResource.textTertiary);
-          
-          Text('组件将使用默认样式渲染')
-            .fontSize(ThemeConfig.fontSizeXS)
-            .fontColor(ColorResource.textSecondary)
-            .lineHeight(16);
-        }
-        .width('100%')
-        .padding(12)
-        .backgroundColor(ColorResource.backgroundSecondary)
-        .borderRadius(8)
-        .alignItems(HorizontalAlign.Start);
-      }
       }
       .width('100%')
       .padding(16)

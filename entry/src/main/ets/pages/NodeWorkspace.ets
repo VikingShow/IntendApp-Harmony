@@ -1593,7 +1593,6 @@ struct NodeWorkspacePage {
         this.selectedSchemaId = this.schemas[0].id;
       }
       this.updateSelectedSchemaObject();
-      this.updateSelectedSchemaObject();
       // 保留组件选择（仅在组件确实不存在时清空）
       if (this.selectedSchemaId && preservedComponentId) {
         const schema = this.schemaService.getSchemaById(this.selectedSchemaId);
@@ -2126,6 +2125,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2152,6 +2152,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2192,6 +2193,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2232,6 +2234,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2271,6 +2274,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2306,6 +2310,7 @@ struct NodeWorkspacePage {
     };
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -4774,6 +4779,19 @@ struct NodeWorkspacePage {
                 this.resetLayout();
               });
 
+            Button('自定义组件')
+              .fontSize(ThemeConfig.fontSizeS)
+              .height(36)
+              .backgroundColor(ColorResource.surface)
+              .fontColor(ColorResource.primaryColor)
+              .borderRadius(8)
+              .onClick(() => {
+                this.getUIContext().getRouter().pushUrl({
+                  url: 'pages/CustomComponentDesigner',
+                  params: { schemaId: this.selectedSchemaId }
+                } as router.RouterOptions);
+              });
+
             Button('保存')
               .fontSize(ThemeConfig.fontSizeS)
               .height(36)
@@ -4885,7 +4903,7 @@ struct NodeWorkspacePage {
           Column({ space: 0 }) {
             ComponentPropertyPanel({
               selectedComponent: this.getSelectedComponent(),
-              availableFields: this.getSelectedSchema()?.fields || [],
+              availableFields: this.selectedSchemaObject?.fields || [],
               schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
               onFillColorChange: (color: string) => {
                 this.updateSelectedSchemaColor(color);
@@ -4990,7 +5008,7 @@ struct NodeWorkspacePage {
                 } else if (index === 3) {
                   ComponentPropertyPanel({
                     selectedComponent: this.getSelectedComponent(),
-                    availableFields: this.getSelectedSchema()?.fields || [],
+                    availableFields: this.selectedSchemaObject?.fields || [],
                     schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
                     onFillColorChange: (color: string) => {
                       this.updateSelectedSchemaColor(color);

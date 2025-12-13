@@ -2,6 +2,7 @@
   "src": [
     "pages/Home",
     "pages/Index",
-    "pages/NodeWorkspace"
+    "pages/NodeWorkspace",
+    "pages/CustomComponentDesigner"
   ]
 }

@@ -660,8 +660,8 @@ export class CanvasRenderer {
           if (t === 'TITLE') { y += LINE_H + 4; return; }
           if (t === 'DATE_RANGE') { y += LINE_H; return; }
           if (t === 'CHECKLIST_SUMMARY') { y += LINE_H; return; }
-          if (t === 'TIME_PROGRESS') { y += LINE_H + 4; return; }
-          if (t === 'TASK_PROGRESS') { y += LINE_H + 4; return; }
+          if (t === 'TIME_PROGRESS') { y += LINE_H; return; }
+          if (t === 'TASK_PROGRESS') { y += LINE_H; return; }
           if (t === 'PRIORITY_BADGE') { y += LINE_H; return; }
           if (t === 'STATUS_DOT') { y += LINE_H; return; }
           if (t === 'ASSIGNEE') { y += LINE_H; return; }
@@ -715,12 +715,12 @@ export class CanvasRenderer {
 
       if (!layout || layout.length === 0) {
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
-        this.context.font = `bold 30px HarmonyOS Sans`;
+        this.context.font = `bold 32px HarmonyOS Sans`;
         this.context.fillText(task.name, leftX, cursorY);
         cursorY += 22;
 
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-        this.context.font = `22px HarmonyOS Sans`;
+        this.context.font = `24px HarmonyOS Sans`;
         // 紧凑日期格式：月/日 ~ 月/日 (天数)
         const startM = task.startDate.getMonth() + 1;
         const startD = task.startDate.getDate();
@@ -731,17 +731,29 @@ export class CanvasRenderer {
         cursorY += 18;
 
         const timeProgress = this.getTimeProgress(task);
-        this.context.font = `20px HarmonyOS Sans`;
-        this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-        cursorY += 4;
-        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
-        cursorY += 16;
+        this.context.font = `22px HarmonyOS Sans`;
+        // 时间进度 - 标签、进度条、百分比同行
+        this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+        this.context.fillText(`时间`, leftX, cursorY);
+        const timeLabelW = this.context.measureText('时间').width + 10;
+        const timePercentW = this.context.measureText('100%').width + 10;
+        const timeBarW = NODE_WIDTH - 30 - timeLabelW - timePercentW;
+        this.drawProgressBar(leftX + timeLabelW, cursorY + 4, timeBarW, 6, timeProgress, '#409EFF');
+        this.context.fillStyle = '#409EFF';
+        this.context.fillText(`${timeProgress}%`, leftX + timeLabelW + timeBarW + 8, cursorY);
+        cursorY += 20;
 
         const completionProgress = this.getCompletionProgress(task);
-        this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-        cursorY += 4;
-        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
-        cursorY += 16;
+        // 完成进度 - 标签、进度条、百分比同行
+        this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+        this.context.fillText(`完成`, leftX, cursorY);
+        const compLabelW = this.context.measureText('完成').width + 10;
+        const compPercentW = this.context.measureText('100%').width + 10;
+        const compBarW = NODE_WIDTH - 30 - compLabelW - compPercentW;
+        this.drawProgressBar(leftX + compLabelW, cursorY + 4, compBarW, 6, completionProgress, '#67C23A');
+        this.context.fillStyle = '#67C23A';
+        this.context.fillText(`${completionProgress}%`, leftX + compLabelW + compBarW + 8, cursorY);
+        cursorY += 20;
       } else {
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
@@ -749,14 +761,14 @@ export class CanvasRenderer {
 
           if (t === 'TITLE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
-            this.context.font = `bold 28px HarmonyOS Sans`;
+            this.context.font = `bold 32px HarmonyOS Sans`;
             this.context.fillText(task.name, leftX, cursorY);
             cursorY += LINE_HEIGHT + 4;
             return;
           }
           if (t === 'DATE_RANGE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `24px HarmonyOS Sans`;
             // 紧凑日期格式：月/日 ~ 月/日 (天数)
             const startM = task.startDate.getMonth() + 1;
             const startD = task.startDate.getDate();
@@ -773,34 +785,50 @@ export class CanvasRenderer {
               ? task.checklist.filter((c: ChecklistItem) => c.isCompleted).length
               : 0;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `24px HarmonyOS Sans`;
             this.context.fillText(`☑️ ${done}/${total} 项已完成`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TIME_PROGRESS') {
             const timeProgress = this.getTimeProgress(task);
+            this.context.font = `22px HarmonyOS Sans`;
+            // 标签
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `20px HarmonyOS Sans`;
-            this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-            this.drawProgressBar(leftX, cursorY + 18, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
-            cursorY += LINE_HEIGHT + 4;
+            this.context.fillText(`时间`, leftX, cursorY);
+            // 进度条
+            const labelWidth = this.context.measureText('时间').width + 10;
+            const percentWidth = this.context.measureText('100%').width + 10;
+            const barWidth = NODE_WIDTH - 30 - labelWidth - percentWidth;
+            this.drawProgressBar(leftX + labelWidth, cursorY + 4, barWidth, 6, timeProgress, '#409EFF');
+            // 百分比
+            this.context.fillStyle = '#409EFF';
+            this.context.fillText(`${timeProgress}%`, leftX + labelWidth + barWidth + 8, cursorY);
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TASK_PROGRESS') {
             const completionProgress = this.getCompletionProgress(task);
+            this.context.font = `22px HarmonyOS Sans`;
+            // 标签
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `20px HarmonyOS Sans`;
-            this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-            this.drawProgressBar(leftX, cursorY + 18, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
-            cursorY += LINE_HEIGHT + 4;
+            this.context.fillText(`完成`, leftX, cursorY);
+            // 进度条
+            const labelWidth = this.context.measureText('完成').width + 10;
+            const percentWidth = this.context.measureText('100%').width + 10;
+            const barWidth = NODE_WIDTH - 30 - labelWidth - percentWidth;
+            this.drawProgressBar(leftX + labelWidth, cursorY + 4, barWidth, 6, completionProgress, '#67C23A');
+            // 百分比
+            this.context.fillStyle = '#67C23A';
+            this.context.fillText(`${completionProgress}%`, leftX + labelWidth + barWidth + 8, cursorY);
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'PRIORITY_BADGE') {
             const propStyle = comp && comp.props && comp.props.style ? String(comp.props.style) : 'badge';
             const v = getCustomStr('_priority');
             const priorityText = v && v.length > 0 ? v : '高优先级';
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `24px HarmonyOS Sans`;
             
             if (propStyle === 'icon') {
               // 图标样式：🔥🔥🔥
@@ -815,7 +843,7 @@ export class CanvasRenderer {
               // 默认徽章样式
               const badgePadX = 8;
               const badgeH = 20;
-              this.context.font = `20px HarmonyOS Sans`;
+              this.context.font = `22px HarmonyOS Sans`;
               const badgeText = priorityText.substring(0, 1);
               const badgeW = this.context.measureText(badgeText).width + badgePadX * 2;
               // 绘制徽章背景
@@ -841,7 +869,7 @@ export class CanvasRenderer {
               // 标签样式
               const labelPadX = 8;
               const labelH = 20;
-              this.context.font = `20px HarmonyOS Sans`;
+              this.context.font = `22px HarmonyOS Sans`;
               const labelW = this.context.measureText(statusText).width + labelPadX * 2;
               this.context.fillStyle = '#67C23A';
               this.drawRoundRect(this.context, leftX, cursorY, labelW, labelH, 4);
@@ -856,7 +884,7 @@ export class CanvasRenderer {
               this.context.fillStyle = '#67C23A';
               this.context.fill();
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-              this.context.font = `22px HarmonyOS Sans`;
+              this.context.font = `24px HarmonyOS Sans`;
               this.context.fillText(statusText, leftX + 16, cursorY);
               cursorY += LINE_HEIGHT;
             }
@@ -866,14 +894,14 @@ export class CanvasRenderer {
             const v = getCustomStr('_assignee');
             const assigneeText = v && v.length > 0 ? v : '张三';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `24px HarmonyOS Sans`;
             this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TAGS') {
             const tags = getCustomTags('_tags');
-            this.context.font = `20px HarmonyOS Sans`;
+            this.context.font = `22px HarmonyOS Sans`;
 
             // 如果没有标签，显示示例标签
             const displayTags = tags.length > 0 ? tags : ['前端', '紧急'];
@@ -924,7 +952,7 @@ export class CanvasRenderer {
             const label = getFieldLabel(fid, fid && fid.length > 0 ? fid : '字段');
             const displayText = v && v.length > 0 ? v : '未绑定字段';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `24px HarmonyOS Sans`;
             this.context.fillText(`✏️ ${label}: ${displayText}`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
@@ -932,7 +960,7 @@ export class CanvasRenderer {
 
           // 未知组件类型
           this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-          this.context.font = `22px HarmonyOS Sans`;
+          this.context.font = `24px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);
           cursorY += LINE_HEIGHT;
         });
@@ -941,7 +969,7 @@ export class CanvasRenderer {
       // 选中时在节点右上角外侧显示类型标签（badge），避免占用节点内部空间
       if (isSelected) {
         const label = schemaName;
-        this.context.font = `18px HarmonyOS Sans`;
+        this.context.font = `20px HarmonyOS Sans`;
         const textWidth = this.context.measureText(label).width;
         const padX = 10;
         const padY = 6;
@@ -1046,7 +1074,7 @@ export class CanvasRenderer {
       }
 
       this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
-      this.context.font = `22px HarmonyOS Sans`;
+      this.context.font = `24px HarmonyOS Sans`;
       this.context.textAlign = 'left';
       this.context.textBaseline = 'middle';
       

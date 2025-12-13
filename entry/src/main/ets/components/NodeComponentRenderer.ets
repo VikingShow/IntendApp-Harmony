@@ -212,11 +212,10 @@ export struct NodeComponentPreview {
 
   @Builder
   renderTimeProgress() {
-    Column({ space: 3 }) {
-      Text('时间: 35%')
+    Row({ space: 8 }) {
+      Text('时间')
         .fontSize(10)
-        .fontColor(ColorResource.textSecondary)
-        .width('100%');
+        .fontColor(ColorResource.textSecondary);
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -231,18 +230,23 @@ export struct NodeComponentPreview {
           .backgroundColor('#409EFF')
           .borderRadius(3);
       }
-      .width('100%');
+      .layoutWeight(1);
+
+      Text('35%')
+        .fontSize(10)
+        .fontColor('#409EFF')
+        .fontWeight(FontWeight.Medium);
     }
-    .width('100%');
+    .width('100%')
+    .alignItems(VerticalAlign.Center);
   }
 
   @Builder
   renderTaskProgress() {
-    Column({ space: 3 }) {
-      Text('完成: 60%')
+    Row({ space: 8 }) {
+      Text('完成')
         .fontSize(10)
-        .fontColor(ColorResource.textSecondary)
-        .width('100%');
+        .fontColor(ColorResource.textSecondary);
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -257,9 +261,15 @@ export struct NodeComponentPreview {
           .backgroundColor('#67C23A')
           .borderRadius(3);
       }
-      .width('100%');
+      .layoutWeight(1);
+
+      Text('60%')
+        .fontSize(10)
+        .fontColor('#67C23A')
+        .fontWeight(FontWeight.Medium);
     }
-    .width('100%');
+    .width('100%')
+    .alignItems(VerticalAlign.Center);
   }
 
   @Builder

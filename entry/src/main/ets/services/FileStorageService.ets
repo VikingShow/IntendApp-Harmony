@@ -332,7 +332,7 @@ export class FileStorageService {
 
         // 验证JSON格式
         try {
-          const projectList = JSON.parse(content) as ProjectMeta[];
+          const projectList: ProjectMeta[] = JSON.parse(content) as ProjectMeta[];
           console.log(`[FileStorageService] 加载项目列表，共 ${projectList.length} 个项目`);
           return projectList;
         } catch (parseError) {
@@ -395,7 +395,7 @@ export class FileStorageService {
               // 验证JSON格式
               let projectData: Record<string, string | number | boolean | object>;
               try {
-                projectData = JSON.parse(content);
+                projectData = JSON.parse(content) as Record<string, string | number | boolean | object>;
               } catch (parseError) {
                 console.error(`[FileStorageService] 项目文件 ${fileName} JSON解析失败:`, parseError);
                 console.log(`[FileStorageService] 删除损坏的项目文件: ${fileName}`);
@@ -610,7 +610,7 @@ export class FileStorageService {
 
         const decoder = new util.TextDecoder();
         const content = decoder.decode(new Uint8Array(buffer));
-        const storableProject = JSON.parse(content) as StorableProject;
+        const storableProject: StorableProject = JSON.parse(content) as StorableProject;
 
         // 转换回完整的Project对象
         const project = new Project(storableProject.id, storableProject.name);
@@ -708,7 +708,7 @@ export class FileStorageService {
    */
   public async importProject(importData: string): Promise<Project> {
     try {
-      const data = JSON.parse(importData) as ImportData;
+      const data: ImportData = JSON.parse(importData) as ImportData;
       if (!data.project) {
         throw new Error('无效的导入数据格式');
       }
@@ -767,7 +767,7 @@ export class FileStorageService {
 
               // 验证JSON格式
               try {
-                JSON.parse(content);
+                const _: Object = JSON.parse(content);
                 console.log(`[FileStorageService] 文件 ${fileName} 正常`);
               } catch (parseError) {
                 console.log(`[FileStorageService] 发现损坏的文件: ${fileName}，错误: ${parseError.message}`);

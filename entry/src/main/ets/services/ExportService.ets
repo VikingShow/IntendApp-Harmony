@@ -482,6 +482,12 @@ export class ExportService {
         // 创建文档保存选择器
         const documentSaveOptions = new picker.DocumentSaveOptions();
         documentSaveOptions.newFileNames = [fileName];
+        
+        // 设置文件后缀选项，这样在保存时会显示正确的文件类型
+        const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+        if (fileExtension && fileExtension.length > 1) {
+          documentSaveOptions.fileSuffixChoices = [fileExtension];
+        }
 
         const documentPicker = new picker.DocumentViewPicker();
         const uris = await documentPicker.save(documentSaveOptions);
@@ -533,6 +539,12 @@ export class ExportService {
         // 使用文档选择器保存图片
         const documentSaveOptions = new picker.DocumentSaveOptions();
         documentSaveOptions.newFileNames = [fileName];
+        
+        // 设置文件后缀选项
+        const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+        if (fileExtension && fileExtension.length > 1) {
+          documentSaveOptions.fileSuffixChoices = [fileExtension];
+        }
 
         const documentPicker = new picker.DocumentViewPicker();
         const uris = await documentPicker.save(documentSaveOptions);

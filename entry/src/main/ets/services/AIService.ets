@@ -184,7 +184,7 @@ export class AIService {
         }
       }
 
-      const schema = JSON.parse(content) as AIProjectSchema;
+      const schema: AIProjectSchema = JSON.parse(content) as AIProjectSchema;
       return this.schemaToProject(schema);
     } catch (error) {
       console.error('[AIService] Failed to generate project:', error);

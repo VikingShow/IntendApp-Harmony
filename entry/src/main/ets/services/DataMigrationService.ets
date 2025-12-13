@@ -73,7 +73,7 @@ export class DataMigrationService {
       // 检查旧存储中是否有数据
       const oldStore = await this.oldStore;
       const projectListValue = await oldStore.get('project_list', '[]');
-      const oldProjectList = JSON.parse(projectListValue.toString()) as ProjectMeta[];
+      const oldProjectList: ProjectMeta[] = JSON.parse(projectListValue.toString()) as ProjectMeta[];
       
       return oldProjectList.length > 0;
     } catch (error) {
@@ -99,7 +99,7 @@ export class DataMigrationService {
       
       // 1. 迁移项目列表
       const projectListValue = await oldStore.get('project_list', '[]');
-      const oldProjectList = JSON.parse(projectListValue.toString()) as ProjectMeta[];
+      const oldProjectList: ProjectMeta[] = JSON.parse(projectListValue.toString()) as ProjectMeta[];
       
       console.log(`[DataMigrationService] 发现 ${oldProjectList.length} 个项目需要迁移`);
       
@@ -108,7 +108,7 @@ export class DataMigrationService {
         try {
           const projectValue = await oldStore.get(projectMeta.id, '');
           if (projectValue) {
-            const storableProject = JSON.parse(projectValue.toString()) as StorableProject;
+            const storableProject: StorableProject = JSON.parse(projectValue.toString()) as StorableProject;
             
             // 转换为完整的Project对象
             const project = new Project(storableProject.id, storableProject.name);
@@ -172,7 +172,7 @@ export class DataMigrationService {
       
       // 获取所有项目ID
       const projectListValue = await oldStore.get('project_list', '[]');
-      const oldProjectList = JSON.parse(projectListValue.toString()) as ProjectMeta[];
+      const oldProjectList: ProjectMeta[] = JSON.parse(projectListValue.toString()) as ProjectMeta[];
       
       // 删除项目数据
       for (const projectMeta of oldProjectList) {
@@ -196,7 +196,7 @@ export class DataMigrationService {
     try {
       const oldStore = await this.oldStore;
       const projectListValue = await oldStore.get('project_list', '[]');
-      const oldProjectList = JSON.parse(projectListValue.toString()) as ProjectMeta[];
+      const oldProjectList: ProjectMeta[] = JSON.parse(projectListValue.toString()) as ProjectMeta[];
       
       const newProjectList = await this.fileStorage.getProjectList();
       

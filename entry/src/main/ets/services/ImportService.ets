@@ -346,7 +346,7 @@ export class ImportService {
       console.log('[ImportService] 开始解析 JSON 数据...');
 
       // 1. 解析 JSON
-      const data = JSON.parse(jsonContent) as ImportProjectData;
+      const data: ImportProjectData = JSON.parse(jsonContent) as ImportProjectData;
 
       // 2. 验证数据格式
       if (!data.project) {

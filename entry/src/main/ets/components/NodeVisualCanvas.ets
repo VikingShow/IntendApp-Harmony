@@ -218,7 +218,7 @@ export struct NodeVisualCanvas {
                                 if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
                                   const content = (data as unifiedDataChannel.PlainText).textContent;
                                   try {
-                                    const dropData: DragInfo = JSON.parse(content);
+                                    const dropData = JSON.parse(content) as DragInfo;
                                     if (dropData.action === 'reorder' && this.onComponentReorder) {
                                       this.onComponentReorder(dropData.index, index);
                                     }
@@ -299,7 +299,7 @@ export struct NodeVisualCanvas {
                                   if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
                                     const content = (data as unifiedDataChannel.PlainText).textContent;
                                     try {
-                                      const dropData: DragInfo = JSON.parse(content);
+                                      const dropData = JSON.parse(content) as DragInfo;
                                       if (dropData.action === 'reorder' && this.onComponentReorder) {
                                         this.onComponentReorder(dropData.index, index + 1);
                                       }

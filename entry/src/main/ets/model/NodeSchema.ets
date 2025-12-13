@@ -262,6 +262,8 @@ export interface NodeSchema {
   isDraft?: boolean;
   /** 草稿的父版本 ID（从已发布版本复制时使用） */
   parentVersionId?: string;
+  /** 是否为新建项目时的默认节点类型 */
+  isDefault?: boolean;
 }
 
 /**

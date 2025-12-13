@@ -477,15 +477,33 @@ export struct NodeComponentContent {
         }
         .width('100%');
       } else if (this.component.type === 'PRIORITY_BADGE') {
-        Row({ space: 6 }) {
-          Text('🔥')
-            .fontSize(12);
+        // 支持不同样式：badge（默认）、text、icon
+        if (this.component.props?.style === 'text') {
           Text('高优先级')
             .fontSize(11)
             .fontColor('#FF3B30')
-            .fontWeight(FontWeight.Medium);
+            .fontWeight(FontWeight.Medium)
+            .width('100%');
+        } else if (this.component.props?.style === 'icon') {
+          Text('🔥🔥🔥')
+            .fontSize(14)
+            .width('100%');
+        } else {
+          // 默认徽章样式
+          Row({ space: 6 }) {
+            Text('高')
+              .fontSize(10)
+              .fontColor(Color.White)
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .backgroundColor('#FF3B30')
+              .borderRadius(4);
+            Text('高优先级')
+              .fontSize(11)
+              .fontColor('#FF3B30')
+              .fontWeight(FontWeight.Medium);
+          }
+          .width('100%');
         }
-        .width('100%');
       } else if (this.component.type === 'ASSIGNEE') {
         Row({ space: 6 }) {
           Text('👤')
@@ -496,39 +514,60 @@ export struct NodeComponentContent {
         }
         .width('100%');
       } else if (this.component.type === 'TAGS') {
-        Row({ space: 6 }) {
-          Text('🏷️')
-            .fontSize(12);
-          
-          Row({ space: 4 }) {
-            Text('前端')
-              .fontSize(10)
-              .fontColor(ColorResource.primaryColor)
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .backgroundColor('rgba(0, 122, 255, 0.1)')
-              .borderRadius(4);
-            
-            Text('紧急')
-              .fontSize(10)
-              .fontColor('#FF3B30')
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .backgroundColor('rgba(255, 59, 48, 0.1)')
-              .borderRadius(4);
-          }
-        }
-        .width('100%');
-      } else if (this.component.type === 'STATUS_DOT') {
-        Row({ space: 6 }) {
-          Circle()
-            .width(8)
-            .height(8)
-            .fill('#67C23A');
-          
-          Text('进行中')
+        // 支持不同样式：tag（默认）、text
+        if (this.component.props?.style === 'text') {
+          Text('前端, 紧急')
             .fontSize(11)
-            .fontColor(ColorResource.textSecondary);
+            .fontColor(ColorResource.textSecondary)
+            .width('100%');
+        } else {
+          // 默认标签样式
+          Row({ space: 6 }) {
+            Text('🏷️')
+              .fontSize(12);
+
+            Row({ space: 4 }) {
+              Text('前端')
+                .fontSize(10)
+                .fontColor(ColorResource.primaryColor)
+                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                .backgroundColor('rgba(0, 122, 255, 0.1)')
+                .borderRadius(4);
+
+              Text('紧急')
+                .fontSize(10)
+                .fontColor('#FF3B30')
+                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                .backgroundColor('rgba(255, 59, 48, 0.1)')
+                .borderRadius(4);
+            }
+          }
+          .width('100%');
         }
-        .width('100%');
+      } else if (this.component.type === 'STATUS_DOT') {
+        // 支持不同样式：dot（默认）、label
+        if (this.component.props?.style === 'label') {
+          Text('进行中')
+            .fontSize(10)
+            .fontColor(Color.White)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .backgroundColor('#67C23A')
+            .borderRadius(4)
+            .width('100%');
+        } else {
+          // 默认圆点样式
+          Row({ space: 6 }) {
+            Circle()
+              .width(8)
+              .height(8)
+              .fill('#67C23A');
+
+            Text('进行中')
+              .fontSize(11)
+              .fontColor(ColorResource.textSecondary);
+          }
+          .width('100%');
+        }
       } else if (this.component.type === 'CUSTOM_FIELD') {
         Row({ space: 6 }) {
           Text('✏️')

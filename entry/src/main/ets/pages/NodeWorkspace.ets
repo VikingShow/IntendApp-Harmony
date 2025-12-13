@@ -1532,6 +1532,7 @@ struct NodeWorkspacePage {
   @State previewUpdatePending: boolean = false;
   @State currentEditorTab: number = 0;
   @State selectedComponentId: string | null = null;
+  @State selectedComponentObject: NodeComponentSchema | null = null;
   @State componentRefreshKey: number = 0;
   @State currentViewMode: 'visual' | 'classic' = 'visual';
   @State draggedLibraryType: NodeComponentType | null = null;
@@ -2539,6 +2540,7 @@ struct NodeWorkspacePage {
     this.selectedComponentId = newComponent.id;
     this.draggedLibraryType = null;
     this.reloadSchemas();
+    this.updateSelectedComponentObject();
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -2598,6 +2600,7 @@ struct NodeWorkspacePage {
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
     this.updateSelectedSchemaObject();
+    this.updateSelectedComponentObject();
     this.componentRefreshKey++;
     this.refreshSchemaJson();
     this.scheduleAutoSave();
@@ -2774,11 +2777,13 @@ struct NodeWorkspacePage {
 
   private handleComponentSelect(componentId: string): void {
     this.selectedComponentId = componentId;
+    this.updateSelectedComponentObject();
   }
 
   private handleComponentDelete(componentId: string): void {
     this.deleteComponentFromSelectedSchema(componentId);
     this.selectedComponentId = null;
+    this.selectedComponentObject = null;
   }
 
   private handleComponentPropertyChange(component: NodeComponentSchema): void {
@@ -2835,6 +2840,26 @@ struct NodeWorkspacePage {
     }
     const component = schema.layout.find(c => c.id === this.selectedComponentId);
     return component || null;
+  }
+
+  private updateSelectedComponentObject(): void {
+    const component = this.getSelectedComponent();
+    if (component) {
+      // 创建新对象引用以确保@Prop检测到变化
+      this.selectedComponentObject = {
+        id: component.id,
+        type: component.type,
+        fieldId: component.fieldId,
+        props: component.props ? {
+          style: component.props.style,
+          maxLines: component.props.maxLines,
+          highlight: component.props.highlight,
+          color: component.props.color
+        } : undefined
+      };
+    } else {
+      this.selectedComponentObject = null;
+    }
   }
 
   // 布局管理方法
@@ -4952,7 +4977,7 @@ struct NodeWorkspacePage {
           // 右侧: 属性编辑面板
           Column({ space: 0 }) {
             ComponentPropertyPanel({
-              selectedComponent: this.getSelectedComponent(),
+              selectedComponent: this.selectedComponentObject,
               availableFields: this.selectedSchemaObject?.fields || [],
               schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
               refreshKey: this.componentRefreshKey,
@@ -5062,7 +5087,7 @@ struct NodeWorkspacePage {
                   });
                 } else if (index === 3) {
                   ComponentPropertyPanel({
-                    selectedComponent: this.getSelectedComponent(),
+                    selectedComponent: this.selectedComponentObject,
                     availableFields: this.selectedSchemaObject?.fields || [],
                     schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
                     refreshKey: this.componentRefreshKey,

@@ -51,6 +51,11 @@ interface TaskDependencyInfo {
   type: string;
 }
 
+interface ProgressCounts {
+  total: number;
+  done: number;
+}
+
 /**
  * 任务更新载荷类型
  * 在原有 TaskNode 基础上扩展 schema 相关字段
@@ -91,6 +96,7 @@ export struct TaskEditor {
   @State private displayEndDate: Date = new Date(); // 用于DatePicker绑定的结束日期
   @State private displayChecklist: ChecklistItem[] = []; // 用于清单显示的数据
   @State private displayDependencies: TaskDependencyInfo[] = []; // 用于依赖关系显示的数据
+  @State private tagDraftTextByFieldId: Map<string, string> = new Map<string, string>();
   // 任务切换动画相关状态
   @State private editorOpacity: number = 1; // 编辑器透明度
   @State private editorTranslateY: number = 0; // 编辑器垂直位移
@@ -127,6 +133,366 @@ export struct TaskEditor {
     map.set(fieldId, value);
   }
 
+  private updateCustomFieldIfChanged(task: TaskNodeWithSchema, fieldId: string, value: NodeFieldValue): boolean {
+    const map = this.getOrCreateCustomFieldsMap(task);
+    const current = map.has(fieldId) ? (map.get(fieldId) as NodeFieldValue) : null;
+    if (current === value) {
+      return false;
+    }
+    map.set(fieldId, value);
+    return true;
+  }
+
+  private commitCustomFields(task: TaskNodeWithSchema): void {
+    const updates: TaskUpdatePayload = { customFields: this.getOrCreateCustomFieldsMap(task) };
+    this.onUpdateTask((this.localTask as TaskNode)!.id, updates as Partial<TaskNode>);
+  }
+
+  private getCustomFieldText(task: TaskNodeWithSchema, fieldId: string): string {
+    const v = this.getCustomFieldValue(task, fieldId);
+    if (v === null || v === undefined) {
+      return '';
+    }
+    if (typeof v === 'string') {
+      return v;
+    }
+    if (typeof v === 'number' || typeof v === 'boolean') {
+      return String(v);
+    }
+    if (v instanceof Date) {
+      return v.toISOString();
+    }
+    // string[]
+    return Array.isArray(v) ? v.join(',') : '';
+  }
+
+  private parseFieldValue(field: FieldSchema | null, raw: string): NodeFieldValue {
+    if (!field) {
+      return raw;
+    }
+    if (field.type === 'number') {
+      const n = Number(raw);
+      return Number.isNaN(n) ? null : n;
+    }
+    if (field.type === 'boolean') {
+      return raw === 'true';
+    }
+    if (field.type === 'date') {
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (field.type === 'select') {
+      return raw;
+    }
+    if (field.type === 'checklist') {
+      const parts = raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      return parts;
+    }
+    return raw;
+  }
+
+  private getTagDraft(fieldId: string): string {
+    if (this.tagDraftTextByFieldId.has(fieldId)) {
+      return this.tagDraftTextByFieldId.get(fieldId) as string;
+    }
+    return '';
+  }
+
+  private setTagDraft(fieldId: string, value: string): void {
+    this.tagDraftTextByFieldId.set(fieldId, value);
+    this.forceUpdateKey++;
+  }
+
+  private getTagsValue(task: TaskNodeWithSchema, fieldId: string): string[] {
+    const v = this.getCustomFieldValue(task, fieldId);
+    if (Array.isArray(v)) {
+      return v as string[];
+    }
+    if (typeof v === 'string') {
+      const parts = v.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      return parts;
+    }
+    return [];
+  }
+
+  private setTagsValue(task: TaskNodeWithSchema, fieldId: string, tags: string[]): void {
+    // 去重 + 去空
+    const normalized = tags.map(t => t.trim()).filter(t => t.length > 0);
+    const unique: string[] = [];
+    normalized.forEach((t: string) => {
+      if (!unique.includes(t)) {
+        unique.push(t);
+      }
+    });
+    this.setCustomFieldValue(task, fieldId, unique);
+  }
+
+  private addTag(task: TaskNodeWithSchema, fieldId: string, tag: string): void {
+    const current = this.getTagsValue(task, fieldId);
+    const trimmed = tag.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    const next = current.includes(trimmed) ? current : current.concat([trimmed]);
+    this.setTagsValue(task, fieldId, next);
+  }
+
+  private removeTag(task: TaskNodeWithSchema, fieldId: string, tag: string): void {
+    const current = this.getTagsValue(task, fieldId);
+    const next = current.filter(t => t !== tag);
+    this.setTagsValue(task, fieldId, next);
+  }
+
+  private getProgressCounts(): ProgressCounts {
+    const total = this.displayChecklist.length;
+    const done = this.displayChecklist.filter((i: ChecklistItem) => i.isCompleted).length;
+    return { total, done };
+  }
+
+  private getCompletionProgress(task: TaskNode): number {
+    const total = task.checklist ? task.checklist.length : 0;
+    if (total <= 0) {
+      return 0;
+    }
+    const done = task.checklist.filter((i: ChecklistItem) => i.isCompleted).length;
+    return Math.round(done * 100 / total);
+  }
+
+  private getDuration(task: TaskNode): number {
+    const diffTime = task.endDate.getTime() - task.startDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(1, diffDays);
+  }
+
+  private getTimeProgress(task: TaskNode): number {
+    const totalDays = this.getDuration(task);
+    if (totalDays <= 0) {
+      return 0;
+    }
+    const now = Date.now();
+    const start = task.startDate.getTime();
+    const end = task.endDate.getTime();
+    if (now <= start) {
+      return 0;
+    }
+    if (now >= end) {
+      return 100;
+    }
+    const ratio = (now - start) / (end - start);
+    return Math.max(0, Math.min(100, Math.round(ratio * 100)));
+  }
+
+  private getFieldIdForComponent(component: NodeComponentSchema): string {
+    return component.fieldId && component.fieldId.length > 0
+      ? component.fieldId
+      : this.getReservedFieldIdByComponentType(component.type);
+  }
+
+  private getSelectDisplayValue(fieldId: string, boundField: FieldSchema): string {
+    if (!this.localTask) {
+      return '请选择';
+    }
+    const task = this.localTask as TaskNodeWithSchema;
+    const v = this.getCustomFieldValue(task, fieldId);
+    if (typeof v === 'string' && v.length > 0) {
+      return v;
+    }
+    return '请选择';
+  }
+
+  private isTagSelected(fieldId: string, tag: string): boolean {
+    if (!this.localTask) {
+      return false;
+    }
+    const tags = this.getTagsValue(this.localTask as TaskNodeWithSchema, fieldId);
+    return tags.includes(tag);
+  }
+
+  private getBoundFieldForComponent(component: NodeComponentSchema): FieldSchema | null {
+    return this.getComponentBoundField(this.getCurrentSchema(), component);
+  }
+
+  private getFieldIdForComponentSafe(component: NodeComponentSchema): string {
+    const id = this.getFieldIdForComponent(component);
+    return id ? id : '';
+  }
+
+  @Builder
+  private renderTagsChipsEditor(fieldId: string, boundField: FieldSchema | null) {
+    if (!this.localTask) {
+      Text('未选择任务')
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textTertiary);
+    } else {
+      Column({ space: 10 }) {
+        if (boundField && boundField.options && boundField.options.length > 0) {
+          Column({ space: 8 }) {
+            Row({ space: 8 }) {
+              Text('推荐标签')
+                .fontSize(ThemeConfig.fontSizeS)
+                .fontColor(ColorResource.textSecondary)
+                .layoutWeight(1);
+              Button('清空')
+                .height(28)
+                .padding({ left: 10, right: 10 })
+                .backgroundColor(ColorResource.backgroundSecondary)
+                .fontColor(ColorResource.textSecondary)
+                .borderRadius(14)
+                .onClick(() => {
+                  if (!this.localTask) return;
+                  const tt = this.localTask as TaskNodeWithSchema;
+                  if (this.getTagsValue(tt, fieldId).length === 0) {
+                    return;
+                  }
+                  this.setTagsValue(tt, fieldId, []);
+                  this.forceUpdateKey++;
+                  this.commitCustomFields(tt);
+                });
+            }
+            .width('100%');
+
+            Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start, alignItems: ItemAlign.Center }) {
+              ForEach(boundField.options, (opt: string, index: number) => {
+                Button() {
+                  Text(opt)
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(this.isTagSelected(fieldId, opt) ? Color.White : ColorResource.primaryColor);
+                }
+                .height(30)
+                .padding({ left: 10, right: 10 })
+                .backgroundColor(this.isTagSelected(fieldId, opt) ? ColorResource.primaryColor : ColorResource.primaryUltraLight)
+                .borderRadius(15)
+                .margin({ right: 8, bottom: 8 })
+                .onClick(() => {
+                  if (!this.localTask) return;
+                  const tt = this.localTask as TaskNodeWithSchema;
+                  const current = this.getTagsValue(tt, fieldId);
+                  if (current.includes(opt)) {
+                    this.removeTag(tt, fieldId, opt);
+                  } else {
+                    this.addTag(tt, fieldId, opt);
+                  }
+                  this.forceUpdateKey++;
+                  this.commitCustomFields(tt);
+                });
+              }, (opt: string, index: number) => `${fieldId}-opt-${opt}-${index}-${this.forceUpdateKey}`)
+            }
+            .width('100%');
+          }
+          .padding(10)
+          .backgroundColor(ColorResource.surfaceLight)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 12 });
+        }
+
+        if (this.getTagsValue(this.localTask as TaskNodeWithSchema, fieldId).length > 0) {
+          Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start, alignItems: ItemAlign.Center }) {
+            ForEach(this.getTagsValue(this.localTask as TaskNodeWithSchema, fieldId), (t: string, index: number) => {
+              Row({ space: 6 }) {
+                Text(t)
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.primaryColor);
+                Button() {
+                  Text('×')
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontColor(ColorResource.textSecondary);
+                }
+                .width(22)
+                .height(22)
+                .type(ButtonType.Circle)
+                .backgroundColor(ColorResource.backgroundSecondary)
+                .borderRadius(11)
+                .onClick(() => {
+                  if (!this.localTask) return;
+                  const tt = this.localTask as TaskNodeWithSchema;
+                  this.removeTag(tt, fieldId, t);
+                  this.forceUpdateKey++;
+                  this.commitCustomFields(tt);
+                })
+              }
+              .padding({ left: 10, right: 8, top: 6, bottom: 6 })
+              .backgroundColor(ColorResource.primaryUltraLight)
+              .borderRadius(16)
+              .margin({ right: 8, bottom: 8 });
+            }, (t: string, index: number) => `${fieldId}-tag-${t}-${index}-${this.forceUpdateKey}`)
+          }
+          .width('100%');
+        } else {
+          Text('暂无标签')
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontColor(ColorResource.textTertiary);
+        }
+
+        Row({ space: 10 }) {
+          TextInput({
+            text: this.getTagDraft(fieldId),
+            placeholder: '输入标签后回车/点击添加'
+          })
+            .layoutWeight(1)
+            .backgroundColor(ColorResource.transparent)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontColor(ColorResource.surfaceDeep)
+            .placeholderColor(ColorResource.surfaceEmphasized)
+            .shadow(ThemeConfig.inputShadow)
+            .border({ width: 2, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
+            .enterKeyType(EnterKeyType.Done)
+            .onChange((v: string) => {
+              this.setTagDraft(fieldId, v);
+            })
+            .onSubmit(() => {
+              if (!this.localTask) return;
+              const tt = this.localTask as TaskNodeWithSchema;
+              const draft = this.getTagDraft(fieldId);
+              this.addTag(tt, fieldId, draft);
+              this.setTagDraft(fieldId, '');
+              this.forceUpdateKey++;
+              this.commitCustomFields(tt);
+            });
+
+          Button('添加')
+            .height(40)
+            .padding({ left: 12, right: 12 })
+            .backgroundColor(ColorResource.primaryColor)
+            .fontColor(Color.White)
+            .borderRadius(12)
+            .onClick(() => {
+              if (!this.localTask) return;
+              const tt = this.localTask as TaskNodeWithSchema;
+              const draft = this.getTagDraft(fieldId);
+              this.addTag(tt, fieldId, draft);
+              this.setTagDraft(fieldId, '');
+              this.forceUpdateKey++;
+              this.commitCustomFields(tt);
+            });
+        }
+        .width('100%');
+      }
+      .width('100%');
+    }
+  }
+
+  private getReservedFieldIdByComponentType(type: string): string {
+    // 对于没有 TaskNode 原生字段支持的组件，使用约定字段存到 customFields
+    // 这些字段可以在 NodeWorkspace 中由用户自己创建并绑定到 CUSTOM_FIELD；但这里给默认 fallback
+    if (type === 'PRIORITY_BADGE') return '_priority';
+    if (type === 'ASSIGNEE') return '_assignee';
+    if (type === 'TAGS') return '_tags';
+    if (type === 'STATUS_DOT') return '_status';
+    return '';
+  }
+
+  private getComponentBoundField(schema: NodeSchema | null, component: NodeComponentSchema): FieldSchema | null {
+    const fieldId = component.fieldId && component.fieldId.length > 0
+      ? component.fieldId
+      : this.getReservedFieldIdByComponentType(component.type);
+    if (!fieldId || fieldId.length === 0) {
+      return null;
+    }
+    return this.getFieldSchemaById(schema, fieldId);
+  }
+
   private getFieldSchemaById(schema: NodeSchema | null, fieldId: string): FieldSchema | null {
     if (!schema || !schema.fields) {
       return null;
@@ -137,9 +503,14 @@ export struct TaskEditor {
 
   private getCustomFieldLabel(component: NodeComponentSchema): string {
     const schema = this.getCurrentSchema();
-    const fieldId = component.fieldId ? component.fieldId : '';
-    const field = fieldId.length > 0 ? this.getFieldSchemaById(schema, fieldId) : null;
-    return field ? field.label : (fieldId.length > 0 ? fieldId : '未绑定字段');
+    const boundField = this.getComponentBoundField(schema, component);
+    const fallbackFieldId = component.fieldId && component.fieldId.length > 0
+      ? component.fieldId
+      : this.getReservedFieldIdByComponentType(component.type);
+    if (boundField) {
+      return boundField.label;
+    }
+    return fallbackFieldId.length > 0 ? fallbackFieldId : '未绑定字段';
   }
 
   @Builder
@@ -318,46 +689,198 @@ export struct TaskEditor {
         .fontWeight(ThemeConfig.fontWeightMedium)
         .fontColor(ColorResource.surfaceEmphasized)
 
-      if (!component.fieldId || component.fieldId.length === 0) {
+      if (this.getFieldIdForComponentSafe(component).length === 0) {
         Text('该组件未绑定字段，无法编辑')
           .fontSize(ThemeConfig.fontSizeS)
           .fontColor(ColorResource.textTertiary)
       } else {
-        TextInput({
-          text: (() => {
-            const t = this.localTask as TaskNodeWithSchema | null;
-            if (!t) return '';
-            const v = this.getCustomFieldValue(t, component.fieldId ? component.fieldId : '');
-            return v === null || v === undefined ? '' : String(v);
-          })(),
-          placeholder: '请输入'
-        })
+        Column() {
+          // boolean
+          if (this.getBoundFieldForComponent(component) && this.getBoundFieldForComponent(component)!.type === 'boolean') {
+            Row({ space: 8 }) {
+            Toggle({
+              type: ToggleType.Switch,
+              isOn: (() => {
+                const t = this.localTask as TaskNodeWithSchema | null;
+                if (!t) return false;
+                const v = this.getCustomFieldValue(t, this.getFieldIdForComponentSafe(component));
+                return v === true;
+              })()
+            })
+              .onChange((isOn: boolean) => {
+                if (!this.localTask) return;
+                const task = this.localTask as TaskNodeWithSchema;
+                if (!this.updateCustomFieldIfChanged(task, this.getFieldIdForComponentSafe(component), isOn)) {
+                  return;
+                }
+                this.forceUpdateKey++;
+                this.commitCustomFields(task);
+              });
+            Text((() => {
+              const t = this.localTask as TaskNodeWithSchema | null;
+              if (!t) return '否';
+              const v = this.getCustomFieldValue(t, this.getFieldIdForComponentSafe(component));
+              return v === true ? '是' : '否';
+            })())
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textSecondary);
+          }
+          .width('100%')
+          } else if (this.getBoundFieldForComponent(component)
+            && this.getBoundFieldForComponent(component)!.type === 'select'
+            && this.getBoundFieldForComponent(component)!.options
+            && this.getBoundFieldForComponent(component)!.options!.length > 0) {
+          // select（使用 bindMenu，避免 Select API 在 ArkTS 下的重载限制）
+          Button() {
+            Row({ space: 8 }) {
+              Text(this.getSelectDisplayValue(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component)!))
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontColor(ColorResource.surfaceDeep)
+                .layoutWeight(1);
+              Text('▾')
+                .fontSize(ThemeConfig.fontSizeM)
+                .fontColor(ColorResource.textSecondary);
+            }
+          }
+          .width('100%')
+          .height(44)
+          .padding({ left: 12, right: 12 })
           .backgroundColor(ColorResource.transparent)
           .borderRadius(ThemeConfig.radiusMedium)
-          .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
-          .fontSize(ThemeConfig.fontSizeL)
-          .width('100%')
-          .fontColor(ColorResource.surfaceDeep)
-          .placeholderColor(ColorResource.surfaceEmphasized)
-          .shadow(ThemeConfig.inputShadow)
-          .border({
-            width: 2,
-            color: ColorResource.surfaceNeutral,
-            radius: ThemeConfig.radiusMedium
+          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
+          .bindMenu(this.SelectMenu(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component)!))
+          } else if (this.getBoundFieldForComponent(component) && this.getBoundFieldForComponent(component)!.type === 'checklist') {
+          this.renderTagsChipsEditor(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component));
+        } else {
+          // 默认 text/number/date/checklist(string[])
+          TextInput({
+            text: (() => {
+              const t = this.localTask as TaskNodeWithSchema | null;
+              if (!t) return '';
+              return this.getCustomFieldText(t, this.getFieldIdForComponentSafe(component));
+            })(),
+            placeholder: '请输入'
           })
-          .onChange((value: string) => {
-            if (!this.localTask) {
-              return;
-            }
-            const task = this.localTask as TaskNodeWithSchema;
-            const id = component.fieldId ? component.fieldId : '';
-            this.setCustomFieldValue(task, id, value);
-            this.forceUpdateKey++;
-            const updates: TaskUpdatePayload = { customFields: this.getOrCreateCustomFieldsMap(task) };
-            this.onUpdateTask(this.localTask!.id, updates as Partial<TaskNode>);
-          })
+            .backgroundColor(ColorResource.transparent)
+            .borderRadius(ThemeConfig.radiusMedium)
+            .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+            .fontSize(ThemeConfig.fontSizeL)
+            .width('100%')
+            .fontColor(ColorResource.surfaceDeep)
+            .placeholderColor(ColorResource.surfaceEmphasized)
+            .shadow(ThemeConfig.inputShadow)
+            .border({
+              width: 2,
+              color: ColorResource.surfaceNeutral,
+              radius: ThemeConfig.radiusMedium
+            })
+            .onChange((value: string) => {
+              if (!this.localTask) {
+                return;
+              }
+              const task = this.localTask as TaskNodeWithSchema;
+              const parsed = this.parseFieldValue(this.getBoundFieldForComponent(component), value);
+              if (!this.updateCustomFieldIfChanged(task, this.getFieldIdForComponentSafe(component), parsed)) {
+                return;
+              }
+              this.forceUpdateKey++;
+              this.commitCustomFields(task);
+            })
+          }
+        }
+        .width('100%')
       }
     }
+  }
+
+  @Builder
+  private SelectMenu(fieldId: string, boundField: FieldSchema) {
+    Menu() {
+      ForEach(boundField.options ? boundField.options : [], (opt: string, index: number) => {
+        MenuItem({ content: opt })
+          .onChange(() => {
+            if (!this.localTask) return;
+            const task = this.localTask as TaskNodeWithSchema;
+            if (!this.updateCustomFieldIfChanged(task, fieldId, opt)) {
+              return;
+            }
+            this.forceUpdateKey++;
+            this.commitCustomFields(task);
+          });
+      }, (opt: string, index: number) => `${fieldId}-sel-${opt}-${index}`)
+    }
+  }
+
+  @Builder
+  private renderChecklistSummaryEditor() {
+    Row({ space: 8 }) {
+      Text(`清单: ${this.getProgressCounts().done}/${this.getProgressCounts().total}`)
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textSecondary);
+      if (this.localTask) {
+        CommonButton({
+          text: '编辑清单',
+          type: 'secondary',
+          buttonSize: 'small',
+          onButtonClick: () => {
+            this.promptAction.showToast({ message: '请在下方「任务清单」区域编辑' });
+          }
+        });
+      }
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private renderTaskProgressEditor() {
+    Column({ space: 6 }) {
+      Text(`完成进度: ${this.localTask ? this.getCompletionProgress(this.localTask) : 0}%`)
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textSecondary);
+      Progress({ value: this.localTask ? this.getCompletionProgress(this.localTask) : 0, total: 100 })
+        .width('100%');
+      Text('进度由清单完成情况自动计算')
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(ColorResource.textTertiary);
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private renderTimeProgressEditor() {
+    Column({ space: 6 }) {
+      Text(`时间进度: ${this.localTask ? this.getTimeProgress(this.localTask) : 0}%`)
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textSecondary);
+      Progress({ value: this.localTask ? this.getTimeProgress(this.localTask) : 0, total: 100 })
+        .width('100%');
+      Text('时间进度由起止时间自动计算')
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(ColorResource.textTertiary);
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private renderPriorityBadgeEditor(component: NodeComponentSchema) {
+    // 默认绑定 _priority；推荐在 schema.fields 里声明同 id 的 select 字段以提供 options
+    this.renderCustomFieldEditor(component);
+  }
+
+  @Builder
+  private renderAssigneeEditor(component: NodeComponentSchema) {
+    this.renderCustomFieldEditor(component);
+  }
+
+  @Builder
+  private renderTagsEditor(component: NodeComponentSchema) {
+    // tags 推荐用 checklist(string[]) 类型；fallback 为逗号分隔
+    this.renderCustomFieldEditor(component);
+  }
+
+  @Builder
+  private renderStatusDotEditor(component: NodeComponentSchema) {
+    this.renderCustomFieldEditor(component);
   }
 
   @Builder
@@ -366,12 +889,20 @@ export struct TaskEditor {
       this.renderTitleEditor();
     } else if (component.type === 'DATE_RANGE') {
       this.renderDateRangeEditor();
-    } else if (component.type === 'CHECKLIST_SUMMARY' || component.type === 'TASK_PROGRESS') {
-      // 目前先复用已有的清单卡片（后续可拆成更细的 schema editor）
-      Text('清单/进度编辑请在下方「任务清单」中操作')
-        .fontSize(ThemeConfig.fontSizeS)
-        .fontColor(ColorResource.textTertiary)
-        .width('100%');
+    } else if (component.type === 'CHECKLIST_SUMMARY') {
+      this.renderChecklistSummaryEditor();
+    } else if (component.type === 'TASK_PROGRESS') {
+      this.renderTaskProgressEditor();
+    } else if (component.type === 'TIME_PROGRESS') {
+      this.renderTimeProgressEditor();
+    } else if (component.type === 'PRIORITY_BADGE') {
+      this.renderPriorityBadgeEditor(component);
+    } else if (component.type === 'ASSIGNEE') {
+      this.renderAssigneeEditor(component);
+    } else if (component.type === 'TAGS') {
+      this.renderTagsEditor(component);
+    } else if (component.type === 'STATUS_DOT') {
+      this.renderStatusDotEditor(component);
     } else if (component.type === 'CUSTOM_FIELD') {
       this.renderCustomFieldEditor(component);
     } else {
@@ -712,14 +1243,6 @@ export struct TaskEditor {
     }, ThemeConfig.animationNormal);
   }
 
-  private getDuration(): number {
-    const task = this.localTask || this.task;
-    if (!task) return 0;
-    const diffTime = task.endDate.getTime() - task.startDate.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return Math.max(1, diffDays);
-  }
-
   // 封装一个统一的添加函数
   private submitNewChecklistItem() {
     const task = this.task || this.localTask;
@@ -986,7 +1509,7 @@ export struct TaskEditor {
 
             // 工期显示与日历提醒
             Row({ space: 8 }) {
-              Text(`工期: ${this.getDuration()} 天`)
+              Text(`工期: ${this.localTask ? this.getDuration(this.localTask) : 0} 天`)
                 .fontSize(13)
                 .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)

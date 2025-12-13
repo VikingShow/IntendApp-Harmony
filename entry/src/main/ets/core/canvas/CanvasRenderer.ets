@@ -36,6 +36,11 @@ import { Project, TaskNode, Dependency, ChecklistItem } from '../../model/Projec
 import { TaskNodeWithSchema, NodeSchema } from '../../model/NodeSchema';
 import { ThemeConfig, ColorResource } from '../../utils/ThemeConfig';
 import { NodeSchemaService } from '../../services/NodeSchemaService';
+import { NodeComponentSchema, NodeFieldValue, FieldSchema } from '../../model/NodeSchema';
+
+interface TaskNodeWithCustomFields extends TaskNodeWithSchema {
+  customFields?: Map<string, NodeFieldValue>;
+}
 
 /**
  * 渲染模式枚举
@@ -545,7 +550,6 @@ export class CanvasRenderer {
   private renderTasksNormal(project: Project, config: RenderConfig): void {
     project.tasks.forEach((task: TaskNode) => {
       const NODE_WIDTH = 200;
-      const NODE_HEIGHT = 120;
       const isSelected = task.id === config.selectedTaskId;
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
@@ -560,6 +564,32 @@ export class CanvasRenderer {
       const borderRadius = schema && schema.style && schema.style.borderRadius !== undefined
         ? schema.style.borderRadius
         : 16;
+
+      // 根据 schema.layout 估算节点高度（使画布展示与 NodeWorkspace 结构一致）
+      // 采用简单的行高模型：标题/日期/文本类 28px，tag 行 34px，进度条 40px
+      const estimatedHeight = ((): number => {
+        const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
+        if (!layout || layout.length === 0) {
+          return 120;
+        }
+        let h = 18; // top padding
+        layout.forEach((c: NodeComponentSchema) => {
+          const t: string = c && c.type ? String(c.type) : '';
+          if (t === 'TITLE') h += 34;
+          else if (t === 'DATE_RANGE') h += 28;
+          else if (t === 'TIME_PROGRESS' || t === 'TASK_PROGRESS') h += 44;
+          else if (t === 'TAGS') h += 40;
+          else if (t === 'CHECKLIST_SUMMARY') h += 28;
+          else if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT') h += 28;
+          else if (t === 'ASSIGNEE') h += 28;
+          else if (t === 'CUSTOM_FIELD') h += 28;
+          else h += 26;
+          h += 8; // spacing
+        });
+        h += 14; // bottom padding
+        return Math.max(120, Math.min(260, h));
+      })();
+      const NODE_HEIGHT = estimatedHeight;
 
       // 节点背景（根据深色模式切换）
       this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
@@ -580,33 +610,189 @@ export class CanvasRenderer {
       }
       this.context.stroke();
 
-      // 任务名称（根据深色模式切换文字颜色）
-      this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
-      this.context.font = `bold 32px HarmonyOS Sans`;
-      this.context.fillText(task.name, drawX + 15, drawY + 28);
+      // schema 驱动渲染：按 layout 顺序绘制节点内容
+      // 统一从 task + customFields 读取值，以保证与编辑器/工作台一致
+      const taskWithCustom = task as TaskNodeWithCustomFields;
+      const customFields: Map<string, NodeFieldValue> | null = taskWithCustom.customFields
+        ? taskWithCustom.customFields
+        : null;
+      const getCustomStr = (fieldId: string): string => {
+        if (!customFields || !fieldId) return '';
+        const v: NodeFieldValue | undefined = customFields.get(fieldId);
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number') return String(v);
+        if (typeof v === 'boolean') return v ? '是' : '否';
+        return '';
+      };
+      const getCustomTags = (fieldId: string): string[] => {
+        if (!customFields || !fieldId) return [];
+        const v: NodeFieldValue | undefined = customFields.get(fieldId);
+        return Array.isArray(v) ? (v as string[]) : [];
+      };
+      const getFieldLabel = (fieldId: string, fallback: string): string => {
+        if (!schema || !schema.fields) return fallback;
+        const f: FieldSchema | undefined = schema.fields.find((ff: FieldSchema) => ff.id === fieldId);
+        return f && f.label ? String(f.label) : fallback;
+      };
 
-      // 节点类型（schema.name/typeId）
-      this.context.fillStyle = this.isDarkMode ? '#8E8E93' : '#8E8E93';
-      this.context.font = `20px HarmonyOS Sans`;
-      this.context.fillText(schemaName, drawX + 15, drawY + 46);
+      let cursorY = drawY + 24;
+      const leftX = drawX + 15;
+      const rightX = drawX + NODE_WIDTH - 15;
+      const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
+
+      // layout 为空时兜底绘制旧内容
+      if (!layout || layout.length === 0) {
+        this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+        this.context.font = `bold 32px HarmonyOS Sans`;
+        this.context.fillText(task.name, leftX, drawY + 28);
+
+        this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+        this.context.font = `24px HarmonyOS Sans`;
+        const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
+        this.context.fillText(`${dateString}`, leftX, drawY + 50);
+
+        const timeProgress = this.getTimeProgress(task);
+        const completionProgress = this.getCompletionProgress(task);
+        this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+        this.context.font = `23px HarmonyOS Sans`;
+        this.context.fillText(`时间: ${timeProgress}%`, leftX, drawY + 70);
+        this.drawProgressBar(leftX, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
+        this.context.fillText(`完成: ${completionProgress}%`, leftX, drawY + 95);
+        this.drawProgressBar(leftX, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
+      } else {
+        layout.forEach((comp: NodeComponentSchema) => {
+          const t: string = comp && comp.type ? String(comp.type) : '';
+          const fieldId: string = comp && comp.fieldId ? String(comp.fieldId) : '';
+          if (t === 'TITLE') {
+            this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+            this.context.font = `bold 30px HarmonyOS Sans`;
+            this.context.fillText(task.name, leftX, cursorY);
+            cursorY += 34;
+            return;
+          }
+          if (t === 'DATE_RANGE') {
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
+            this.context.fillText(dateString, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+          if (t === 'CHECKLIST_SUMMARY') {
+            const total = task.checklist ? task.checklist.length : 0;
+            const done = task.checklist
+              ? task.checklist.filter((c: ChecklistItem) => c.isCompleted).length
+              : 0;
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`清单: ${done}/${total}`, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+          if (t === 'TIME_PROGRESS') {
+            const timeProgress = this.getTimeProgress(task);
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
+            cursorY += 10;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
+            cursorY += 34;
+            return;
+          }
+          if (t === 'TASK_PROGRESS') {
+            const completionProgress = this.getCompletionProgress(task);
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
+            cursorY += 10;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
+            cursorY += 34;
+            return;
+          }
+          if (t === 'PRIORITY_BADGE') {
+            const v = getCustomStr('_priority');
+            const label = getFieldLabel('_priority', '优先级');
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+          if (t === 'STATUS_DOT') {
+            const v = getCustomStr('_status');
+            const label = getFieldLabel('_status', '状态');
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+          if (t === 'ASSIGNEE') {
+            const v = getCustomStr('_assignee');
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`负责人: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+          if (t === 'TAGS') {
+            const tags = getCustomTags('_tags');
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            const joined = tags.length > 0 ? tags.slice(0, 3).join(' / ') : '-';
+            this.context.fillText(`标签: ${joined}`, leftX, cursorY);
+            cursorY += 40;
+            return;
+          }
+          if (t === 'CUSTOM_FIELD') {
+            const fid = fieldId && fieldId.length > 0 ? fieldId : '';
+            const v = getCustomStr(fid);
+            const label = getFieldLabel(fid, fid && fid.length > 0 ? fid : '字段');
+            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.font = `22px HarmonyOS Sans`;
+            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
+            cursorY += 28;
+            return;
+          }
+
+          // 未识别组件类型兜底
+          this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+          this.context.font = `22px HarmonyOS Sans`;
+          this.context.fillText(`${t}`, leftX, cursorY);
+          cursorY += 26;
+        });
+      }
+
+      // 选中时在节点右上角外侧显示类型标签（badge），避免占用节点内部空间
+      if (isSelected) {
+        const label = schemaName;
+        this.context.font = `18px HarmonyOS Sans`;
+        const textWidth = this.context.measureText(label).width;
+        const padX = 10;
+        const padY = 6;
+        const badgeW = textWidth + padX * 2;
+        const badgeH = 28;
+        const badgeX = drawX + NODE_WIDTH - badgeW + 6;
+        const badgeY = drawY - badgeH - 6;
+
+        // 背景
+        this.context.fillStyle = this.isDarkMode ? 'rgba(24,24,26,0.95)' : 'rgba(255,255,255,0.95)';
+        this.drawRoundRect(this.context, badgeX, badgeY, badgeW, badgeH, 14);
+        this.context.fill();
+
+        // 边框使用 schemaColor
+        this.context.strokeStyle = schemaColor;
+        this.context.lineWidth = 2;
+        this.context.stroke();
+
+        // 文本
+        this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+        this.context.textAlign = 'left';
+        this.context.fillText(label, badgeX + padX, badgeY + 19);
+      }
 
       // 日期信息
-      this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
-      this.context.font = `24px HarmonyOS Sans`;
-      const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
-      this.context.fillText(`${dateString}`, drawX + 15, drawY + 66);
-
-      // 进度信息
-      const timeProgress = this.getTimeProgress(task);
-      const completionProgress = this.getCompletionProgress(task);
-      
-      this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
-      this.context.font = `23px HarmonyOS Sans`;
-      this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 84);
-      this.drawProgressBar(drawX + 15, drawY + 89, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
-      
-      this.context.fillText(`完成: ${completionProgress}%`, drawX + 15, drawY + 109);
-      this.drawProgressBar(drawX + 15, drawY + 114, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
+      // 旧版固定渲染已被 schema layout 驱动渲染替代
     });
   }
 

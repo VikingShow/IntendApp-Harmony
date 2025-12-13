@@ -100,7 +100,22 @@ export class NodeSchemaService {
         borderRadius: 16,
         borderWidth: 2
       },
-      fields: [],
+      fields: [
+        {
+          id: '_priority',
+          label: '优先级',
+          type: 'select',
+          required: false,
+          options: ['低', '中', '高', '紧急']
+        },
+        {
+          id: '_status',
+          label: '状态',
+          type: 'select',
+          required: false,
+          options: ['未开始', '进行中', '阻塞', '已完成']
+        }
+      ],
       layout: [
         { id: 'title_1', type: 'TITLE' },
         { id: 'date_range_1', type: 'DATE_RANGE' },

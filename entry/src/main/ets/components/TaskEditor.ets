@@ -328,11 +328,11 @@ export struct TaskEditor {
         if (boundField && boundField.options && boundField.options.length > 0) {
           Column({ space: 8 }) {
             Row({ space: 8 }) {
-              Text('推荐标签')
+              Text('推荐')
                 .fontSize(ThemeConfig.fontSizeS)
                 .fontColor(ColorResource.textSecondary)
                 .layoutWeight(1);
-              Button('清空')
+              Button('清空全部')
                 .height(28)
                 .padding({ left: 10, right: 10 })
                 .backgroundColor(ColorResource.backgroundSecondary)
@@ -418,7 +418,7 @@ export struct TaskEditor {
           }
           .width('100%');
         } else {
-          Text('暂无标签')
+          Text('还没有标签，添加一个吧')
             .fontSize(ThemeConfig.fontSizeS)
             .fontColor(ColorResource.textTertiary);
         }
@@ -426,7 +426,7 @@ export struct TaskEditor {
         Row({ space: 10 }) {
           TextInput({
             text: this.getTagDraft(fieldId),
-            placeholder: '输入标签后回车/点击添加'
+            placeholder: '输入标签（回车添加）'
           })
             .layoutWeight(1)
             .backgroundColor(ColorResource.transparent)
@@ -490,7 +490,14 @@ export struct TaskEditor {
     if (!fieldId || fieldId.length === 0) {
       return null;
     }
-    return this.getFieldSchemaById(schema, fieldId);
+    if (!schema || !schema.fields) {
+      return this.getFallbackFieldSchemaByReservedId(fieldId, component.type);
+    }
+    const found = schema.fields.find((f: FieldSchema) => f.id === fieldId);
+    if (found) {
+      return found;
+    }
+    return this.getFallbackFieldSchemaByReservedId(fieldId, component.type);
   }
 
   private getFieldSchemaById(schema: NodeSchema | null, fieldId: string): FieldSchema | null {
@@ -511,6 +518,37 @@ export struct TaskEditor {
       return boundField.label;
     }
     return fallbackFieldId.length > 0 ? fallbackFieldId : '未绑定字段';
+  }
+
+  private getComponentTypeCn(type: string): string {
+    if (type === 'TITLE') return '任务名称';
+    if (type === 'DATE_RANGE') return '日期范围';
+    if (type === 'TIME_PROGRESS') return '时间进度';
+    if (type === 'TASK_PROGRESS') return '完成进度';
+    if (type === 'CHECKLIST_SUMMARY') return '清单统计';
+    if (type === 'PRIORITY_BADGE') return '优先级';
+    if (type === 'ASSIGNEE') return '负责人';
+    if (type === 'TAGS') return '标签';
+    if (type === 'STATUS_DOT') return '状态';
+    if (type === 'CUSTOM_FIELD') return '自定义字段';
+    return type;
+  }
+
+  private getEditorSectionTitle(component: NodeComponentSchema): string {
+    // 优先使用绑定字段的 label
+    const schema = this.getCurrentSchema();
+    const boundField = this.getComponentBoundField(schema, component);
+    if (boundField && boundField.label && boundField.label.length > 0) {
+      return boundField.label;
+    }
+    // 其次用组件类型中文名
+    return this.getComponentTypeCn(component.type);
+  }
+
+  private getSelectPlaceholderText(component: NodeComponentSchema): string {
+    if (component.type === 'PRIORITY_BADGE') return '请选择优先级';
+    if (component.type === 'STATUS_DOT') return '请选择状态';
+    return '请选择';
   }
 
   @Builder
@@ -684,7 +722,7 @@ export struct TaskEditor {
   @Builder
   private renderCustomFieldEditor(component: NodeComponentSchema) {
     Column({ space: 8 }) {
-      Text(this.getCustomFieldLabel(component))
+      Text(this.getEditorSectionTitle(component))
         .fontSize(ThemeConfig.fontSizeS)
         .fontWeight(ThemeConfig.fontWeightMedium)
         .fontColor(ColorResource.surfaceEmphasized)
@@ -733,9 +771,18 @@ export struct TaskEditor {
           // select（使用 bindMenu，避免 Select API 在 ArkTS 下的重载限制）
           Button() {
             Row({ space: 8 }) {
-              Text(this.getSelectDisplayValue(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component)!))
+              Text((() => {
+                const v = this.getSelectDisplayValue(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component)!);
+                if (v === '请选择') {
+                  return this.getSelectPlaceholderText(component);
+                }
+                return v;
+              })())
                 .fontSize(ThemeConfig.fontSizeM)
-                .fontColor(ColorResource.surfaceDeep)
+                .fontColor((() => {
+                  const v = this.getSelectDisplayValue(this.getFieldIdForComponentSafe(component), this.getBoundFieldForComponent(component)!);
+                  return v === '请选择' ? ColorResource.textTertiary : ColorResource.surfaceDeep;
+                })())
                 .layoutWeight(1);
               Text('▾')
                 .fontSize(ThemeConfig.fontSizeM)
@@ -759,7 +806,11 @@ export struct TaskEditor {
               if (!t) return '';
               return this.getCustomFieldText(t, this.getFieldIdForComponentSafe(component));
             })(),
-            placeholder: '请输入'
+            placeholder: (() => {
+              if (component.type === 'ASSIGNEE') return '请输入负责人';
+              if (component.type === 'CUSTOM_FIELD') return '请输入内容';
+              return '请输入';
+            })()
           })
             .backgroundColor(ColorResource.transparent)
             .borderRadius(ThemeConfig.radiusMedium)
@@ -959,7 +1010,50 @@ export struct TaskEditor {
       });
       checklistHash = JSON.stringify(checklistItems);
     }
-    return `${task.id}|${task.name}|${task.startDate.getTime()}|${task.endDate.getTime()}|${checklistHash}`;
+    const t = task as TaskNodeWithSchema;
+    const typeIdInfo = t && t.typeId ? t.typeId : 'standard';
+    return `${task.id}|${task.name}|${task.startDate.getTime()}|${task.endDate.getTime()}|${checklistHash}|${typeIdInfo}`;
+  }
+
+  private getFallbackFieldSchemaByReservedId(fieldId: string, componentType: string): FieldSchema | null {
+    if (!fieldId || fieldId.length === 0) {
+      return null;
+    }
+    if (fieldId === '_priority') {
+      return {
+        id: '_priority',
+        label: '优先级',
+        type: 'select',
+        required: false,
+        options: ['低', '中', '高', '紧急']
+      } as FieldSchema;
+    }
+    if (fieldId === '_status') {
+      return {
+        id: '_status',
+        label: '状态',
+        type: 'select',
+        required: false,
+        options: ['未开始', '进行中', '阻塞', '已完成']
+      } as FieldSchema;
+    }
+    if (fieldId === '_tags') {
+      return {
+        id: '_tags',
+        label: componentType === 'TAGS' ? '标签' : '标签',
+        type: 'checklist',
+        required: false
+      } as FieldSchema;
+    }
+    if (fieldId === '_assignee') {
+      return {
+        id: '_assignee',
+        label: '负责人',
+        type: 'text',
+        required: false
+      } as FieldSchema;
+    }
+    return null;
   }
 
   /**

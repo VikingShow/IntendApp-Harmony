@@ -552,9 +552,18 @@ export class CanvasRenderer {
 
       const schemaColor = this.getTaskColorWithSchema(task);
 
+      // schema 信息（用于卡片上显示类型，增强可感知一致性）
+      const taskWithSchema = task as TaskNodeWithSchema;
+      const typeId = taskWithSchema.typeId ? taskWithSchema.typeId : 'standard';
+      const schema = this.nodeSchemaService ? this.nodeSchemaService.getSchemaById(typeId) : null;
+      const schemaName = schema ? schema.name : typeId;
+      const borderRadius = schema && schema.style && schema.style.borderRadius !== undefined
+        ? schema.style.borderRadius
+        : 16;
+
       // 节点背景（根据深色模式切换）
       this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
-      this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
+      this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, borderRadius);
       this.context.fill();
 
       // 节点边框（根据深色模式调整颜色）
@@ -576,11 +585,16 @@ export class CanvasRenderer {
       this.context.font = `bold 32px HarmonyOS Sans`;
       this.context.fillText(task.name, drawX + 15, drawY + 28);
 
+      // 节点类型（schema.name/typeId）
+      this.context.fillStyle = this.isDarkMode ? '#8E8E93' : '#8E8E93';
+      this.context.font = `20px HarmonyOS Sans`;
+      this.context.fillText(schemaName, drawX + 15, drawY + 46);
+
       // 日期信息
       this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
       this.context.font = `24px HarmonyOS Sans`;
       const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
-      this.context.fillText(`${dateString}`, drawX + 15, drawY + 50);
+      this.context.fillText(`${dateString}`, drawX + 15, drawY + 66);
 
       // 进度信息
       const timeProgress = this.getTimeProgress(task);
@@ -588,11 +602,11 @@ export class CanvasRenderer {
       
       this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
       this.context.font = `23px HarmonyOS Sans`;
-      this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 70);
-      this.drawProgressBar(drawX + 15, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
+      this.context.fillText(`时间: ${timeProgress}%`, drawX + 15, drawY + 84);
+      this.drawProgressBar(drawX + 15, drawY + 89, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
       
-      this.context.fillText(`完成: ${completionProgress}%`, drawX + 15, drawY + 95);
-      this.drawProgressBar(drawX + 15, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
+      this.context.fillText(`完成: ${completionProgress}%`, drawX + 15, drawY + 109);
+      this.drawProgressBar(drawX + 15, drawY + 114, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
     });
   }
 

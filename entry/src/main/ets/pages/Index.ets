@@ -524,6 +524,10 @@ struct Index {
       this.updateStateFromManager();
       this.updateUndoRedoState();
        this.updateTaskQuickActionsPositionFromTask(this.selectedTask);
+      // 如果节点类型发生变化，清理渲染缓存，避免复用旧渲染结果
+      // 由于 task_updated 只携带 TaskNode，最稳妥的策略是直接清理一次 cache
+      // CanvasRenderer 内部也会将 typeId 纳入 hash，但清理 cache 能规避潜在引用/节流导致的不一致
+      this.canvasController.getRenderer().clearRenderCache();
       this.drawGraph();
     });
 

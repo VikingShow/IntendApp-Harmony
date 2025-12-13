@@ -564,6 +564,9 @@ export class NodeSchemaService {
       // 加载草稿版本
       await this.loadFileToMap(this.draftFile, this.draftSchemas, 'draft');
 
+      // 加载历史版本
+      await this.loadHistoryFile();
+
       console.log('[NodeSchemaService] loadFromStorage completed');
     } catch (error) {
       console.error('[NodeSchemaService] loadFromStorage error:', error);

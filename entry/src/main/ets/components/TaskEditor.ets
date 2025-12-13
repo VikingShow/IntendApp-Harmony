@@ -1036,6 +1036,17 @@ export struct TaskEditor {
     if (!fieldId || fieldId.length === 0) {
       return null;
     }
+
+    // 尝试从当前 schema 的 fields 中获取最新的选项配置
+    const schema = this.getCurrentSchema();
+    if (schema && schema.fields) {
+      const schemaField = schema.fields.find((f: FieldSchema) => f.id === fieldId);
+      if (schemaField) {
+        return schemaField;
+      }
+    }
+
+    // 如果 schema 中没有，则使用默认值
     if (fieldId === '_priority') {
       return {
         id: '_priority',
@@ -1059,7 +1070,8 @@ export struct TaskEditor {
         id: '_tags',
         label: componentType === 'TAGS' ? '标签' : '标签',
         type: 'checklist',
-        required: false
+        required: false,
+        options: ['前端', '后端', '设计', '测试', '文档']
       } as FieldSchema;
     }
     if (fieldId === '_assignee') {

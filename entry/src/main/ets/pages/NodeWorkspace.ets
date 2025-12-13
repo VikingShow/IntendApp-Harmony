@@ -1532,6 +1532,7 @@ struct NodeWorkspacePage {
   @State previewUpdatePending: boolean = false;
   @State currentEditorTab: number = 0;
   @State selectedComponentId: string | null = null;
+  @State componentRefreshKey: number = 0;
   @State currentViewMode: 'visual' | 'classic' = 'visual';
   @State draggedLibraryType: NodeComponentType | null = null;
   // 布局管理状态
@@ -2596,6 +2597,8 @@ struct NodeWorkspacePage {
 
     this.schemaService.upsertSchema(updated);
     this.reloadSchemas();
+    this.updateSelectedSchemaObject();
+    this.componentRefreshKey++;
     this.refreshSchemaJson();
     this.scheduleAutoSave();
   }
@@ -4952,6 +4955,7 @@ struct NodeWorkspacePage {
               selectedComponent: this.getSelectedComponent(),
               availableFields: this.selectedSchemaObject?.fields || [],
               schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+              refreshKey: this.componentRefreshKey,
               onFillColorChange: (color: string) => {
                 this.updateSelectedSchemaColor(color);
               },
@@ -5061,6 +5065,7 @@ struct NodeWorkspacePage {
                     selectedComponent: this.getSelectedComponent(),
                     availableFields: this.selectedSchemaObject?.fields || [],
                     schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+                    refreshKey: this.componentRefreshKey,
                     onFillColorChange: (color: string) => {
                       this.updateSelectedSchemaColor(color);
                     },

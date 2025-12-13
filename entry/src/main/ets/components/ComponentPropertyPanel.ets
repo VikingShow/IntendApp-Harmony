@@ -12,8 +12,10 @@ export struct ComponentPropertyPanel {
   @Prop selectedComponent: NodeComponentSchema | null;
   @Prop availableFields: FieldSchema[] = [];
   @Prop schemaStyle: NodeStyleSchema | null = null;
+  @Prop @Watch('onRefreshKeyChanged') refreshKey: number = 0;
 
   @State private newOptionInput: string = '';
+  @State private localRefreshTrigger: number = 0;
 
   onFillColorChange?: (color: string) => void;
   onCriticalColorChange?: (color: string) => void;
@@ -580,8 +582,15 @@ export struct ComponentPropertyPanel {
   }
 
   private isStyleSelected(value: string, index: number): boolean {
+    // 使用 localRefreshTrigger 确保重新计算
+    const _ = this.localRefreshTrigger;
     const currentStyle = this.selectedComponent?.props?.style;
     return currentStyle === value || (index === 0 && !currentStyle);
+  }
+
+  private onRefreshKeyChanged(): void {
+    // 当 refreshKey 变化时，增加本地刷新触发器以强制 UI 更新
+    this.localRefreshTrigger++;
   }
 
   private addFieldOption(fieldId: string, newOption: string): void {
@@ -779,7 +788,7 @@ export struct ComponentPropertyPanel {
             .onClick(() => {
               this.updateComponentStyle(values[index]);
             });
-        }, (label: string, index: number) => `style_${index}_${label}`);
+        }, (label: string, index: number) => `style_${index}_${label}_${this.localRefreshTrigger}_${this.selectedComponent?.props?.style || 'default'}`);
       }
     }
     .width('100%')

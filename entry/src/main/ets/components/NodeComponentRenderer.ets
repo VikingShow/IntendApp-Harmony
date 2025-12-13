@@ -21,31 +21,37 @@ export struct DraggableComponentItem {
   handleDragEnd?: () => void;
 
   build() {
-    Row({ space: 10 }) {
-      Text(this.icon)
-        .fontSize(20)
-        .fontColor(ColorResource.primaryColor);
-      
-      Column({ space: 2 }) {
+    Column({ space: 6 }) {
+      // 头部：图标、名称和拖拽手柄
+      Row({ space: 8 }) {
+        Text(this.icon)
+          .fontSize(16);
+
         Text(this.label)
           .fontSize(ThemeConfig.fontSizeS)
           .fontWeight(FontWeight.Medium)
-          .fontColor(ColorResource.textPrimary);
-        
-        Text(this.type)
-          .fontSize(ThemeConfig.fontSizeXS - 1)
-          .fontColor(ColorResource.textTertiary)
-          .opacity(0.7);
+          .fontColor(ColorResource.textPrimary)
+          .layoutWeight(1);
+
+        Text('⋮⋮')
+          .fontSize(14)
+          .fontColor(ColorResource.textTertiary);
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1);
-      
-      Text('⋮⋮')
-        .fontSize(16)
-        .fontColor(ColorResource.textTertiary);
+      .width('100%');
+
+      // 实时预览区域 - 直接使用内容组件，与画布保持一致
+      Column({ space: 0 }) {
+        NodeComponentContent({
+          component: { id: 'library-preview', type: this.type } as NodeComponentSchema
+        })
+      }
+      .width('100%')
+      .padding(8)
+      .backgroundColor(ColorResource.backgroundSecondary)
+      .borderRadius(6);
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .padding(10)
     .backgroundColor(this.isDragging ? ColorResource.backgroundSecondary : ColorResource.surface)
     .borderRadius(8)
     .shadow(this.isDragging ? { radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 } : { radius: 2, color: 'rgba(0,0,0,0.05)', offsetY: 1 })
@@ -62,7 +68,6 @@ export struct DraggableComponentItem {
         this.handleDragStart(this.type);
       }
 
-      // 返回一个 DragItemInfo 对象来自定义拖拽预览图，如果不需要则可以不返回
       return {
         builder: this.dragPreviewBuilder()
       };
@@ -271,15 +276,34 @@ export struct NodeComponentPreview {
 
   @Builder
   renderPriorityBadge() {
-    Row({ space: 6 }) {
-      Text('🔥')
-        .fontSize(12);
+    if (this.component.props?.style === 'text') {
+      // 文字样式
       Text('高优先级')
         .fontSize(11)
         .fontColor('#FF3B30')
-        .fontWeight(FontWeight.Medium);
+        .fontWeight(FontWeight.Medium)
+        .width('100%');
+    } else if (this.component.props?.style === 'icon') {
+      // 图标样式
+      Text('🔥🔥🔥')
+        .fontSize(14)
+        .width('100%');
+    } else {
+      // 默认徽章样式
+      Row({ space: 6 }) {
+        Text('高')
+          .fontSize(10)
+          .fontColor(Color.White)
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .backgroundColor('#FF3B30')
+          .borderRadius(4);
+        Text('高优先级')
+          .fontSize(11)
+          .fontColor('#FF3B30')
+          .fontWeight(FontWeight.Medium);
+      }
+      .width('100%');
     }
-    .width('100%');
   }
 
   @Builder
@@ -296,42 +320,63 @@ export struct NodeComponentPreview {
 
   @Builder
   renderTags() {
-    Row({ space: 6 }) {
-      Text('🏷️')
-        .fontSize(12);
-      
-      Row({ space: 4 }) {
-        Text('前端')
-          .fontSize(10)
-          .fontColor(ColorResource.primaryColor)
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .backgroundColor('rgba(0, 122, 255, 0.1)')
-          .borderRadius(4);
-        
-        Text('紧急')
-          .fontSize(10)
-          .fontColor('#FF3B30')
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .backgroundColor('rgba(255, 59, 48, 0.1)')
-          .borderRadius(4);
+    if (this.component.props?.style === 'text') {
+      // 文字样式
+      Text('前端, 紧急')
+        .fontSize(11)
+        .fontColor(ColorResource.textSecondary)
+        .width('100%');
+    } else {
+      // 默认标签样式
+      Row({ space: 6 }) {
+        Text('🏷️')
+          .fontSize(12);
+
+        Row({ space: 4 }) {
+          Text('前端')
+            .fontSize(10)
+            .fontColor(ColorResource.primaryColor)
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor('rgba(0, 122, 255, 0.1)')
+            .borderRadius(4);
+
+          Text('紧急')
+            .fontSize(10)
+            .fontColor('#FF3B30')
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor('rgba(255, 59, 48, 0.1)')
+            .borderRadius(4);
+        }
       }
+      .width('100%');
     }
-    .width('100%');
   }
 
   @Builder
   renderStatusDot() {
-    Row({ space: 6 }) {
-      Circle()
-        .width(8)
-        .height(8)
-        .fill('#67C23A');
-      
+    if (this.component.props?.style === 'label') {
+      // 标签样式
       Text('进行中')
-        .fontSize(11)
-        .fontColor(ColorResource.textSecondary);
+        .fontSize(10)
+        .fontColor(Color.White)
+        .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+        .backgroundColor('#67C23A')
+        .borderRadius(4)
+        .width('100%');
+    } else {
+      // 默认圆点样式
+      Row({ space: 6 }) {
+        Circle()
+          .width(8)
+          .height(8)
+          .fill('#67C23A');
+
+        Text('进行中')
+          .fontSize(11)
+          .fontColor(ColorResource.textSecondary);
+      }
+      .width('100%');
     }
-    .width('100%');
   }
 
   @Builder

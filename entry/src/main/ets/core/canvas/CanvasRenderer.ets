@@ -649,21 +649,25 @@ export class CanvasRenderer {
           // TITLE + DATE_RANGE + TIME_PROGRESS + TASK_PROGRESS
           y += 22;
           y += 18;
-          y += 5 + 18;
-          y += 5 + 18;
+          y += 20;
+          y += 20;
           return y;
         }
 
+        const LINE_H = 24; // 统一行高
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
-          if (t === 'TITLE') { y += 22; return; }
-          if (t === 'DATE_RANGE') { y += 18; return; }
-          if (t === 'CHECKLIST_SUMMARY') { y += 18; return; }
-          if (t === 'TIME_PROGRESS') { y += 5 + 18; return; }
-          if (t === 'TASK_PROGRESS') { y += 5 + 18; return; }
-          if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT' || t === 'ASSIGNEE' || t === 'CUSTOM_FIELD') { y += 18; return; }
-          if (t === 'TAGS') { y += 22; return; }
-          y += 16;
+          if (t === 'TITLE') { y += LINE_H + 4; return; }
+          if (t === 'DATE_RANGE') { y += LINE_H; return; }
+          if (t === 'CHECKLIST_SUMMARY') { y += LINE_H; return; }
+          if (t === 'TIME_PROGRESS') { y += LINE_H + 4; return; }
+          if (t === 'TASK_PROGRESS') { y += LINE_H + 4; return; }
+          if (t === 'PRIORITY_BADGE') { y += LINE_H; return; }
+          if (t === 'STATUS_DOT') { y += LINE_H; return; }
+          if (t === 'ASSIGNEE') { y += LINE_H; return; }
+          if (t === 'CUSTOM_FIELD') { y += LINE_H; return; }
+          if (t === 'TAGS') { y += LINE_H; return; }
+          y += LINE_H;
         });
         return y;
       };
@@ -705,6 +709,8 @@ export class CanvasRenderer {
       // 绘制内容
       let cursorY = drawY + TOP_PADDING;
       const leftX = drawX + 15;
+      const LINE_HEIGHT = 24; // 统一行高
+      this.context.textBaseline = 'top'; // 设置文本基线为顶部，便于计算位置
       const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
 
       if (!layout || layout.length === 0) {
@@ -743,9 +749,9 @@ export class CanvasRenderer {
 
           if (t === 'TITLE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
-            this.context.font = `bold 30px HarmonyOS Sans`;
+            this.context.font = `bold 28px HarmonyOS Sans`;
             this.context.fillText(task.name, leftX, cursorY);
-            cursorY += 22;
+            cursorY += LINE_HEIGHT + 4;
             return;
           }
           if (t === 'DATE_RANGE') {
@@ -758,7 +764,7 @@ export class CanvasRenderer {
             const endD = task.endDate.getDate();
             const dateString = `📅 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
             this.context.fillText(dateString, leftX, cursorY);
-            cursorY += 18;
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'CHECKLIST_SUMMARY') {
@@ -768,8 +774,8 @@ export class CanvasRenderer {
               : 0;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`清单: ${done}/${total}`, leftX, cursorY);
-            cursorY += 18;
+            this.context.fillText(`☑️ ${done}/${total} 项已完成`, leftX, cursorY);
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TIME_PROGRESS') {
@@ -777,9 +783,8 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `20px HarmonyOS Sans`;
             this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-            cursorY += 4;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
-            cursorY += 16;
+            this.drawProgressBar(leftX, cursorY + 18, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
+            cursorY += LINE_HEIGHT + 4;
             return;
           }
           if (t === 'TASK_PROGRESS') {
@@ -787,97 +792,149 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `20px HarmonyOS Sans`;
             this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-            cursorY += 4;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
-            cursorY += 16;
+            this.drawProgressBar(leftX, cursorY + 18, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
+            cursorY += LINE_HEIGHT + 4;
             return;
           }
           if (t === 'PRIORITY_BADGE') {
+            const propStyle = comp && comp.props && comp.props.style ? String(comp.props.style) : 'badge';
             const v = getCustomStr('_priority');
-            const label = getFieldLabel('_priority', '优先级');
-            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+            const priorityText = v && v.length > 0 ? v : '高优先级';
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 18;
+            
+            if (propStyle === 'icon') {
+              // 图标样式：🔥🔥🔥
+              this.context.fillText('🔥🔥🔥', leftX, cursorY);
+              cursorY += LINE_HEIGHT;
+            } else if (propStyle === 'text') {
+              // 文字样式
+              this.context.fillStyle = '#FF3B30';
+              this.context.fillText(priorityText, leftX, cursorY);
+              cursorY += LINE_HEIGHT;
+            } else {
+              // 默认徽章样式
+              const badgePadX = 8;
+              const badgeH = 20;
+              this.context.font = `20px HarmonyOS Sans`;
+              const badgeText = priorityText.substring(0, 1);
+              const badgeW = this.context.measureText(badgeText).width + badgePadX * 2;
+              // 绘制徽章背景
+              this.context.fillStyle = '#FF3B30';
+              this.drawRoundRect(this.context, leftX, cursorY, badgeW, badgeH, 4);
+              this.context.fill();
+              // 绘制徽章文字
+              this.context.fillStyle = '#FFFFFF';
+              this.context.fillText(badgeText, leftX + badgePadX, cursorY + 2);
+              // 绘制优先级文字
+              this.context.fillStyle = '#FF3B30';
+              this.context.fillText(priorityText, leftX + badgeW + 8, cursorY + 2);
+              cursorY += LINE_HEIGHT;
+            }
             return;
           }
           if (t === 'STATUS_DOT') {
+            const propStyle = comp && comp.props && comp.props.style ? String(comp.props.style) : 'dot';
             const v = getCustomStr('_status');
-            const label = getFieldLabel('_status', '状态');
-            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 18;
+            const statusText = v && v.length > 0 ? v : '进行中';
+            
+            if (propStyle === 'label') {
+              // 标签样式
+              const labelPadX = 8;
+              const labelH = 20;
+              this.context.font = `20px HarmonyOS Sans`;
+              const labelW = this.context.measureText(statusText).width + labelPadX * 2;
+              this.context.fillStyle = '#67C23A';
+              this.drawRoundRect(this.context, leftX, cursorY, labelW, labelH, 4);
+              this.context.fill();
+              this.context.fillStyle = '#FFFFFF';
+              this.context.fillText(statusText, leftX + labelPadX, cursorY + 2);
+              cursorY += LINE_HEIGHT;
+            } else {
+              // 默认圆点样式
+              this.context.beginPath();
+              this.context.arc(leftX + 4, cursorY + 8, 4, 0, Math.PI * 2);
+              this.context.fillStyle = '#67C23A';
+              this.context.fill();
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+              this.context.font = `22px HarmonyOS Sans`;
+              this.context.fillText(statusText, leftX + 16, cursorY);
+              cursorY += LINE_HEIGHT;
+            }
             return;
           }
           if (t === 'ASSIGNEE') {
             const v = getCustomStr('_assignee');
+            const assigneeText = v && v.length > 0 ? v : '张三';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`负责人: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 18;
+            this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY);
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TAGS') {
             const tags = getCustomTags('_tags');
             this.context.font = `20px HarmonyOS Sans`;
 
-            // 标题
-            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.fillText(`标签`, leftX, cursorY);
-            cursorY += 20;
+            // 如果没有标签，显示示例标签
+            const displayTags = tags.length > 0 ? tags : ['前端', '紧急'];
 
-            if (tags.length === 0) {
-              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
-              this.context.fillText('无', leftX, cursorY);
-              cursorY += 18;
-              return;
-            }
-
-            // 标签 chips（最多显示 3 个）
+            // 标签 chips
             const maxTags = 3;
-            const visibleTags = tags.slice(0, maxTags);
-            const chipPaddingX = 10;
-            const chipHeight = 26;
-            const chipRadius = 13;
-            let chipX = leftX;
+            const visibleTags = displayTags.slice(0, maxTags);
+            const chipPaddingX = 6;
+            const chipHeight = 18;
+            const chipRadius = 4;
+            const chipY = cursorY + 1; // 与图标对齐
 
-            visibleTags.forEach((tag: string) => {
+            // 绘制标签图标
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+            this.context.fillText(`🏷️`, leftX, cursorY);
+            let chipX = leftX + 28;
+
+            visibleTags.forEach((tag: string, index: number) => {
               const textWidth = this.context.measureText(tag).width;
               const chipWidth = textWidth + chipPaddingX * 2;
 
-              // 背景
-              this.context.fillStyle = this.isDarkMode
-                ? 'rgba(10, 132, 255, 0.20)'
-                : 'rgba(0, 122, 255, 0.12)';
-              this.drawRoundRect(this.context, chipX, cursorY, chipWidth, chipHeight, chipRadius);
+              // 背景 - 第二个标签用红色
+              if (index === 1) {
+                this.context.fillStyle = this.isDarkMode
+                  ? 'rgba(255, 59, 48, 0.20)'
+                  : 'rgba(255, 59, 48, 0.12)';
+              } else {
+                this.context.fillStyle = this.isDarkMode
+                  ? 'rgba(10, 132, 255, 0.20)'
+                  : 'rgba(0, 122, 255, 0.12)';
+              }
+              this.drawRoundRect(this.context, chipX, chipY, chipWidth, chipHeight, chipRadius);
               this.context.fill();
 
               // 文本
-              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor;
-              this.context.fillText(tag, chipX + chipPaddingX, cursorY + chipHeight / 2 + 1);
+              this.context.fillStyle = index === 1 ? '#FF3B30' : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor);
+              this.context.fillText(tag, chipX + chipPaddingX, chipY + 1);
 
-              chipX += chipWidth + 8;
+              chipX += chipWidth + 6;
             });
 
-            cursorY += chipHeight + 8;
+            cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'CUSTOM_FIELD') {
             const fid = fieldId && fieldId.length > 0 ? fieldId : '';
             const v = getCustomStr(fid);
             const label = getFieldLabel(fid, fid && fid.length > 0 ? fid : '字段');
-            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+            const displayText = v && v.length > 0 ? v : '未绑定字段';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 18;
+            this.context.fillText(`✏️ ${label}: ${displayText}`, leftX, cursorY);
+            cursorY += LINE_HEIGHT;
             return;
           }
 
+          // 未知组件类型
           this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
           this.context.font = `22px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);
-          cursorY += 16;
+          cursorY += LINE_HEIGHT;
         });
       }
 

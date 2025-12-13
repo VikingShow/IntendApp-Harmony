@@ -2,7 +2,6 @@
 /**
  * 节点可视化画布组件
  * 支持拖拽添加、排序、选中组件的所见即所得编辑器
- * 分为上下两部分：上部60%为可拖拽编辑区，下部40%为只读实时预览区
  */
 
 import { NodeComponentType, NodeComponentSchema, NodeSchema } from '../model/NodeSchema';
@@ -24,7 +23,6 @@ export struct NodeVisualCanvas {
   @State isDragOver: boolean = false;
   @State draggedComponentIndex: number = -1;
   @State previewMode: 'normal' | 'critical' = 'normal';
-  @State livePreviewMode: 'normal' | 'critical' = 'normal';
 
   onComponentSelect?: (componentId: string) => void;
   onComponentDelete?: (componentId: string) => void;
@@ -33,7 +31,7 @@ export struct NodeVisualCanvas {
 
   build() {
     Column({ space: 0 }) {
-      // ========== 上半部分：可拖拽编辑区域 (60%) ==========
+      // ========== 可拖拽编辑区域 ==========
       Column({ space: 0 }) {
         // 画布标题
         Row({ space: 8 }) {
@@ -94,54 +92,8 @@ export struct NodeVisualCanvas {
         }
       }
       .width('100%')
-      .layoutWeight(6)
+      .layoutWeight(1)
       .backgroundColor(ColorResource.backgroundPage);
-
-      // ========== 分隔线 ==========
-      Row({ space: 8 }) {
-        Row()
-          .layoutWeight(1)
-          .height(1)
-          .backgroundColor(ColorResource.surfaceEmphasized)
-          .opacity(0.3);
-
-        Text('实时预览')
-          .fontSize(ThemeConfig.fontSizeXS)
-          .fontColor(ColorResource.textTertiary);
-
-        Row()
-          .layoutWeight(1)
-          .height(1)
-          .backgroundColor(ColorResource.surfaceEmphasized)
-          .opacity(0.3);
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-      .backgroundColor(ColorResource.surface);
-
-      // ========== 下半部分：实时预览区域 (40%) ==========
-      Column({ space: 0 }) {
-        if (!this.schema) {
-          Column({ space: 12 }) {
-            Text('← 请选择节点类型')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(ColorResource.textTertiary);
-
-            Text('选择后可在此查看实际效果预览')
-              .fontSize(ThemeConfig.fontSizeS)
-              .fontColor(ColorResource.textTertiary)
-              .opacity(0.7);
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center);
-        } else {
-          this.LivePreviewContent();
-        }
-      }
-      .width('100%')
-      .layoutWeight(4)
-      .backgroundColor(ColorResource.backgroundSecondary);
     }
     .width('100%')
     .height('100%')
@@ -402,92 +354,6 @@ export struct NodeVisualCanvas {
         .width('100%')
         .padding({ left: 20, right: 20, bottom: 16 });
       }
-    }
-    .width('100%')
-    .layoutWeight(1)
-    .scrollBar(BarState.Auto);
-  }
-
-  // ========== 下半部分：只读实时预览内容 ==========
-  @Builder
-  LivePreviewContent() {
-    Scroll() {
-      Column({ space: 12 }) {
-        // 预览模式切换
-        Row({ space: 8 }) {
-          Text('预览模式')
-            .fontSize(ThemeConfig.fontSizeXS)
-            .fontColor(ColorResource.textTertiary);
-
-          Row({ space: 4 }) {
-            Text('普通')
-              .fontSize(ThemeConfig.fontSizeXS)
-              .fontColor(this.livePreviewMode === 'normal' ? Color.White : ColorResource.textSecondary)
-              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-              .backgroundColor(this.livePreviewMode === 'normal' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
-              .borderRadius(8)
-              .onClick(() => {
-                this.livePreviewMode = 'normal';
-              });
-
-            Text('关键')
-              .fontSize(ThemeConfig.fontSizeXS)
-              .fontColor(this.livePreviewMode === 'critical' ? Color.White : ColorResource.textSecondary)
-              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-              .backgroundColor(this.livePreviewMode === 'critical' ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
-              .borderRadius(8)
-              .onClick(() => {
-                this.livePreviewMode = 'critical';
-              });
-          }
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center);
-
-        // 真实效果预览卡片（只读，无拖拽）
-        Column({ space: 0 }) {
-          if (this.schema !== null && this.schema.layout.length === 0) {
-            Column({ space: 8 }) {
-              Text('暂无组件')
-                .fontSize(ThemeConfig.fontSizeM)
-                .fontColor(ColorResource.textTertiary);
-              Text('在上方编辑区添加组件后可预览实际效果')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .opacity(0.7);
-            }
-            .width('100%')
-            .height(100)
-            .justifyContent(FlexAlign.Center)
-            .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(12);
-          } else if (this.schema !== null) {
-            // 渲染只读预览组件
-            ForEach(this.schema.layout, (component: NodeComponentSchema) => {
-              NodeComponentContent({
-                component: component
-              });
-            }, (component: NodeComponentSchema) => component.id);
-          }
-        }
-        .width(220)
-        .padding(12)
-        .backgroundColor(ColorResource.surface)
-        .borderRadius(
-          this.schema !== null && this.schema.style.borderRadius !== undefined
-            ? this.schema.style.borderRadius
-            : 16
-        )
-        .border({
-          width: this.schema !== null ? (this.schema.style.borderWidth || 2) : 2,
-          color: this.schema !== null ? (this.livePreviewMode === 'critical'
-            ? (this.schema.style.criticalColor || '#FF3B30')
-            : (this.schema.style.borderColor || this.schema.style.fillColor)) : '#007AFF'
-        })
-        .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 2 });
-      }
-      .width('100%')
-      .padding({ left: 20, right: 20, top: 12, bottom: 20 });
     }
     .width('100%')
     .layoutWeight(1)

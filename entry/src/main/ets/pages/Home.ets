@@ -2110,7 +2110,7 @@ struct HomePage {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        // 节点工作台入口按钮（位于新增项目按钮左侧）
+        // 节点工作台入口按钮
         Button('节点工作台')
           .height(36)
           .padding({ left: 12, right: 12 })
@@ -2118,13 +2118,21 @@ struct HomePage {
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(ColorResource.surface)
-          .fontColor(ColorResource.primaryColor)
+          .fontColor(this.isPhone ? ColorResource.textTertiary : ColorResource.primaryColor)
           .borderRadius(18)
           .shadow(ThemeConfig.shadowSmall)
           .onClick(() => {
-            this.uiContext.getRouter().pushUrl({
-              url: 'pages/NodeWorkspace'
-            });
+            if (this.isPhone) {
+              // 手机端显示提示
+              this.promptAction.showToast({
+                message: '请在平板上使用节点工作台',
+                duration: 2000
+              });
+            } else {
+              this.uiContext.getRouter().pushUrl({
+                url: 'pages/NodeWorkspace'
+              });
+            }
           })
 
         // 新建项目按钮 - 现代化设计，增强视觉吸引力
@@ -2964,6 +2972,23 @@ struct HomePage {
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.surfaceDeep)
           .layoutWeight(1)
+        
+        // 节点工作台按钮（手机端点击提示）
+        Button('节点工作台')
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor(ColorResource.surface)
+          .fontColor(ColorResource.textTertiary)
+          .borderRadius(16)
+          .shadow(ThemeConfig.shadowSmall)
+          .onClick(() => {
+            this.promptAction.showToast({
+              message: '请在平板上使用节点工作台',
+              duration: 2000
+            });
+          })
         
         // 添加按钮
         Stack() {

@@ -425,12 +425,10 @@ struct ExportJsonDialog {
       }
 
       const documentSaveOptions = new picker.DocumentSaveOptions();
-      documentSaveOptions.newFileNames = [fileName];
-
-      const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
-      if (fileExtension && fileExtension.length > 1) {
-        documentSaveOptions.fileSuffixChoices = [fileExtension];
-      }
+      // 不在 newFileNames 中包含扩展名，让 fileSuffixChoices 来处理
+      const baseName = fileName.endsWith('.json') ? fileName.slice(0, -5) : fileName;
+      documentSaveOptions.newFileNames = [baseName];
+      documentSaveOptions.fileSuffixChoices = ['.json'];
 
       const documentPicker = new picker.DocumentViewPicker();
       const uris = await documentPicker.save(documentSaveOptions);
@@ -727,7 +725,8 @@ struct ImportJsonDialog {
       }
 
       const file = fs.openSync(uri, fs.OpenMode.READ_ONLY);
-      const stat = fs.statSync(uri);
+      // 使用文件描述符获取文件状态，而不是 URI
+      const stat = fs.statSync(file.fd);
       const buffer = new ArrayBuffer(stat.size);
       fs.readSync(file.fd, buffer);
       fs.closeSync(file);
@@ -735,6 +734,7 @@ struct ImportJsonDialog {
       const decoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
       const content = decoder.decodeToString(new Uint8Array(buffer));
       this.importJson = content;
+      console.info('[ImportJsonDialog] File loaded successfully, size:', stat.size);
 
       if (!content || content.trim().length === 0) {
         console.warn('[ImportJsonDialog] Read empty content from file');
@@ -2035,6 +2035,7 @@ struct NodeWorkspacePage {
 
         this.reloadSchemas();
         this.refreshSchemaJson();
+        this.schemaService.saveToStorage(); // 持久化保存
         if (successCount > 0) {
           this.promptAction.showToast({
             message: `批量导入成功：${successCount} 个` + (failCount > 0 ? `，失败 ${failCount} 个` : ''),
@@ -2074,6 +2075,7 @@ struct NodeWorkspacePage {
 
       this.schemaService.upsertSchema(schema);
       this.reloadSchemas();
+      this.schemaService.saveToStorage(); // 持久化保存
       this.selectedSchemaId = schema.id;
       this.promptAction.showToast({ message: `导入成功：${schema.name}`, duration: 2000 });
     } catch (error) {

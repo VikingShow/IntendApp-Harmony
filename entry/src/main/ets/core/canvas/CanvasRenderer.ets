@@ -578,6 +578,9 @@ export class CanvasRenderer {
       // 宽度自适应：按 schema.layout 复杂度 + 文本宽度估算，尽量紧凑
       const MIN_W = 170;
       const MAX_W = 260;
+      const MIN_H = 86;
+      const TOP_PADDING = 22;
+      const BOTTOM_PADDING = 6;
       const isSelected = task.id === config.selectedTaskId;
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
@@ -602,54 +605,6 @@ export class CanvasRenderer {
       const dateW = this.context.measureText(`${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`).width + 30;
       // 取最大值并做上下限裁剪
       const NODE_WIDTH = Math.max(MIN_W, Math.min(MAX_W, Math.max(widthByCount, Math.max(titleW, dateW))));
-
-      // 根据 schema.layout 估算节点高度（使画布展示与 NodeWorkspace 结构一致）
-      // 采用极简行高模型：进一步减少留白
-      const estimatedHeight = ((): number => {
-        const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
-        if (!layout || layout.length === 0) {
-          return 120;
-        }
-        let h = 10; // top padding
-        layout.forEach((c: NodeComponentSchema) => {
-          const t: string = c && c.type ? String(c.type) : '';
-          if (t === 'TITLE') h += 24;
-          else if (t === 'DATE_RANGE') h += 18;
-          else if (t === 'TIME_PROGRESS' || t === 'TASK_PROGRESS') h += 24;
-          else if (t === 'TAGS') h += 22;
-          else if (t === 'CHECKLIST_SUMMARY') h += 18;
-          else if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT') h += 18;
-          else if (t === 'ASSIGNEE') h += 18;
-          else if (t === 'CUSTOM_FIELD') h += 18;
-          else h += 16;
-          h += 1; // spacing
-        });
-        h += 8; // bottom padding
-        return Math.max(92, Math.min(210, h));
-      })();
-      const NODE_HEIGHT = estimatedHeight;
-
-      // 记录本节点实际宽高，用于依赖线锚点定位
-      this.lastNodeBounds.set(task.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-
-      // 节点背景（根据深色模式切换）
-      this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
-      this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, borderRadius);
-      this.context.fill();
-
-      // 节点边框（根据深色模式调整颜色）
-      if (isSelected) {
-        this.context.strokeStyle = ThemeConfig.taskSelected.toString();
-        this.context.lineWidth = 4;
-      } else if (task.isCritical) {
-        this.context.strokeStyle = ThemeConfig.taskCritical.toString();
-        this.context.lineWidth = 2;
-      } else {
-        // 普通节点边框在深色模式下使用更亮的颜色
-        this.context.strokeStyle = schemaColor;
-        this.context.lineWidth = 2;
-      }
-      this.context.stroke();
 
       // schema 驱动渲染：按 layout 顺序绘制节点内容
       // 统一从 task + customFields 读取值，以保证与编辑器/工作台一致
@@ -676,34 +631,89 @@ export class CanvasRenderer {
         return f && f.label ? String(f.label) : fallback;
       };
 
-      let cursorY = drawY + 16;
+      // 完全自适应高度：先按 layout 进行“尺寸测算”（不画背景），再画背景/边框，最后画内容
+      const estimateCursorEnd = (): number => {
+        const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
+        let y = TOP_PADDING;
+        if (!layout || layout.length === 0) {
+          // TITLE + DATE_RANGE + TIME_PROGRESS + TASK_PROGRESS
+          y += 22;
+          y += 18;
+          y += 5 + 18;
+          y += 5 + 18;
+          return y;
+        }
+
+        layout.forEach((comp: NodeComponentSchema) => {
+          const t: string = comp && comp.type ? String(comp.type) : '';
+          if (t === 'TITLE') { y += 22; return; }
+          if (t === 'DATE_RANGE') { y += 18; return; }
+          if (t === 'CHECKLIST_SUMMARY') { y += 18; return; }
+          if (t === 'TIME_PROGRESS') { y += 5 + 18; return; }
+          if (t === 'TASK_PROGRESS') { y += 5 + 18; return; }
+          if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT' || t === 'ASSIGNEE' || t === 'CUSTOM_FIELD') { y += 18; return; }
+          if (t === 'TAGS') { y += 22; return; }
+          y += 16;
+        });
+        return y;
+      };
+
+      const contentHeight = Math.max(MIN_H, Math.ceil(estimateCursorEnd() + BOTTOM_PADDING));
+
+      // 背景
+      this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
+      this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, contentHeight, borderRadius);
+      this.context.fill();
+
+      // 边框
+      if (isSelected) {
+        this.context.strokeStyle = ThemeConfig.taskSelected.toString();
+        this.context.lineWidth = 4;
+      } else if (task.isCritical) {
+        this.context.strokeStyle = ThemeConfig.taskCritical.toString();
+        this.context.lineWidth = 2;
+      } else {
+        this.context.strokeStyle = schemaColor;
+        this.context.lineWidth = 2;
+      }
+      this.context.stroke();
+
+      // 记录本节点实际宽高，用于依赖线锚点定位
+      this.lastNodeBounds.set(task.id, { width: NODE_WIDTH, height: contentHeight });
+
+      // 绘制内容
+      let cursorY = drawY + TOP_PADDING;
       const leftX = drawX + 15;
-      const rightX = drawX + NODE_WIDTH - 15;
       const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
 
-      // layout 为空时兜底绘制旧内容
       if (!layout || layout.length === 0) {
         this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
-        this.context.font = `bold 32px HarmonyOS Sans`;
-        this.context.fillText(task.name, leftX, drawY + 28);
+        this.context.font = `bold 30px HarmonyOS Sans`;
+        this.context.fillText(task.name, leftX, cursorY);
+        cursorY += 22;
 
         this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
-        this.context.font = `24px HarmonyOS Sans`;
+        this.context.font = `22px HarmonyOS Sans`;
         const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
-        this.context.fillText(`${dateString}`, leftX, drawY + 50);
+        this.context.fillText(dateString, leftX, cursorY);
+        cursorY += 18;
 
         const timeProgress = this.getTimeProgress(task);
+        this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
+        cursorY += 5;
+        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, timeProgress, ThemeConfig.taskNormal.toString());
+        cursorY += 18;
+
         const completionProgress = this.getCompletionProgress(task);
-        this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
-        this.context.font = `23px HarmonyOS Sans`;
-        this.context.fillText(`时间: ${timeProgress}%`, leftX, drawY + 70);
-        this.drawProgressBar(leftX, drawY + 75, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
-        this.context.fillText(`完成: ${completionProgress}%`, leftX, drawY + 95);
-        this.drawProgressBar(leftX, drawY + 100, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
+        this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
+        cursorY += 5;
+        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, completionProgress, ThemeConfig.taskProgress.toString());
+        cursorY += 18;
       } else {
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
           const fieldId: string = comp && comp.fieldId ? String(comp.fieldId) : '';
+
           if (t === 'TITLE') {
             this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
             this.context.font = `bold 30px HarmonyOS Sans`;
@@ -796,7 +806,6 @@ export class CanvasRenderer {
             return;
           }
 
-          // 未识别组件类型兜底
           this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
           this.context.font = `22px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);

@@ -473,6 +473,17 @@ export struct TaskEditor {
     }
   }
 
+  private getEditorLayoutWithRequiredDateRange(): NodeComponentSchema[] {
+    const schema = this.getCurrentSchema();
+    const layout: NodeComponentSchema[] = (schema && schema.layout) ? schema.layout : [];
+    const hasDateRange = layout.some((c: NodeComponentSchema) => c && c.type === 'DATE_RANGE');
+    if (hasDateRange) {
+      return layout;
+    }
+    const requiredDateRange: NodeComponentSchema = { id: '__required_date_range__', type: 'DATE_RANGE' };
+    return [requiredDateRange, ...layout];
+  }
+
   private getReservedFieldIdByComponentType(type: string): string {
     // 对于没有 TaskNode 原生字段支持的组件，使用约定字段存到 customFields
     // 这些字段可以在 NodeWorkspace 中由用户自己创建并绑定到 CUSTOM_FIELD；但这里给默认 fallback
@@ -1581,8 +1592,11 @@ export struct TaskEditor {
 
              // 动态编辑区域（按 schema.layout 渲染）
              Column({ space: 14 }) {
-               if (this.getCurrentSchema() && this.getCurrentSchema()!.layout && this.getCurrentSchema()!.layout.length > 0) {
-                 ForEach(this.getCurrentSchema()!.layout, (component: NodeComponentSchema, index: number) => {
+               ForEach(
+                 (this.getEditorLayoutWithRequiredDateRange() && this.getEditorLayoutWithRequiredDateRange().length > 0)
+                   ? this.getEditorLayoutWithRequiredDateRange()
+                   : [],
+                 (component: NodeComponentSchema, index: number) => {
                    Column({ space: 8 }) {
                      this.renderComponentEditor(component);
                    }
@@ -1591,13 +1605,16 @@ export struct TaskEditor {
                    .backgroundColor(ColorResource.transparent)
                    .borderRadius(ThemeConfig.radiusMedium)
                    .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
-                 }, (component: NodeComponentSchema, index: number) => `task-editor-layout-${component.id}-${index}-${this.forceUpdateKey}`)
-               } else {
-                 Text('当前节点类型没有可编辑的布局')
-                   .fontSize(ThemeConfig.fontSizeS)
-                   .fontColor(ColorResource.textTertiary)
-                   .width('100%');
-               }
+                 },
+                 (component: NodeComponentSchema, index: number) => `task-editor-layout-${component.id}-${index}-${this.forceUpdateKey}`
+               )
+
+               Text('当前节点类型没有可编辑的布局')
+                 .fontSize(ThemeConfig.fontSizeS)
+                 .fontColor(ColorResource.textTertiary)
+                 .width('100%')
+                 .opacity((this.getEditorLayoutWithRequiredDateRange() && this.getEditorLayoutWithRequiredDateRange().length > 0) ? 0 : 1)
+                 .height((this.getEditorLayoutWithRequiredDateRange() && this.getEditorLayoutWithRequiredDateRange().length > 0) ? 0 : undefined);
              }
              .width('100%')
 
@@ -1607,17 +1624,17 @@ export struct TaskEditor {
                 .fontSize(13)
                 .fontColor(ColorResource.textTertiary)
                 .fontWeight(FontWeight.Medium)
-              if (this.localTask) {
-                CommonButton({
-                  text: '添加日历提醒',
-                  type: 'secondary',
-                  buttonSize: 'small',
-                  onButtonClick: () => {
-                    this.onAddReminder(this.localTask!);
-                  }
-                })
-                  .width(140)
-              }
+              CommonButton({
+                text: '添加日历提醒',
+                type: 'secondary',
+                buttonSize: 'small',
+                onButtonClick: () => {
+                  this.onAddReminder(this.localTask!);
+                }
+              })
+                .width(140)
+                .opacity(this.localTask ? 1 : 0)
+                .height(this.localTask ? undefined : 0)
             }
             .width('100%')
             .justifyContent(FlexAlign.SpaceBetween)

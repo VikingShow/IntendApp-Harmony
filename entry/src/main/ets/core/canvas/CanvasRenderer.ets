@@ -42,6 +42,11 @@ interface TaskNodeWithCustomFields extends TaskNodeWithSchema {
   customFields?: Map<string, NodeFieldValue>;
 }
 
+interface NodeBounds {
+  width: number;
+  height: number;
+}
+
 /**
  * 渲染模式枚举
  */
@@ -108,6 +113,9 @@ export class CanvasRenderer {
   private settings: RenderingContextSettings;
   private isDarkMode: boolean = false;
   private nodeSchemaService: NodeSchemaService | null = null;
+
+  // 缓存每次渲染周期内节点的实际尺寸，用于依赖线/箭头定位
+  private lastNodeBounds: Map<string, NodeBounds> = new Map();
   
   // 性能优化：离屏Canvas缓存
   private gridCache: CanvasRenderingContext2D | null = null;
@@ -275,6 +283,14 @@ export class CanvasRenderer {
     this.context.restore();
   }
 
+  private getNodeBounds(taskId: string): NodeBounds {
+    if (this.lastNodeBounds.has(taskId)) {
+      return this.lastNodeBounds.get(taskId)!;
+    }
+    const fallback: NodeBounds = { width: 200, height: 120 };
+    return fallback;
+  }
+
   /**
    * 渲染网格（使用缓存优化）
    */
@@ -346,6 +362,8 @@ export class CanvasRenderer {
    */
   private renderDependencyLines(project: Project, config: RenderConfig): void {
     const isCompactMode = config.renderMode === RenderMode.COMPACT;
+    const compactOffsetX = 70;
+    const compactOffsetY = 45;
     
     project.dependencies.forEach((dep: Dependency) => {
       const fromNode = project.tasks.find((t: TaskNode) => t.id === dep.fromId);
@@ -360,16 +378,18 @@ export class CanvasRenderer {
         
         if (isCompactMode) {
           // 缩略模式：连接圆圈中心
-          fromCenterX = fromNode.x + config.canvasOffsetX + 100;
-          fromCenterY = fromNode.y + config.canvasOffsetY + 60;
-          toCenterX = toNode.x + config.canvasOffsetX + 100;
-          toCenterY = toNode.y + config.canvasOffsetY + 60;
+          fromCenterX = fromNode.x + config.canvasOffsetX + compactOffsetX;
+          fromCenterY = fromNode.y + config.canvasOffsetY + compactOffsetY;
+          toCenterX = toNode.x + config.canvasOffsetX + compactOffsetX;
+          toCenterY = toNode.y + config.canvasOffsetY + compactOffsetY;
         } else {
-          // 普通模式：连接矩形中心
-          fromCenterX = fromNode.x + config.canvasOffsetX + 200 / 2;
-          fromCenterY = fromNode.y + config.canvasOffsetY + 120 / 2;
-          toCenterX = toNode.x + config.canvasOffsetX + 200 / 2;
-          toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
+          // 普通模式：连接实际卡片中心（宽高随 schema/layout 自适应）
+          const fromBounds = this.getNodeBounds(fromNode.id);
+          const toBounds = this.getNodeBounds(toNode.id);
+          fromCenterX = fromNode.x + config.canvasOffsetX + fromBounds.width / 2;
+          fromCenterY = fromNode.y + config.canvasOffsetY + fromBounds.height / 2;
+          toCenterX = toNode.x + config.canvasOffsetX + toBounds.width / 2;
+          toCenterY = toNode.y + config.canvasOffsetY + toBounds.height / 2;
         }
         
         // 连线颜色根据深色模式和关键路径调整
@@ -429,6 +449,8 @@ export class CanvasRenderer {
    */
   private renderDependencyArrows(project: Project, config: RenderConfig): void {
     const isCompactMode = config.renderMode === RenderMode.COMPACT;
+    const compactOffsetX = 70;
+    const compactOffsetY = 45;
     const showArrows = config.showDependencyArrows !== false;
     
     console.log(`[CanvasRenderer] renderDependencyArrows - showArrows: ${showArrows}`);
@@ -445,15 +467,17 @@ export class CanvasRenderer {
         let toCenterX: number, toCenterY: number;
         
         if (isCompactMode) {
-          fromCenterX = fromNode.x + config.canvasOffsetX + 100;
-          fromCenterY = fromNode.y + config.canvasOffsetY + 60;
-          toCenterX = toNode.x + config.canvasOffsetX + 100;
-          toCenterY = toNode.y + config.canvasOffsetY + 60;
+          fromCenterX = fromNode.x + config.canvasOffsetX + compactOffsetX;
+          fromCenterY = fromNode.y + config.canvasOffsetY + compactOffsetY;
+          toCenterX = toNode.x + config.canvasOffsetX + compactOffsetX;
+          toCenterY = toNode.y + config.canvasOffsetY + compactOffsetY;
         } else {
-          fromCenterX = fromNode.x + config.canvasOffsetX + 200 / 2;
-          fromCenterY = fromNode.y + config.canvasOffsetY + 120 / 2;
-          toCenterX = toNode.x + config.canvasOffsetX + 200 / 2;
-          toCenterY = toNode.y + config.canvasOffsetY + 120 / 2;
+          const fromBounds = this.getNodeBounds(fromNode.id);
+          const toBounds = this.getNodeBounds(toNode.id);
+          fromCenterX = fromNode.x + config.canvasOffsetX + fromBounds.width / 2;
+          fromCenterY = fromNode.y + config.canvasOffsetY + fromBounds.height / 2;
+          toCenterX = toNode.x + config.canvasOffsetX + toBounds.width / 2;
+          toCenterY = toNode.y + config.canvasOffsetY + toBounds.height / 2;
         }
         
         const lineColor = isCriticalDep 
@@ -548,8 +572,12 @@ export class CanvasRenderer {
    * 普通模式渲染任务节点
    */
   private renderTasksNormal(project: Project, config: RenderConfig): void {
+    // 每帧刷新节点尺寸缓存
+    this.lastNodeBounds.clear();
     project.tasks.forEach((task: TaskNode) => {
-      const NODE_WIDTH = 200;
+      // 宽度自适应：按 schema.layout 复杂度 + 文本宽度估算，尽量紧凑
+      const MIN_W = 170;
+      const MAX_W = 260;
       const isSelected = task.id === config.selectedTaskId;
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
@@ -565,31 +593,44 @@ export class CanvasRenderer {
         ? schema.style.borderRadius
         : 16;
 
+      const layoutForSize: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
+      const baseCount = layoutForSize ? layoutForSize.length : 0;
+      const widthByCount = MIN_W + Math.min(80, baseCount * 10);
+      this.context.font = `bold 30px HarmonyOS Sans`;
+      const titleW = this.context.measureText(task.name).width + 30;
+      this.context.font = `22px HarmonyOS Sans`;
+      const dateW = this.context.measureText(`${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`).width + 30;
+      // 取最大值并做上下限裁剪
+      const NODE_WIDTH = Math.max(MIN_W, Math.min(MAX_W, Math.max(widthByCount, Math.max(titleW, dateW))));
+
       // 根据 schema.layout 估算节点高度（使画布展示与 NodeWorkspace 结构一致）
-      // 采用简单的行高模型：标题/日期/文本类 28px，tag 行 34px，进度条 40px
+      // 采用极简行高模型：进一步减少留白
       const estimatedHeight = ((): number => {
         const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
         if (!layout || layout.length === 0) {
           return 120;
         }
-        let h = 18; // top padding
+        let h = 10; // top padding
         layout.forEach((c: NodeComponentSchema) => {
           const t: string = c && c.type ? String(c.type) : '';
-          if (t === 'TITLE') h += 34;
-          else if (t === 'DATE_RANGE') h += 28;
-          else if (t === 'TIME_PROGRESS' || t === 'TASK_PROGRESS') h += 44;
-          else if (t === 'TAGS') h += 40;
-          else if (t === 'CHECKLIST_SUMMARY') h += 28;
-          else if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT') h += 28;
-          else if (t === 'ASSIGNEE') h += 28;
-          else if (t === 'CUSTOM_FIELD') h += 28;
-          else h += 26;
-          h += 8; // spacing
+          if (t === 'TITLE') h += 24;
+          else if (t === 'DATE_RANGE') h += 18;
+          else if (t === 'TIME_PROGRESS' || t === 'TASK_PROGRESS') h += 24;
+          else if (t === 'TAGS') h += 22;
+          else if (t === 'CHECKLIST_SUMMARY') h += 18;
+          else if (t === 'PRIORITY_BADGE' || t === 'STATUS_DOT') h += 18;
+          else if (t === 'ASSIGNEE') h += 18;
+          else if (t === 'CUSTOM_FIELD') h += 18;
+          else h += 16;
+          h += 1; // spacing
         });
-        h += 14; // bottom padding
-        return Math.max(120, Math.min(260, h));
+        h += 8; // bottom padding
+        return Math.max(92, Math.min(210, h));
       })();
       const NODE_HEIGHT = estimatedHeight;
+
+      // 记录本节点实际宽高，用于依赖线锚点定位
+      this.lastNodeBounds.set(task.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
 
       // 节点背景（根据深色模式切换）
       this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
@@ -635,7 +676,7 @@ export class CanvasRenderer {
         return f && f.label ? String(f.label) : fallback;
       };
 
-      let cursorY = drawY + 24;
+      let cursorY = drawY + 16;
       const leftX = drawX + 15;
       const rightX = drawX + NODE_WIDTH - 15;
       const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
@@ -667,7 +708,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
             this.context.font = `bold 30px HarmonyOS Sans`;
             this.context.fillText(task.name, leftX, cursorY);
-            cursorY += 34;
+            cursorY += 22;
             return;
           }
           if (t === 'DATE_RANGE') {
@@ -675,7 +716,7 @@ export class CanvasRenderer {
             this.context.font = `22px HarmonyOS Sans`;
             const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
             this.context.fillText(dateString, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
           if (t === 'CHECKLIST_SUMMARY') {
@@ -686,7 +727,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`清单: ${done}/${total}`, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
           if (t === 'TIME_PROGRESS') {
@@ -694,9 +735,9 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-            cursorY += 10;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 8, timeProgress, ThemeConfig.taskNormal.toString());
-            cursorY += 34;
+            cursorY += 5;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, timeProgress, ThemeConfig.taskNormal.toString());
+            cursorY += 18;
             return;
           }
           if (t === 'TASK_PROGRESS') {
@@ -704,9 +745,9 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-            cursorY += 10;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 8, completionProgress, ThemeConfig.taskProgress.toString());
-            cursorY += 34;
+            cursorY += 5;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, completionProgress, ThemeConfig.taskProgress.toString());
+            cursorY += 18;
             return;
           }
           if (t === 'PRIORITY_BADGE') {
@@ -715,7 +756,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
           if (t === 'STATUS_DOT') {
@@ -724,7 +765,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
           if (t === 'ASSIGNEE') {
@@ -732,7 +773,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`负责人: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
           if (t === 'TAGS') {
@@ -741,7 +782,7 @@ export class CanvasRenderer {
             this.context.font = `22px HarmonyOS Sans`;
             const joined = tags.length > 0 ? tags.slice(0, 3).join(' / ') : '-';
             this.context.fillText(`标签: ${joined}`, leftX, cursorY);
-            cursorY += 40;
+            cursorY += 22;
             return;
           }
           if (t === 'CUSTOM_FIELD') {
@@ -751,7 +792,7 @@ export class CanvasRenderer {
             this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
-            cursorY += 28;
+            cursorY += 18;
             return;
           }
 
@@ -759,7 +800,7 @@ export class CanvasRenderer {
           this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
           this.context.font = `22px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);
-          cursorY += 26;
+          cursorY += 16;
         });
       }
 
@@ -801,9 +842,11 @@ export class CanvasRenderer {
    * 节点显示为小圆圈，旁边显示名称
    */
   private renderTasksCompact(project: Project, config: RenderConfig): void {
-    const CIRCLE_RADIUS = 35;
-    const NAME_OFFSET_X = 45;
+    const CIRCLE_RADIUS = 24;
+    const NAME_OFFSET_X = 32;
     const NAME_OFFSET_Y = 0;
+    const CENTER_OFFSET_X = 70;
+    const CENTER_OFFSET_Y = 45;
 
     const blinkingTaskIds = config.blinkingTaskIds || [];
     const blinkOpacity = config.blinkOpacity !== undefined ? config.blinkOpacity : 1;
@@ -811,16 +854,17 @@ export class CanvasRenderer {
     project.tasks.forEach((task: TaskNode) => {
       const isSelected = task.id === config.selectedTaskId;
       const isBlinking = blinkingTaskIds.includes(task.id);
-      const centerX = task.x + config.canvasOffsetX + 100;
-      const centerY = task.y + config.canvasOffsetY + 60;
+      const centerX = task.x + config.canvasOffsetX + CENTER_OFFSET_X;
+      const centerY = task.y + config.canvasOffsetY + CENTER_OFFSET_Y;
 
       const circleColor = this.getTaskColorWithSchema(task);
       
+      // 选中态：使用更柔和的外圈，不要“黑边”效果
       if (isSelected) {
         this.context.beginPath();
-        this.context.arc(centerX, centerY, CIRCLE_RADIUS + 4, 0, Math.PI * 2);
+        this.context.arc(centerX, centerY, CIRCLE_RADIUS + 3, 0, Math.PI * 2);
         this.context.strokeStyle = ThemeConfig.taskSelected.toString();
-        this.context.lineWidth = 3;
+        this.context.lineWidth = 2;
         this.context.stroke();
       }
 
@@ -834,8 +878,10 @@ export class CanvasRenderer {
       this.context.fillStyle = circleColor;
       this.context.fill();
       
-      this.context.strokeStyle = this.isDarkMode ? '#FFFFFF' : '#000000';
-      this.context.lineWidth = isBlinking ? 3 : 2;
+      // 常态边框：去掉纯黑/纯白，改成淡色描边（更“卡片化”）
+      const ringColor = this.isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.12)';
+      this.context.strokeStyle = ringColor;
+      this.context.lineWidth = isBlinking ? 2 : 1;
       this.context.stroke();
 
       if (isBlinking) {
@@ -848,9 +894,9 @@ export class CanvasRenderer {
           this.context.beginPath();
           const startAngle = -Math.PI / 2;
           const endAngle = startAngle + (Math.PI * 2 * completionProgress / 100);
-          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 4, startAngle, endAngle);
+          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 3, startAngle, endAngle);
           this.context.strokeStyle = '#FFFFFF';
-          this.context.lineWidth = 4;
+          this.context.lineWidth = 3;
           this.context.stroke();
         }
 
@@ -859,23 +905,23 @@ export class CanvasRenderer {
           this.context.beginPath();
           const startAngle = -Math.PI / 2;
           const endAngle = startAngle + (Math.PI * 2 * timeProgress / 100);
-          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 10, startAngle, endAngle);
+          this.context.arc(centerX, centerY, CIRCLE_RADIUS - 8, startAngle, endAngle);
           if (timeProgress > completionProgress + 10) {
             this.context.strokeStyle = this.isDarkMode ? 'rgba(255, 214, 10, 0.9)' : 'rgba(255, 204, 0, 0.9)';
           } else {
             this.context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
           }
-          this.context.lineWidth = 3;
+          this.context.lineWidth = 2;
           this.context.stroke();
         }
       }
 
       this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
-      this.context.font = `28px HarmonyOS Sans`;
+      this.context.font = `22px HarmonyOS Sans`;
       this.context.textAlign = 'left';
       this.context.textBaseline = 'middle';
       
-      const maxNameLength = 8;
+      const maxNameLength = 10;
       const displayName = task.name.length > maxNameLength 
         ? task.name.substring(0, maxNameLength) + '...' 
         : task.name;

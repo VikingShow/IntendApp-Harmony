@@ -69,6 +69,10 @@ interface TaskNodeWithSchema extends TaskNode {
   typeId?: string;
 }
 
+interface TaskUpdatePayload extends Partial<TaskNode> {
+  typeId?: string;
+}
+
 /**
  * 项目操作接口
  * 定义所有可用的项目操作命令
@@ -370,7 +374,7 @@ export class ProjectManager {
     if (!task) return;
 
     // 记录更新前的状态（只记录要更新的字段）
-    const oldState: Partial<TaskNode> = {};
+    const oldState: TaskUpdatePayload = {};
     if (updates.name !== undefined) oldState.name = task.name;
     if (updates.startDate !== undefined) oldState.startDate = task.startDate;
     if (updates.endDate !== undefined) oldState.endDate = task.endDate;
@@ -392,11 +396,30 @@ export class ProjectManager {
     if (updates.lateStart !== undefined) oldState.lateStart = task.lateStart;
     if (updates.lateFinish !== undefined) oldState.lateFinish = task.lateFinish;
 
+    // schema 扩展字段：typeId
+    const updatesWithSchema: TaskUpdatePayload = updates as TaskUpdatePayload;
+    if (updatesWithSchema.typeId !== undefined) {
+      const currentTypeId: string | undefined = (task as TaskNodeWithSchema).typeId;
+      oldState.typeId = currentTypeId;
+      // 先把 typeId 写回任务对象，让后续 command / render / selectedTask 同步读取到新值
+      (task as TaskNodeWithSchema).typeId = updatesWithSchema.typeId;
+    }
+
     // 使用命令模式更新任务（支持撤销/重做）
-    const command = new UpdateTaskCommand(this.appState.project, taskId, oldState, updates);
+    // 兼容 schema 扩展字段：typeId
+    // UpdateTaskCommand 的 payload 类型为 Partial<TaskNode>，这里使用显式类型收窄传入。
+    const command = new UpdateTaskCommand(
+      this.appState.project,
+      taskId,
+      oldState as Partial<TaskNode>,
+      updates as Partial<TaskNode>
+    );
     this.commandHistory.execute(command);
 
-    // 更新selectedTask以保持同步
+    // 触发响应式更新
+    // - 普通字段更新由命令修改 task 对象
+    // - schema 字段(typeId)在命令执行前已写回，但仍需要 setProject 触发 UI 刷新
+    this.appState.setProject(this.appState.project);
     if (this.appState.selectedTask?.id === taskId) {
       this.appState.setSelectedTask(this.copyTaskNode(task));
     }

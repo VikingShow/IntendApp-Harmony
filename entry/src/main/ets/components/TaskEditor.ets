@@ -221,13 +221,64 @@ export struct TaskEditor {
       return;
     }
 
-    taskWithSchema.typeId = typeId;
-    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-    this.forceUpdateKey++;
+    const service = NodeSchemaService.getInstance();
+    const oldTypeId = taskWithSchema.typeId ? taskWithSchema.typeId : 'standard';
+    const oldSchema = service.getSchemaById(oldTypeId);
+    const newSchema = service.getSchemaById(typeId);
 
-    // 通过 onUpdateTask 通知父组件，扩展更新载荷类型以兼容 typeId
-    const updates: TaskUpdatePayload = { typeId: typeId };
-    this.onUpdateTask(this.localTask.id, updates);
+    const oldTypes = oldSchema ? oldSchema.layout.map(c => c.type) : [];
+    const newTypes = newSchema ? newSchema.layout.map(c => c.type) : [];
+
+    const removedTypes = oldTypes.filter(t => !newTypes.includes(t));
+    const lostParts: string[] = [];
+    removedTypes.forEach(t => {
+      if (t === 'TITLE') {
+        if (this.localTask && this.localTask.name && this.localTask.name.trim().length > 0) {
+          lostParts.push('任务名称');
+        }
+      } else if (t === 'DATE_RANGE') {
+        lostParts.push('起止时间');
+      } else if (t === 'CHECKLIST_SUMMARY' || t === 'TASK_PROGRESS') {
+        if (this.localTask && this.localTask.checklist && this.localTask.checklist.length > 0) {
+          lostParts.push('清单/完成进度');
+        }
+      } else {
+        // 其他组件目前未做完整字段映射，先提示组件类型
+        lostParts.push(`组件(${t})`);
+      }
+    });
+
+    const applySwitch = () => {
+      taskWithSchema.typeId = typeId;
+      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+      this.forceUpdateKey++;
+      // 通过 onUpdateTask 通知父组件，扩展更新载荷类型以兼容 typeId
+      const updates: TaskUpdatePayload = { typeId: typeId };
+      this.onUpdateTask(this.localTask!.id, updates);
+    };
+
+    if (lostParts.length > 0) {
+      AlertDialog.show({
+        title: '切换节点类型',
+        message:
+          `从「${oldSchema ? oldSchema.name : oldTypeId}」切换到「${newSchema ? newSchema.name : typeId}」将导致部分信息无法继续使用：\n` +
+          lostParts.map(s => `- ${s}`).join('\n') +
+          '\n\n相同组件的信息将保留。是否继续？',
+        primaryButton: {
+          value: '继续切换',
+          action: () => {
+            applySwitch();
+          }
+        },
+        secondaryButton: {
+          value: '取消',
+          action: () => {}
+        }
+      });
+      return;
+    }
+
+    applySwitch();
   }
 
   /**

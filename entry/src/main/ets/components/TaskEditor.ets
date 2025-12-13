@@ -206,7 +206,7 @@ export struct TaskEditor {
 
   private setTagDraft(fieldId: string, value: string): void {
     this.tagDraftTextByFieldId.set(fieldId, value);
-    this.forceUpdateKey++;
+    // 注意：不要在这里更新 forceUpdateKey，否则会导致输入框失去焦点
   }
 
   private getTagsValue(task: TaskNodeWithSchema, fieldId: string): string[] {
@@ -940,10 +940,41 @@ export struct TaskEditor {
     this.renderCustomFieldEditor(component);
   }
 
+  // 获取 TAGS 组件的有效字段定义
+  private getEffectiveTagsField(component: NodeComponentSchema): FieldSchema {
+    const boundField = this.getBoundFieldForComponent(component);
+    if (boundField) {
+      return boundField;
+    }
+    // 默认的 _tags 字段定义
+    return {
+      id: '_tags',
+      label: '标签',
+      type: 'checklist',
+      required: false,
+      options: ['前端', '后端', '设计', '测试', '文档']
+    } as FieldSchema;
+  }
+
+  // 获取 TAGS 组件的字段ID
+  private getEffectiveTagsFieldId(component: NodeComponentSchema): string {
+    const fieldId = this.getFieldIdForComponentSafe(component);
+    return fieldId.length > 0 ? fieldId : '_tags';
+  }
+
   @Builder
   private renderTagsEditor(component: NodeComponentSchema) {
-    // tags 推荐用 checklist(string[]) 类型；fallback 为逗号分隔
-    this.renderCustomFieldEditor(component);
+    // TAGS 组件直接使用标签编辑器，不走 renderCustomFieldEditor
+    Column({ space: 8 }) {
+      Text(this.getEditorSectionTitle(component))
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontWeight(ThemeConfig.fontWeightMedium)
+        .fontColor(ColorResource.surfaceEmphasized)
+      
+      this.renderTagsChipsEditor(this.getEffectiveTagsFieldId(component), this.getEffectiveTagsField(component));
+    }
+    .width('100%')
+    .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM });
   }
 
   @Builder

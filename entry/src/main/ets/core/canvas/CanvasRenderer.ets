@@ -687,7 +687,12 @@ export class CanvasRenderer {
             y += LINE_H; return;
           }
           if (t === 'CUSTOM_FIELD') { y += LINE_H; return; }
-          if (t === 'TAGS') { y += LINE_H; return; }
+          if (t === 'TAGS') {
+            // 根据 maxLines 属性计算高度
+            const maxLines = comp && comp.props && comp.props.maxLines ? Number(comp.props.maxLines) : 1;
+            y += LINE_H * maxLines;
+            return;
+          }
           y += LINE_H;
         });
         return y;
@@ -998,28 +1003,46 @@ export class CanvasRenderer {
             // 如果没有标签，显示示例标签
             const displayTags = tags.length > 0 ? tags : ['标签1', '标签2'];
 
-            // 标签 chips
-            const maxTags = 3;
-            const visibleTags = displayTags.slice(0, maxTags);
+            // 从 props 读取最大行数，默认为 1
+            const maxLines = comp && comp.props && comp.props.maxLines ? Number(comp.props.maxLines) : 1;
             const chipPaddingX = 5;
             const chipHeight = 12;
             const chipRadius = 3;
-            const chipY = cursorY + (LINE_HEIGHT - chipHeight) / 2 - 2; // 垂直居中，向上微调
+            const chipGap = 4;
+            const rowGap = 4;
+            const iconWidth = 24;
+            const availableWidth = NODE_WIDTH - 24 - iconWidth; // 可用宽度（减去左右边距和图标）
 
             // 绘制标签图标
             this.context.font = `24px HarmonyOS Sans`;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.fillText(`🏷️`, leftX, cursorY);
-            let chipX = leftX + 24;
 
             // 切换到较小字体绘制标签文字
             this.context.font = `22px HarmonyOS Sans`;
-            visibleTags.forEach((tag: string, index: number) => {
+
+            // 计算每行可以放多少标签，支持多行
+            let currentRow = 0;
+            let chipX = leftX + iconWidth;
+            let rowStartY = cursorY;
+
+            for (let i = 0; i < displayTags.length && currentRow < maxLines; i++) {
+              const tag = displayTags[i];
               const textWidth = this.context.measureText(tag).width;
               const chipWidth = textWidth + chipPaddingX * 2;
 
-              // 背景 - 第二个标签用红色
-              if (index === 1) {
+              // 检查是否需要换行
+              if (chipX + chipWidth > leftX + iconWidth + availableWidth && chipX > leftX + iconWidth) {
+                currentRow++;
+                if (currentRow >= maxLines) break;
+                chipX = leftX + iconWidth;
+                rowStartY += LINE_HEIGHT;
+              }
+
+              const chipY = rowStartY + (LINE_HEIGHT - chipHeight) / 2 - 2;
+
+              // 背景颜色 - 交替使用蓝色和红色
+              if (i % 2 === 1) {
                 this.context.fillStyle = this.isDarkMode
                   ? 'rgba(255, 59, 48, 0.20)'
                   : 'rgba(255, 59, 48, 0.12)';
@@ -1031,14 +1054,15 @@ export class CanvasRenderer {
               this.drawRoundRect(this.context, chipX, chipY, chipWidth, chipHeight, chipRadius);
               this.context.fill();
 
-              // 文本（垂直居中）
-              this.context.fillStyle = index === 1 ? '#FF3B30' : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor);
-              this.context.fillText(tag, chipX + chipPaddingX, chipY );
+              // 文本
+              this.context.fillStyle = (i % 2 === 1) ? '#FF3B30' : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor);
+              this.context.fillText(tag, chipX + chipPaddingX, chipY);
 
-              chipX += chipWidth + 4;
-            });
+              chipX += chipWidth + chipGap;
+            }
 
-            cursorY += LINE_HEIGHT;
+            // 根据实际使用的行数增加 cursorY
+            cursorY += LINE_HEIGHT * (currentRow + 1);
             return;
           }
           if (t === 'CUSTOM_FIELD') {

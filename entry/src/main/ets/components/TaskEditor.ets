@@ -184,7 +184,12 @@ export struct TaskEditor {
           fillColor: '#409EFF'
         },
         fields: [],
-        layout: [],
+        layout: [
+          { id: 'title_1', type: 'TITLE' },
+          { id: 'date_range_1', type: 'DATE_RANGE' },
+          { id: 'time_progress_1', type: 'TIME_PROGRESS' },
+          { id: 'task_progress_1', type: 'TASK_PROGRESS' }
+        ],
         rules: [],
         isSystem: true,
         isDraft: false

@@ -56,15 +56,37 @@ export struct ComponentPropertyPanel {
   build() {
     Column({ space: 0 }) {
       // 标题栏
-      Column({ space: 8 }) {
+      Row({ space: 8 }) {
         Text('属性编辑器')
           .fontSize(ThemeConfig.fontSizeL)
           .fontWeight(ThemeConfig.fontWeightBold)
           .fontColor(ColorResource.textPrimary);
+        
+        Row()
+          .layoutWeight(1);
+        
+        Text('?')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorResource.textSecondary)
+          .width(24)
+          .height(24)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(ColorResource.backgroundSecondary)
+          .borderRadius(12)
+          .onClick(() => {
+            AlertDialog.show({
+              title: '属性编辑器使用提示',
+              message: '1. 上方可调整节点卡片的整体样式\n2. 选中画布中的组件后可编辑其属性\n3. 部分组件支持绑定自定义字段',
+              confirm: {
+                value: '知道了',
+                action: () => {}
+              }
+            });
+          });
       }
       .width('100%')
-      .padding({ left: 20, right: 20, top: 16, bottom: 12 })
-      .alignItems(HorizontalAlign.Start);
+      .padding({ left: 20, right: 20, top: 16, bottom: 12 });
 
       // 上半部分：样式编辑（固定显示）
       Column({ space: 12 }) {

@@ -48,16 +48,18 @@ export struct NodeVisualCanvas {
         Row()
           .layoutWeight(1);
 
-        Button('使用提示')
-          .height(28)
-          .fontSize(ThemeConfig.fontSizeXS)
-          .backgroundColor(ColorResource.backgroundSecondary)
+        Text('?')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
           .fontColor(ColorResource.textSecondary)
-          .borderRadius(8)
-          .padding({ left: 10, right: 10 })
+          .width(24)
+          .height(24)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(ColorResource.backgroundSecondary)
+          .borderRadius(12)
           .onClick(() => {
             AlertDialog.show({
-              title: '使用提示',
+              title: '可视化画布使用提示',
               message: '1. 从左侧组件库拖拽组件到画布\n2. 在画布中拖拽可调整组件顺序\n3. 点击组件可在右侧编辑其属性\n4. 右侧样式区可调整普通/关键颜色与圆角',
               confirm: {
                 value: '知道了',

@@ -58,8 +58,7 @@ export struct ComponentLibrary {
           Text('组件库')
             .fontSize(ThemeConfig.fontSizeL)
             .fontWeight(ThemeConfig.fontWeightBold)
-            .fontColor(ColorResource.textPrimary)
-            .layoutWeight(1);
+            .fontColor(ColorResource.textPrimary);
           
           Text(`${this.getFilteredComponents().length}`)
             .fontSize(ThemeConfig.fontSizeXS)
@@ -67,6 +66,29 @@ export struct ComponentLibrary {
             .padding({ left: 6, right: 6, top: 2, bottom: 2 })
             .backgroundColor(ColorResource.primaryColor)
             .borderRadius(8);
+          
+          Row()
+            .layoutWeight(1);
+          
+          Text('?')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(ColorResource.textSecondary)
+            .width(24)
+            .height(24)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .borderRadius(12)
+            .onClick(() => {
+              AlertDialog.show({
+                title: '组件库使用提示',
+                message: '1. 点击组件可快速添加到画布末尾\n2. 拖拽组件到画布可精确控制位置\n3. 使用分类筛选快速找到所需组件',
+                confirm: {
+                  value: '知道了',
+                  action: () => {}
+                }
+              });
+            });
         }
         .width('100%');
         

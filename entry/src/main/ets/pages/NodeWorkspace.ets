@@ -214,29 +214,70 @@ class SchemaDiffHelper {
 
   private static compareLayout(oldLayout: NodeComponentSchema[], newLayout: NodeComponentSchema[],
     changes: SchemaChange[]) {
-    // 简化处理：只比较数量和组件类型变化
-    // 如果完全一致则忽略，如果有变动简单描述
-    if (oldLayout.length !== newLayout.length) {
-      changes.push({
-        type: 'modify',
-        category: 'layout',
-        name: '组件数量',
-        oldValue: `${oldLayout.length}个`,
-        newValue: `${newLayout.length}个`
-      });
-    } else {
-      for (let i = 0; i < oldLayout.length; i++) {
-        if (oldLayout[i].type !== newLayout[i].type) {
+    const oldMap = new Map(oldLayout.map(c => [c.id, c]));
+    const newMap = new Map(newLayout.map(c => [c.id, c]));
+
+    // 检查删除的组件
+    oldLayout.forEach(c => {
+      if (!newMap.has(c.id)) {
+        changes.push({
+          type: 'remove',
+          category: 'layout',
+          name: SchemaDiffHelper.getComponentTypeName(c.type),
+          description: `ID: ${c.id}`
+        });
+      }
+    });
+
+    // 检查新增和修改的组件
+    newLayout.forEach(c => {
+      const oldC = oldMap.get(c.id);
+      if (!oldC) {
+        changes.push({
+          type: 'add',
+          category: 'layout',
+          name: SchemaDiffHelper.getComponentTypeName(c.type),
+          description: `ID: ${c.id}`
+        });
+      } else {
+        // 检查类型变化
+        if (oldC.type !== c.type) {
           changes.push({
             type: 'modify',
             category: 'layout',
-            name: `第${i + 1}个组件`,
-            oldValue: oldLayout[i].type,
-            newValue: newLayout[i].type
+            name: `组件 ${c.id}`,
+            oldValue: SchemaDiffHelper.getComponentTypeName(oldC.type),
+            newValue: SchemaDiffHelper.getComponentTypeName(c.type)
+          });
+        }
+        // 检查关联字段变化
+        if (oldC.fieldId !== c.fieldId) {
+          changes.push({
+            type: 'modify',
+            category: 'layout',
+            name: `${SchemaDiffHelper.getComponentTypeName(c.type)} 关联字段`,
+            oldValue: oldC.fieldId || '(无)',
+            newValue: c.fieldId || '(无)'
           });
         }
       }
-    }
+    });
+  }
+
+  private static getComponentTypeName(type: string): string {
+    const typeNames: Record<string, string> = {
+      'TITLE': '任务标题',
+      'DATE_RANGE': '日期范围',
+      'TIME_PROGRESS': '时间进度条',
+      'TASK_PROGRESS': '完成进度条',
+      'CHECKLIST_SUMMARY': '清单统计',
+      'PRIORITY_BADGE': '优先级标签',
+      'ASSIGNEE': '负责人',
+      'TAGS': '标签列表',
+      'STATUS_DOT': '状态指示器',
+      'CUSTOM_FIELD': '自定义字段'
+    };
+    return typeNames[type] || type;
   }
 }
 
@@ -2436,6 +2477,8 @@ struct NodeWorkspacePage {
     const ok = this.schemaService.publishDraft(schema.id);
     if (ok) {
       this.reloadSchemas();
+      // 确保立即更新选中的 schema 对象以刷新按钮状态
+      this.updateSelectedSchemaObject();
       this.scheduleAutoSave();
       this.promptAction.showToast({
         message: `节点类型"${schema.name}"已发布（版本 ${schema.version + 1}）`,
@@ -2475,6 +2518,8 @@ struct NodeWorkspacePage {
     const ok = this.schemaService.createDraftFromPublished(schema.id);
     if (ok) {
       this.reloadSchemas();
+      // 确保立即更新选中的 schema 对象以刷新按钮状态
+      this.updateSelectedSchemaObject();
       this.scheduleAutoSave();
       this.promptAction.showToast({
         message: `已从"${schema.name}"创建草稿`,
@@ -2915,8 +2960,8 @@ struct NodeWorkspacePage {
         }
         .width('100%');
 
-        // 第二行：发布 + 存为草稿
-        if (this.getSelectedSchema()) {
+        // 第二行：发布 + 存为草稿（使用 @State 变量驱动响应式更新）
+        if (this.selectedSchemaObject) {
           Row({ space: 8 }) {
             Button('发布')
               .layoutWeight(1)
@@ -2925,8 +2970,8 @@ struct NodeWorkspacePage {
               .backgroundColor('#34C759')
               .fontColor(Color.White)
               .borderRadius(8)
-              .enabled((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem())
-              .opacity(((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
+              .enabled(this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem)
+              .opacity((this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem) ? 1 : 0.4)
               .onClick(() => {
                 this.publishSelectedDraft();
               });
@@ -2938,8 +2983,8 @@ struct NodeWorkspacePage {
               .backgroundColor(ColorResource.surface)
               .fontColor(ColorResource.textPrimary)
               .borderRadius(8)
-              .enabled(!(this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem())
-              .opacity((!(this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
+              .enabled(!this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem)
+              .opacity((!this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem) ? 1 : 0.4)
               .onClick(() => {
                 this.createDraftFromSelectedPublished();
               });

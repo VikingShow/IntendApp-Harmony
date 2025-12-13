@@ -65,6 +65,11 @@ interface TaskUpdatePayload extends Partial<TaskNode> {
   customFields?: Map<string, NodeFieldValue>;
 }
 
+interface NodeTypeOption {
+  id: string;
+  name: string;
+}
+
 /**
  * 任务编辑器组件
  * 
@@ -105,6 +110,7 @@ export struct TaskEditor {
   private lastTaskDataHash: string = ''; // 跟踪任务数据的内容哈希，用于检测数据变化
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+  @State private showNodeTypeDropdown: boolean = false;
 
   private getCurrentSchema(): NodeSchema | null {
     const service = NodeSchemaService.getInstance();
@@ -1128,6 +1134,13 @@ export struct TaskEditor {
     return 'standard';
   }
 
+  private getCurrentNodeTypeLabel(): string {
+    const currentTypeId: string = this.getCurrentNodeTypeId();
+    const service = NodeSchemaService.getInstance();
+    const currentSchema: NodeSchema | null = service.getSchemaById(currentTypeId);
+    return currentSchema ? currentSchema.name : currentTypeId;
+  }
+
   /**
    * 处理节点类型选择
    */
@@ -1546,7 +1559,7 @@ export struct TaskEditor {
           }
           .width('100%')
 
-          Column({ space: 16 }) {
+           Column({ space: 16 }) {
             Row({ space: 12 }) {
               Text('编辑任务')
                  .fontSize(ThemeConfig.fontSizeXXL)
@@ -1557,38 +1570,77 @@ export struct TaskEditor {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-             // 日期选择区域 - 使用自定义Tab切换（苹果风格）
-             // 节点类型选择
-             Column({ space: 8 }) {
-               Text('节点类型')
+            // 日期选择区域 - 使用自定义Tab切换（苹果风格）
+            // 节点类型选择（下拉）
+            Column({ space: 8 }) {
+              Text('节点类型')
                  .fontSize(ThemeConfig.fontSizeS)
                  .fontWeight(ThemeConfig.fontWeightMedium)
                  .fontColor(ColorResource.surfaceEmphasized)
-               Row({ space: 8 }) {
-                 ForEach(this.getAvailableNodeSchemas(), (schema: NodeSchema) => {
-                   Text(schema.name)
-                     .fontSize(ThemeConfig.fontSizeS)
-                     .fontWeight(schema.id === this.getCurrentNodeTypeId() ? ThemeConfig.fontWeightMedium : FontWeight.Normal)
-                     .fontColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryColor : ColorResource.textSecondary)
-                     .padding({
-                       left: ThemeConfig.spacingM,
-                       right: ThemeConfig.spacingM,
-                       top: ThemeConfig.spacingXS,
-                       bottom: ThemeConfig.spacingXS
-                     })
-                     .backgroundColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
-                     .borderRadius(ThemeConfig.radiusMedium)
-                     .border({
-                       width: 1,
-                       color: schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryColor : ColorResource.surfaceNeutral,
-                       radius: ThemeConfig.radiusMedium
-                     })
-                     .onClick(() => {
-                       this.onNodeTypeSelected(schema.id);
-                     })
-                  }, (schema: NodeSchema, index: number) => `task-editor-node-schema-${schema.id}-${index}`)
+              Column() {
+                Row({ space: 8 }) {
+                  // 当前节点类型标签在 getCurrentNodeTypeLabel 中计算
+
+                  Text(this.getCurrentNodeTypeLabel())
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                    .fontColor(ColorResource.surfaceDeep)
+                    .layoutWeight(1)
+                  Text(this.showNodeTypeDropdown ? '▲' : '▼')
+                    .fontSize(ThemeConfig.fontSizeXS)
+                    .fontColor(ColorResource.textSecondary)
+                }
+                .padding({
+                  left: ThemeConfig.spacingM,
+                  right: ThemeConfig.spacingM,
+                  top: ThemeConfig.spacingXS,
+                  bottom: ThemeConfig.spacingXS
+                })
+                .backgroundColor(ColorResource.surfaceLight)
+                .borderRadius(ThemeConfig.radiusMedium)
+                .border({
+                  width: 1,
+                  color: ColorResource.surfaceNeutral,
+                  radius: ThemeConfig.radiusMedium
+                })
+                .onClick(() => {
+                  this.showNodeTypeDropdown = !this.showNodeTypeDropdown;
+                })
+
+                if (this.showNodeTypeDropdown) {
+                  Column({ space: 4 }) {
+                    ForEach(this.getAvailableNodeSchemas(), (schema: NodeSchema) => {
+                      Row() {
+                        Text(schema.name)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontWeight(schema.id === this.getCurrentNodeTypeId() ? ThemeConfig.fontWeightMedium : FontWeight.Normal)
+                          .fontColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryColor : ColorResource.textSecondary)
+                      }
+                      .padding({
+                        left: ThemeConfig.spacingM,
+                        right: ThemeConfig.spacingM,
+                        top: ThemeConfig.spacingXS,
+                        bottom: ThemeConfig.spacingXS
+                      })
+                      .backgroundColor(schema.id === this.getCurrentNodeTypeId() ? ColorResource.primaryUltraLight : ColorResource.surfaceLight)
+                      .borderRadius(ThemeConfig.radiusMedium)
+                      .onClick(() => {
+                        this.onNodeTypeSelected(schema.id);
+                        this.showNodeTypeDropdown = false;
+                      })
+                    }, (schema: NodeSchema, index: number) => `task-editor-node-schema-dropdown-${schema.id}-${index}`)
+                  }
+                  .margin({ top: ThemeConfig.spacingXS })
+                  .backgroundColor(ColorResource.surfaceLight)
+                  .borderRadius(ThemeConfig.radiusMedium)
+                  .border({
+                    width: 1,
+                    color: ColorResource.surfaceNeutral,
+                    radius: ThemeConfig.radiusMedium
+                  })
                 }
               }
+            }
 
              // 动态编辑区域（按 schema.layout 渲染）
              Column({ space: 14 }) {

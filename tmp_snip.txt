@@ -1,0 +1,13 @@
+                Row({ space: 8 }) {
+                  const currentTypeId: string = this.getCurrentNodeTypeId();
+                  const service = NodeSchemaService.getInstance();
+                  const currentSchema: NodeSchema | null = service.getSchemaById(currentTypeId);
+                  const currentLabel: string = currentSchema ? currentSchema.name : currentTypeId;
+
+                  Text(currentLabel)
+                    .fontSize(ThemeConfig.fontSizeS)
+                    .fontWeight(ThemeConfig.fontWeightMedium)
+                    .fontColor(ColorResource.surfaceDeep)
+                    .layoutWeight(1)
+                  Text(this.showNodeTypeDropdown ? 'â–? : 'â–?)
+                    .fontSize(ThemeConfig.fontSizeXS)

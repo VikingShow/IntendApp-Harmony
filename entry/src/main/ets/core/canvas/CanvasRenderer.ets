@@ -42,7 +42,7 @@ interface TaskNodeWithCustomFields extends TaskNodeWithSchema {
   customFields?: Map<string, NodeFieldValue>;
 }
 
-interface NodeBounds {
+export interface NodeBounds {
   width: number;
   height: number;
 }
@@ -193,7 +193,7 @@ export class CanvasRenderer {
     // 绘制 "EasyFlow" 文字
     ctx.globalAlpha = 0.6;
     ctx.font = '600 45px sans-serif';
-    ctx.fillStyle = this.isDarkMode ? '#E0E0E0' : '#424242';
+    ctx.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textMuted;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText('EasyFlow', watermarkX, watermarkY);
@@ -253,6 +253,12 @@ export class CanvasRenderer {
     const backgroundColor = this.isDarkMode ? '#000000' : '#FFFFFF';
     this.context.fillStyle = backgroundColor;
     this.context.fillRect(0, 0, 3000, 3000);
+
+    const themedBackgroundColor = this.isDarkMode
+      ? ThemeConfig.surfaceDeepest
+      : ThemeConfig.backgroundPage;
+    this.context.fillStyle = themedBackgroundColor;
+    this.context.fillRect(0, 0, 3000, 3000);
     
     // 保存上下文状态
     this.context.save();
@@ -283,7 +289,7 @@ export class CanvasRenderer {
     this.context.restore();
   }
 
-  private getNodeBounds(taskId: string): NodeBounds {
+  public getNodeBounds(taskId: string): NodeBounds {
     if (this.lastNodeBounds.has(taskId)) {
       return this.lastNodeBounds.get(taskId)!;
     }
@@ -313,8 +319,12 @@ export class CanvasRenderer {
     const height = 3000;
     
     // 根据深色模式设置网格样式（背景色已在 render() 中填充）
-    const gridLineColor = this.isDarkMode ? '#1A1A1C' : '#E0E0E0';
-    const gridLineFineColor = this.isDarkMode ? '#101012' : '#F0F0F0';
+    const gridLineColor = this.isDarkMode
+      ? ThemeConfig.surfaceDeep
+      : ThemeConfig.canvasGridLine;
+    const gridLineFineColor = this.isDarkMode
+      ? ThemeConfig.surfaceDark
+      : ThemeConfig.canvasGridLineFine;
     
     // 设置网格样式
     this.context.strokeStyle = gridLineColor;
@@ -393,9 +403,9 @@ export class CanvasRenderer {
         }
         
         // 连线颜色根据深色模式和关键路径调整
-        const lineColor = isCriticalDep 
-          ? ThemeConfig.taskCritical.toString() 
-          : (this.isDarkMode ? '#8E8E93' : '#AEAEB2');
+        const lineColor = isCriticalDep
+          ? ThemeConfig.taskCritical.toString()
+          : (this.isDarkMode ? ThemeConfig.surfaceEmphasized.toString() : ThemeConfig.borderGrid.toString());
         const lineWidth = isCompactMode ? (isCriticalDep ? 2.5 : 1.5) : (isCriticalDep ? 3 : 2);
         
         // 绘制连线
@@ -480,9 +490,9 @@ export class CanvasRenderer {
           toCenterY = toNode.y + config.canvasOffsetY + toBounds.height / 2;
         }
         
-        const lineColor = isCriticalDep 
-          ? ThemeConfig.taskCritical.toString() 
-          : (this.isDarkMode ? '#8E8E93' : '#AEAEB2');
+        const lineColor = isCriticalDep
+          ? ThemeConfig.taskCritical.toString()
+          : (this.isDarkMode ? ThemeConfig.surfaceEmphasized.toString() : ThemeConfig.borderGrid.toString());
         const lineWidth = isCompactMode ? (isCriticalDep ? 2.5 : 1.5) : (isCriticalDep ? 3 : 2);
         
         // 绘制箭头（如果全局启用且该依赖未禁用）
@@ -661,9 +671,20 @@ export class CanvasRenderer {
       const contentHeight = Math.max(MIN_H, Math.ceil(estimateCursorEnd() + BOTTOM_PADDING));
 
       // 背景
-      this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
+      const cardShadow = ThemeConfig.cardShadow;
+      if (cardShadow) {
+        this.context.shadowColor = cardShadow.color;
+        this.context.shadowBlur = cardShadow.radius;
+        this.context.shadowOffsetX = cardShadow.offsetX;
+        this.context.shadowOffsetY = cardShadow.offsetY;
+      }
+      this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceDeep : ThemeConfig.backgroundCard;
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, contentHeight, borderRadius);
       this.context.fill();
+      this.context.shadowColor = ThemeConfig.transparent;
+      this.context.shadowBlur = 0;
+      this.context.shadowOffsetX = 0;
+      this.context.shadowOffsetY = 0;
 
       // 边框
       if (isSelected) {
@@ -687,12 +708,12 @@ export class CanvasRenderer {
       const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
 
       if (!layout || layout.length === 0) {
-        this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+        this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
         this.context.font = `bold 30px HarmonyOS Sans`;
         this.context.fillText(task.name, leftX, cursorY);
         cursorY += 22;
 
-        this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+        this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
         this.context.font = `22px HarmonyOS Sans`;
         const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
         this.context.fillText(dateString, leftX, cursorY);
@@ -715,14 +736,14 @@ export class CanvasRenderer {
           const fieldId: string = comp && comp.fieldId ? String(comp.fieldId) : '';
 
           if (t === 'TITLE') {
-            this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
             this.context.font = `bold 30px HarmonyOS Sans`;
             this.context.fillText(task.name, leftX, cursorY);
             cursorY += 22;
             return;
           }
           if (t === 'DATE_RANGE') {
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
             this.context.fillText(dateString, leftX, cursorY);
@@ -734,7 +755,7 @@ export class CanvasRenderer {
             const done = task.checklist
               ? task.checklist.filter((c: ChecklistItem) => c.isCompleted).length
               : 0;
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`清单: ${done}/${total}`, leftX, cursorY);
             cursorY += 18;
@@ -742,7 +763,7 @@ export class CanvasRenderer {
           }
           if (t === 'TIME_PROGRESS') {
             const timeProgress = this.getTimeProgress(task);
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
             cursorY += 5;
@@ -752,7 +773,7 @@ export class CanvasRenderer {
           }
           if (t === 'TASK_PROGRESS') {
             const completionProgress = this.getCompletionProgress(task);
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
             cursorY += 5;
@@ -763,7 +784,7 @@ export class CanvasRenderer {
           if (t === 'PRIORITY_BADGE') {
             const v = getCustomStr('_priority');
             const label = getFieldLabel('_priority', '优先级');
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
             cursorY += 18;
@@ -772,7 +793,7 @@ export class CanvasRenderer {
           if (t === 'STATUS_DOT') {
             const v = getCustomStr('_status');
             const label = getFieldLabel('_status', '状态');
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
             cursorY += 18;
@@ -780,7 +801,7 @@ export class CanvasRenderer {
           }
           if (t === 'ASSIGNEE') {
             const v = getCustomStr('_assignee');
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`负责人: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
             cursorY += 18;
@@ -788,25 +809,61 @@ export class CanvasRenderer {
           }
           if (t === 'TAGS') {
             const tags = getCustomTags('_tags');
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
-            this.context.font = `22px HarmonyOS Sans`;
-            const joined = tags.length > 0 ? tags.slice(0, 3).join(' / ') : '-';
-            this.context.fillText(`标签: ${joined}`, leftX, cursorY);
-            cursorY += 22;
+            this.context.font = `20px HarmonyOS Sans`;
+
+            // 标题
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+            this.context.fillText(`标签`, leftX, cursorY);
+            cursorY += 20;
+
+            if (tags.length === 0) {
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
+              this.context.fillText('无', leftX, cursorY);
+              cursorY += 18;
+              return;
+            }
+
+            // 标签 chips（最多显示 3 个）
+            const maxTags = 3;
+            const visibleTags = tags.slice(0, maxTags);
+            const chipPaddingX = 10;
+            const chipHeight = 26;
+            const chipRadius = 13;
+            let chipX = leftX;
+
+            visibleTags.forEach((tag: string) => {
+              const textWidth = this.context.measureText(tag).width;
+              const chipWidth = textWidth + chipPaddingX * 2;
+
+              // 背景
+              this.context.fillStyle = this.isDarkMode
+                ? 'rgba(10, 132, 255, 0.20)'
+                : 'rgba(0, 122, 255, 0.12)';
+              this.drawRoundRect(this.context, chipX, cursorY, chipWidth, chipHeight, chipRadius);
+              this.context.fill();
+
+              // 文本
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor;
+              this.context.fillText(tag, chipX + chipPaddingX, cursorY + chipHeight / 2 + 1);
+
+              chipX += chipWidth + 8;
+            });
+
+            cursorY += chipHeight + 8;
             return;
           }
           if (t === 'CUSTOM_FIELD') {
             const fid = fieldId && fieldId.length > 0 ? fieldId : '';
             const v = getCustomStr(fid);
             const label = getFieldLabel(fid, fid && fid.length > 0 ? fid : '字段');
-            this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`${label}: ${v && v.length > 0 ? v : '-'}`, leftX, cursorY);
             cursorY += 18;
             return;
           }
 
-          this.context.fillStyle = this.isDarkMode ? '#AEAEB2' : '#666666';
+          this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
           this.context.font = `22px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);
           cursorY += 16;
@@ -830,13 +887,8 @@ export class CanvasRenderer {
         this.drawRoundRect(this.context, badgeX, badgeY, badgeW, badgeH, 14);
         this.context.fill();
 
-        // 边框使用 schemaColor
-        this.context.strokeStyle = schemaColor;
-        this.context.lineWidth = 2;
-        this.context.stroke();
-
         // 文本
-        this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+        this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
         this.context.textAlign = 'left';
         this.context.fillText(label, badgeX + padX, badgeY + 19);
       }
@@ -925,7 +977,7 @@ export class CanvasRenderer {
         }
       }
 
-      this.context.fillStyle = this.isDarkMode ? '#F5F5F7' : '#1C1C1E';
+      this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
       this.context.font = `22px HarmonyOS Sans`;
       this.context.textAlign = 'left';
       this.context.textBaseline = 'middle';
@@ -951,21 +1003,21 @@ export class CanvasRenderer {
     
     // 关键路径 - 红色
     if (task.isCritical) {
-      return this.isDarkMode ? '#FF6B6B' : '#FF453A';
+      return ThemeConfig.taskCritical.toString();
     }
     
     // 已完成 - 绿色
     if (completionProgress === 100) {
-      return this.isDarkMode ? '#32D74B' : '#34C759';
+      return ThemeConfig.taskProgress.toString();
     }
     
     // 进行中 - 蓝色
     if (completionProgress > 0 || timeProgress > 0) {
-      return this.isDarkMode ? '#0A84FF' : '#007AFF';
+      return ThemeConfig.taskNormal.toString();
     }
     
     // 未开始 - 灰色
-    return this.isDarkMode ? '#636366' : '#8E8E93';
+    return this.isDarkMode ? ThemeConfig.surfaceBold : ThemeConfig.surfaceMuted;
   }
 
   private drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
@@ -986,7 +1038,7 @@ export class CanvasRenderer {
     const radius = height / 2;
     
     // 背景（根据深色模式调整）
-    this.context.fillStyle = this.isDarkMode ? '#48484A' : '#E5E5EA';
+    this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceDark : ThemeConfig.surfaceNeutral;
     this.drawRoundRect(this.context, x, y, width, height, radius);
     this.context.fill();
     

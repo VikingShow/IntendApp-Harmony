@@ -33,7 +33,7 @@
  */
 
 import { Project, TaskNode } from '../../model/ProjectData';
-import { CanvasRenderer, RenderConfig, RenderMode } from './CanvasRenderer';
+import { CanvasRenderer, RenderConfig, RenderMode, NodeBounds } from './CanvasRenderer';
 import { image } from '@kit.ImageKit';
 
 /**
@@ -238,6 +238,11 @@ export class CanvasController {
     this.state.canvasOffsetX = x;
     this.state.canvasOffsetY = y;
   }
+
+  public getNodeBounds(taskId: string): NodeBounds {
+    return this.renderer.getNodeBounds(taskId);
+  }
+
   public getActions(): CanvasActions {
     return {
       handleTouch: (event: TouchEvent, project: Project, selectedTaskId: string | null, touchOffsetX?: number) => this.handleTouch(event, project, selectedTaskId, touchOffsetX),
@@ -814,5 +819,3 @@ export class CanvasController {
     }
   }
 }
-
-

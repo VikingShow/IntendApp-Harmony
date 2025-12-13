@@ -33,7 +33,7 @@
 
 import { ProjectManager } from '../core/ProjectManager';
 import { CanvasController } from '../core/canvas/CanvasController';
-import { RenderMode } from '../core/canvas/CanvasRenderer';
+import { RenderMode, NodeBounds } from '../core/canvas/CanvasRenderer';
 import { Sidebar } from '../components/Sidebar';
 import { StorageService } from '../services/StorageService';
 import { PermissionService } from '../services/PermissionService';
@@ -587,11 +587,13 @@ struct Index {
       anchorY = centerY + circleRadius;
     } else {
       // 普通模式下按卡片底部中心计算
-      const NODE_WIDTH = 200;
-      const NODE_HEIGHT = 120;
-      anchorX = task.x + offsetX + NODE_WIDTH / 2;
-      // 与节点底部保持紧凑的竖向间距
-      anchorY = task.y + offsetY + NODE_HEIGHT;
+      // 优先使用渲染器缓存的真实节点宽高（自适应卡片），避免按钮与卡片边缘脱节
+      const bounds = this.canvasController.getNodeBounds ? this.canvasController.getNodeBounds(task.id) : null;
+      const nodeW: number = bounds && bounds.width ? bounds.width : 200;
+      const nodeH: number = bounds && bounds.height ? bounds.height : 120;
+      anchorX = task.x + offsetX + nodeW / 2;
+      // 与节点底部保持更贴近的竖向间距（减去 2px 让快捷条更“挨着”）
+      anchorY = task.y + offsetY + nodeH - 2;
     }
 
     // 转换为屏幕坐标（考虑缩放和 Canvas 外层 margin）

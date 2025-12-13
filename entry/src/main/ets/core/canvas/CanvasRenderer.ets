@@ -606,15 +606,22 @@ export class CanvasRenderer {
         ? schema.style.borderRadius
         : 16;
 
-      const layoutForSize: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
-      const baseCount = layoutForSize ? layoutForSize.length : 0;
-      const widthByCount = MIN_W + Math.min(80, baseCount * 10);
+      // 宽度只根据实际显示内容决定
+      const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
+      const hasDateRange = layout.length === 0 || layout.some((c: NodeComponentSchema) => c.type === 'DATE_RANGE');
+      
       this.context.font = `bold 30px HarmonyOS Sans`;
       const titleW = this.context.measureText(task.name).width + 30;
-      this.context.font = `22px HarmonyOS Sans`;
-      const dateW = this.context.measureText(`${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`).width + 30;
+      
+      // 只有显示日期时才计算日期宽度
+      let dateW = 0;
+      if (hasDateRange) {
+        this.context.font = `22px HarmonyOS Sans`;
+        dateW = this.context.measureText(`${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`).width + 30;
+      }
+      
       // 取最大值并做上下限裁剪
-      const NODE_WIDTH = Math.max(MIN_W, Math.min(MAX_W, Math.max(widthByCount, Math.max(titleW, dateW))));
+      const NODE_WIDTH = Math.max(MIN_W, Math.min(MAX_W, Math.max(titleW, dateW)));
 
       // schema 驱动渲染：按 layout 顺序绘制节点内容
       // 统一从 task + customFields 读取值，以保证与编辑器/工作台一致
@@ -655,6 +662,15 @@ export class CanvasRenderer {
         }
 
         const LINE_H = 20; // 统一行高
+        // 检查是否有可合并的组件（STATUS_DOT、ASSIGNEE、PRIORITY_BADGE）
+        const mergeableTypes = ['STATUS_DOT', 'ASSIGNEE', 'PRIORITY_BADGE'];
+        const mergeableComps = layout.filter((c: NodeComponentSchema) => {
+          const ct: string = c && c.type ? String(c.type) : '';
+          return mergeableTypes.includes(ct);
+        });
+        const hasMergedRow = mergeableComps.length > 1;
+        let mergedRowCounted = false;
+
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
           if (t === 'TITLE') { y += LINE_H + 4; return; }
@@ -662,9 +678,14 @@ export class CanvasRenderer {
           if (t === 'CHECKLIST_SUMMARY') { y += LINE_H; return; }
           if (t === 'TIME_PROGRESS') { y += LINE_H; return; }
           if (t === 'TASK_PROGRESS') { y += LINE_H; return; }
-          if (t === 'PRIORITY_BADGE') { y += LINE_H; return; }
-          if (t === 'STATUS_DOT') { y += LINE_H; return; }
-          if (t === 'ASSIGNEE') { y += LINE_H; return; }
+          // 可合并组件：只计算一次行高
+          if (mergeableTypes.includes(t)) {
+            if (hasMergedRow) {
+              if (!mergedRowCounted) { y += LINE_H; mergedRowCounted = true; }
+              return;
+            }
+            y += LINE_H; return;
+          }
           if (t === 'CUSTOM_FIELD') { y += LINE_H; return; }
           if (t === 'TAGS') { y += LINE_H; return; }
           y += LINE_H;
@@ -711,7 +732,6 @@ export class CanvasRenderer {
       const leftX = drawX + 12;
       const LINE_HEIGHT = 20; // 统一行高
       this.context.textBaseline = 'top'; // 设置文本基线为顶部，便于计算位置
-      const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
 
       if (!layout || layout.length === 0) {
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
@@ -755,9 +775,79 @@ export class CanvasRenderer {
         this.context.fillText(`${completionProgress}%`, leftX + compLabelW + compBarW + 8, cursorY);
         cursorY += 20;
       } else {
+        // 检查是否有可合并的组件（STATUS_DOT、ASSIGNEE、PRIORITY_BADGE）
+        const mergeableTypes = ['STATUS_DOT', 'ASSIGNEE', 'PRIORITY_BADGE'];
+        const mergeableComps = layout.filter((c: NodeComponentSchema) => {
+          const ct: string = c && c.type ? String(c.type) : '';
+          return mergeableTypes.includes(ct);
+        });
+        const hasMergedRow = mergeableComps.length > 1;
+        let mergedRowRendered = false;
+
+        // 渲染合并行的辅助函数
+        const renderMergedRow = (): void => {
+          if (mergedRowRendered) return;
+          mergedRowRendered = true;
+
+          // 计算可用宽度和每个组件的均匀位置
+          const availableWidth = NODE_WIDTH - 24; // 左右各留12px边距
+          const compCount = mergeableComps.length;
+          const slotWidth = availableWidth / compCount;
+
+          mergeableComps.forEach((mc: NodeComponentSchema, idx: number) => {
+            const mt: string = mc && mc.type ? String(mc.type) : '';
+            const slotX = leftX + idx * slotWidth; // 每个组件的起始X位置
+
+            if (mt === 'STATUS_DOT') {
+              this.context.font = `20px HarmonyOS Sans`;
+              const dotY = cursorY + LINE_HEIGHT / 2;
+              this.context.beginPath();
+              this.context.arc(slotX + 4, dotY, 4, 0, Math.PI * 2);
+              this.context.fillStyle = '#67C23A';
+              this.context.fill();
+              const statusText = getCustomStr('_status') || '进行中';
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+              this.context.fillText(statusText, slotX + 12, cursorY + 3);
+            }
+
+            if (mt === 'PRIORITY_BADGE') {
+              const priorityText = getCustomStr('_priority') || '高';
+              const badgePadX = 4;
+              const badgeH = 12;
+              const badgeText = priorityText.substring(0, 1);
+              this.context.font = `18px HarmonyOS Sans`;
+              const badgeW = this.context.measureText(badgeText).width + badgePadX * 2;
+              const badgeY = cursorY + (LINE_HEIGHT - badgeH) / 2;
+              this.context.fillStyle = '#FF3B30';
+              this.drawRoundRect(this.context, slotX, badgeY, badgeW, badgeH, 3);
+              this.context.fill();
+              this.context.fillStyle = '#FFFFFF';
+              this.context.fillText(badgeText, slotX + badgePadX, badgeY);
+              this.context.fillStyle = '#FF3B30';
+              this.context.font = `20px HarmonyOS Sans`;
+              this.context.fillText(priorityText, slotX + badgeW + 4, cursorY + 3);
+            }
+
+            if (mt === 'ASSIGNEE') {
+              const assigneeText = getCustomStr('_assignee') || '负责人';
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+              this.context.font = `20px HarmonyOS Sans`;
+              this.context.fillText(`👤 ${assigneeText}`, slotX, cursorY + 3);
+            }
+          });
+
+          cursorY += LINE_HEIGHT;
+        };
+
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
           const fieldId: string = comp && comp.fieldId ? String(comp.fieldId) : '';
+
+          // 如果是可合并组件且有多个，则渲染合并行
+          if (mergeableTypes.includes(t) && hasMergedRow) {
+            renderMergedRow();
+            return;
+          }
 
           if (t === 'TITLE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;

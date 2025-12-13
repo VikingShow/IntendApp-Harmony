@@ -22,6 +22,15 @@
 
 import { Command } from './Command';
 import { Project, TaskNode, ChecklistItem } from '../../model/ProjectData';
+import { NodeFieldValue } from '../../model/NodeSchema';
+
+interface TaskNodeWithSchema {
+  typeId?: string;
+}
+
+interface TaskNodeWithCustomFields {
+  customFields?: Map<string, NodeFieldValue>;
+}
 
 /**
  * 更新任务命令类
@@ -201,6 +210,18 @@ export class UpdateTaskCommand implements Command {
     if (state.earlyFinish !== undefined) task.earlyFinish = state.earlyFinish;
     if (state.lateStart !== undefined) task.lateStart = state.lateStart;
     if (state.lateFinish !== undefined) task.lateFinish = state.lateFinish;
+
+    // schema 扩展字段：typeId
+    const s = state as Partial<TaskNode> as TaskNodeWithSchema;
+    if (s.typeId !== undefined) {
+      (task as TaskNodeWithSchema).typeId = s.typeId;
+    }
+
+    // schema 扩展字段：customFields
+    const cf = (state as Partial<TaskNode> as TaskNodeWithCustomFields).customFields;
+    if (cf !== undefined) {
+      (task as TaskNodeWithCustomFields).customFields = cf ? new Map<string, NodeFieldValue>(cf) : undefined;
+    }
   }
 }
 

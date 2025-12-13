@@ -50,6 +50,7 @@ import { DeleteDependencyCommand } from './commands/DeleteDependencyCommand';
 import { UpdateTaskCommand } from './commands/UpdateTaskCommand';
 import { PerformanceService } from '../services/PerformanceService';
 import { NodeSchemaService } from '../services/NodeSchemaService';
+import { NodeFieldValue } from '../model/NodeSchema';
 
 /**
  * 项目状态接口
@@ -70,8 +71,13 @@ interface TaskNodeWithSchema extends TaskNode {
   typeId?: string;
 }
 
+interface TaskNodeWithCustomFields extends TaskNode {
+  customFields?: Map<string, NodeFieldValue>;
+}
+
 interface TaskUpdatePayload extends Partial<TaskNode> {
   typeId?: string;
+  customFields?: Map<string, NodeFieldValue>;
 }
 
 /**
@@ -413,6 +419,16 @@ export class ProjectManager {
       (task as TaskNodeWithSchema).typeId = updatesWithSchema.typeId;
     }
 
+    // schema 扩展字段：customFields（Map）
+    if (updatesWithSchema.customFields !== undefined) {
+      const currentCustom = (task as TaskNodeWithCustomFields).customFields;
+      oldState.customFields = currentCustom ? new Map<string, NodeFieldValue>(currentCustom) : undefined;
+      // 先写回，保证后续渲染与 selectedTask 同步
+      (task as TaskNodeWithCustomFields).customFields = updatesWithSchema.customFields
+        ? new Map<string, NodeFieldValue>(updatesWithSchema.customFields)
+        : undefined;
+    }
+
     // 使用命令模式更新任务（支持撤销/重做）
     // 兼容 schema 扩展字段：typeId
     // UpdateTaskCommand 的 payload 类型为 Partial<TaskNode>，这里使用显式类型收窄传入。
@@ -702,9 +718,10 @@ export class ProjectManager {
     const copied: TaskNode = {
       id: task.id,
       name: task.name,
-      startDate: task.startDate,
-      endDate: task.endDate,
-      // 深拷贝 checklist，确保每个 ChecklistItem 都是新对象
+      startDate: new Date(task.startDate),
+      endDate: new Date(task.endDate),
+      x: task.x,
+      y: task.y,
       checklist: task.checklist.map((item): ChecklistItem => {
         return {
           id: item.id,
@@ -712,22 +729,19 @@ export class ProjectManager {
           isCompleted: item.isCompleted
         };
       }),
-      x: task.x,
-      y: task.y,
-      isCritical: task.isCritical,
       earlyStart: task.earlyStart,
       earlyFinish: task.earlyFinish,
       lateStart: task.lateStart,
-      lateFinish: task.lateFinish
+      lateFinish: task.lateFinish,
+      isCritical: task.isCritical
     };
 
-    // 兼容 schema 扩展字段：TaskNodeWithSchema.typeId
-    // 这里用显式接口做类型收窄，避免 any/unknown。
-    const typeIdValue = (task as TaskNodeWithSchema).typeId;
-    if (typeof typeIdValue === 'string') {
-      (copied as TaskNodeWithSchema).typeId = typeIdValue;
-    }
+    // schema 扩展字段：typeId
+    (copied as TaskNodeWithSchema).typeId = (task as TaskNodeWithSchema).typeId;
 
+    // schema 扩展字段：customFields
+    const cf = (task as TaskNodeWithCustomFields).customFields;
+    (copied as TaskNodeWithCustomFields).customFields = cf ? new Map<string, NodeFieldValue>(cf) : undefined;
     return copied;
   }
 

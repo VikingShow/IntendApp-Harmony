@@ -550,6 +550,8 @@ export class CanvasRenderer {
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
 
+      const schemaColor = this.getTaskColorWithSchema(task);
+
       // 节点背景（根据深色模式切换）
       this.context.fillStyle = this.isDarkMode ? '#18181A' : '#FFFFFF';
       this.drawRoundRect(this.context, drawX, drawY, NODE_WIDTH, NODE_HEIGHT, 16);
@@ -564,7 +566,7 @@ export class CanvasRenderer {
         this.context.lineWidth = 2;
       } else {
         // 普通节点边框在深色模式下使用更亮的颜色
-        this.context.strokeStyle = this.isDarkMode ? '#636366' : '#409EFF';
+        this.context.strokeStyle = schemaColor;
         this.context.lineWidth = 2;
       }
       this.context.stroke();

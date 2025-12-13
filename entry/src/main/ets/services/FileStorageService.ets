@@ -31,10 +31,17 @@
 // import fs from '@ohos.file.fs';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { Project, TaskNode } from '../model/ProjectData';
+import { NodeFieldValue } from '../model/NodeSchema';
 import util from '@ohos.util';
 
 interface TaskNodeWithSchemaForStorage extends TaskNode {
   typeId?: string;
+  customFields?: Map<string, NodeFieldValue>;
+}
+
+interface CustomFieldEntry {
+  key: string;
+  value: NodeFieldValue;
 }
 
 /**
@@ -65,6 +72,8 @@ interface StorableTaskNode extends Omit<TaskNode, 'startDate' | 'endDate'> {
   endDate: string;
   /** 节点类型 ID（schema 扩展字段） */
   typeId?: string;
+  /** 自定义字段（schema 扩展字段，Map 序列化为数组） */
+  customFields?: CustomFieldEntry[];
 }
 
 /**
@@ -536,6 +545,18 @@ export class FileStorageService {
         dependencies: project.dependencies,
         defaultNodeTypeId: project.defaultNodeTypeId,
         tasks: project.tasks.map((task: TaskNode): StorableTaskNode => {
+          const taskWithSchema = task as TaskNodeWithSchemaForStorage;
+          const cfMap = taskWithSchema.customFields;
+          const cfArr: CustomFieldEntry[] | undefined = (() => {
+            if (!cfMap) {
+              return undefined;
+            }
+            const arr: CustomFieldEntry[] = [];
+            cfMap.forEach((v: NodeFieldValue, k: string) => {
+              arr.push({ key: k, value: v });
+            });
+            return arr;
+          })();
           return {
             id: task.id,
             name: task.name,
@@ -549,7 +570,8 @@ export class FileStorageService {
             isCritical: task.isCritical,
             startDate: task.startDate.toISOString(),
             endDate: task.endDate.toISOString(),
-            typeId: (task as TaskNodeWithSchemaForStorage).typeId,
+            typeId: taskWithSchema.typeId,
+            customFields: cfArr,
           };
         }),
         category: project.category || '其他',
@@ -644,6 +666,13 @@ export class FileStorageService {
           };
           if (task.typeId) {
             restored.typeId = task.typeId;
+          }
+          if (task.customFields) {
+            const map = new Map<string, NodeFieldValue>();
+            task.customFields.forEach((e: CustomFieldEntry) => {
+              map.set(e.key, e.value);
+            });
+            restored.customFields = map;
           }
           return restored;
         });

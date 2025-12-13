@@ -33,7 +33,7 @@
  */
 
 import { TaskNode, ChecklistItem, Dependency, Project } from '../model/ProjectData';
-import { NodeSchema, TaskNodeWithSchema } from '../model/NodeSchema';
+import { NodeSchema, TaskNodeWithSchema, FieldSchema, NodeFieldValue, NodeComponentSchema } from '../model/NodeSchema';
 import { NodeSchemaService } from '../services/NodeSchemaService';
 import { CommonButton } from './CommonButton';
 import { ValidationUtils } from '../utils/ValidationUtils';
@@ -57,6 +57,7 @@ interface TaskDependencyInfo {
  */
 interface TaskUpdatePayload extends Partial<TaskNode> {
   typeId?: string;
+  customFields?: Map<string, NodeFieldValue>;
 }
 
 /**
@@ -98,6 +99,288 @@ export struct TaskEditor {
   private lastTaskDataHash: string = ''; // 跟踪任务数据的内容哈希，用于检测数据变化
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+
+  private getCurrentSchema(): NodeSchema | null {
+    const service = NodeSchemaService.getInstance();
+    const typeId = this.getCurrentNodeTypeId();
+    return service.getSchemaById(typeId);
+  }
+
+  private getOrCreateCustomFieldsMap(task: TaskNodeWithSchema): Map<string, NodeFieldValue> {
+    if (task.customFields) {
+      return task.customFields;
+    }
+    task.customFields = new Map<string, NodeFieldValue>();
+    return task.customFields;
+  }
+
+  private getCustomFieldValue(task: TaskNodeWithSchema, fieldId: string): NodeFieldValue {
+    const map = this.getOrCreateCustomFieldsMap(task);
+    if (map.has(fieldId)) {
+      return map.get(fieldId) as NodeFieldValue;
+    }
+    return null;
+  }
+
+  private setCustomFieldValue(task: TaskNodeWithSchema, fieldId: string, value: NodeFieldValue): void {
+    const map = this.getOrCreateCustomFieldsMap(task);
+    map.set(fieldId, value);
+  }
+
+  private getFieldSchemaById(schema: NodeSchema | null, fieldId: string): FieldSchema | null {
+    if (!schema || !schema.fields) {
+      return null;
+    }
+    const f = schema.fields.find(ff => ff.id === fieldId);
+    return f ? f : null;
+  }
+
+  private getCustomFieldLabel(component: NodeComponentSchema): string {
+    const schema = this.getCurrentSchema();
+    const fieldId = component.fieldId ? component.fieldId : '';
+    const field = fieldId.length > 0 ? this.getFieldSchemaById(schema, fieldId) : null;
+    return field ? field.label : (fieldId.length > 0 ? fieldId : '未绑定字段');
+  }
+
+  @Builder
+  private renderTitleEditor() {
+    Column({ space: 8 }) {
+      Text('任务名称')
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontWeight(ThemeConfig.fontWeightMedium)
+        .fontColor(ColorResource.surfaceEmphasized)
+      TextInput({ text: this.localTask?.name || '', placeholder: '请输入任务名称' })
+        .backgroundColor(ColorResource.transparent)
+        .borderRadius(ThemeConfig.radiusMedium)
+        .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+        .fontSize(ThemeConfig.fontSizeL)
+        .width('100%')
+        .fontColor(ColorResource.surfaceDeep)
+        .placeholderColor(ColorResource.surfaceEmphasized)
+        .shadow(ThemeConfig.inputShadow)
+        .border({
+          width: 2,
+          color: ColorResource.surfaceNeutral,
+          radius: ThemeConfig.radiusMedium
+        })
+        .onBlur(() => {
+          if (this.localTask) {
+            // 避免无意义的重复提交（值未变也提交会导致 CommandHistory 暴涨）
+            if (this.task && this.task.name === this.localTask.name) {
+              return;
+            }
+            this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
+          }
+        })
+        .enterKeyType(EnterKeyType.Done)
+        .onSubmit(() => {
+          if (this.localTask) {
+            if (this.task && this.task.name === this.localTask.name) {
+              return;
+            }
+            this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
+          }
+        })
+        .onChange((value: string) => {
+          const validation = ValidationUtils.validateProjectName(value);
+          if (!validation.isValid) {
+            this.promptAction.showToast({ message: validation.message });
+            return;
+          }
+          if (this.localTask) {
+            if (this.localTask.name === value) {
+              return;
+            }
+            this.localTask.name = value;
+            this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+            this.forceUpdateKey++;
+            this.onUpdateTask(this.localTask.id, { name: value });
+          }
+        })
+    }
+  }
+
+  @Builder
+  private renderDateRangeEditor() {
+    Column({ space: 0 }) {
+      // Tab切换按钮栏
+      Row({ space: 0 }) {
+        // 开始日期Tab
+        Column() {
+          Text('开始日期')
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontWeight(this.dateTabIndex === 0 ? FontWeight.Medium : FontWeight.Normal)
+            .fontColor(this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.textSecondary)
+            .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+        }
+        .layoutWeight(1)
+        .backgroundColor(
+          this.dateTabIndex === 0 ? ColorResource.primaryUltraLight : ColorResource.transparent
+        )
+        .borderRadius({ topLeft: ThemeConfig.radiusMedium, topRight: 0, bottomLeft: 0, bottomRight: 0 })
+        .border({
+          width: { bottom: this.dateTabIndex === 0 ? 2 : 0 },
+          color: this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.transparent
+        })
+        .onClick(() => {
+          this.dateTabIndex = 0;
+        })
+
+        // 结束日期Tab
+        Column() {
+          Text('结束日期')
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontWeight(this.dateTabIndex === 1 ? FontWeight.Medium : FontWeight.Normal)
+            .fontColor(this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.textSecondary)
+            .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+        }
+        .layoutWeight(1)
+        .backgroundColor(
+          this.dateTabIndex === 1 ? ColorResource.primaryUltraLight : ColorResource.transparent
+        )
+        .borderRadius({ topLeft: 0, topRight: ThemeConfig.radiusMedium, bottomLeft: 0, bottomRight: 0 })
+        .border({
+          width: { bottom: this.dateTabIndex === 1 ? 2 : 0 },
+          color: this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.transparent
+        })
+        .onClick(() => {
+          this.dateTabIndex = 1;
+        })
+      }
+      .width('100%')
+      .backgroundColor(ColorResource.surfaceLight)
+      .borderRadius({
+        topLeft: ThemeConfig.radiusMedium,
+        topRight: ThemeConfig.radiusMedium,
+        bottomLeft: 0,
+        bottomRight: 0
+      })
+      .border({
+        width: { bottom: 1 },
+        color: ColorResource.surfaceNeutral
+      })
+      .shadow(ThemeConfig.shadowSmall)
+
+      // 日期选择器内容
+      if (this.dateTabIndex === 0) {
+        DatePicker({
+          start: new Date('2020-01-01'),
+          end: this.displayEndDate,
+          selected: this.displayStartDate
+        })
+          .backgroundColor(ColorResource.transparent)
+          .borderRadius(12)
+          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .border({ width: 0, radius: 12 })
+          .width('100%')
+          .onDateChange((value: Date) => {
+            if (!this.localTask) return;
+            const newStartDate = value;
+            this.displayStartDate = newStartDate;
+            this.localTask.startDate = newStartDate;
+            this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+            this.forceUpdateKey++;
+            this.onUpdateTask(this.localTask.id, {
+              startDate: newStartDate
+            });
+          })
+      } else {
+        DatePicker({
+          start: this.displayStartDate,
+          end: new Date('2030-12-31'),
+          selected: this.displayEndDate
+        })
+          .backgroundColor(ColorResource.transparent)
+          .borderRadius(12)
+          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+          .border({ width: 0, radius: 12 })
+          .width('100%')
+          .onDateChange((value: Date) => {
+            if (!this.localTask) return;
+            const newEndDate = value;
+            this.displayEndDate = newEndDate;
+            this.localTask.endDate = newEndDate;
+            this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+            this.forceUpdateKey++;
+            this.onUpdateTask(this.localTask.id, {
+              endDate: newEndDate
+            });
+          })
+      }
+    }
+  }
+
+  @Builder
+  private renderCustomFieldEditor(component: NodeComponentSchema) {
+    Column({ space: 8 }) {
+      Text(this.getCustomFieldLabel(component))
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontWeight(ThemeConfig.fontWeightMedium)
+        .fontColor(ColorResource.surfaceEmphasized)
+
+      if (!component.fieldId || component.fieldId.length === 0) {
+        Text('该组件未绑定字段，无法编辑')
+          .fontSize(ThemeConfig.fontSizeS)
+          .fontColor(ColorResource.textTertiary)
+      } else {
+        TextInput({
+          text: (() => {
+            const t = this.localTask as TaskNodeWithSchema | null;
+            if (!t) return '';
+            const v = this.getCustomFieldValue(t, component.fieldId ? component.fieldId : '');
+            return v === null || v === undefined ? '' : String(v);
+          })(),
+          placeholder: '请输入'
+        })
+          .backgroundColor(ColorResource.transparent)
+          .borderRadius(ThemeConfig.radiusMedium)
+          .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
+          .fontSize(ThemeConfig.fontSizeL)
+          .width('100%')
+          .fontColor(ColorResource.surfaceDeep)
+          .placeholderColor(ColorResource.surfaceEmphasized)
+          .shadow(ThemeConfig.inputShadow)
+          .border({
+            width: 2,
+            color: ColorResource.surfaceNeutral,
+            radius: ThemeConfig.radiusMedium
+          })
+          .onChange((value: string) => {
+            if (!this.localTask) {
+              return;
+            }
+            const task = this.localTask as TaskNodeWithSchema;
+            const id = component.fieldId ? component.fieldId : '';
+            this.setCustomFieldValue(task, id, value);
+            this.forceUpdateKey++;
+            const updates: TaskUpdatePayload = { customFields: this.getOrCreateCustomFieldsMap(task) };
+            this.onUpdateTask(this.localTask!.id, updates as Partial<TaskNode>);
+          })
+      }
+    }
+  }
+
+  @Builder
+  private renderComponentEditor(component: NodeComponentSchema) {
+    if (component.type === 'TITLE') {
+      this.renderTitleEditor();
+    } else if (component.type === 'DATE_RANGE') {
+      this.renderDateRangeEditor();
+    } else if (component.type === 'CHECKLIST_SUMMARY' || component.type === 'TASK_PROGRESS') {
+      // 目前先复用已有的清单卡片（后续可拆成更细的 schema editor）
+      Text('清单/进度编辑请在下方「任务清单」中操作')
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textTertiary)
+        .width('100%');
+    } else if (component.type === 'CUSTOM_FIELD') {
+      this.renderCustomFieldEditor(component);
+    } else {
+      Text(`暂不支持编辑：${component.type}`)
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textTertiary)
+        .width('100%');
+    }
+  }
   onUpdateTask: (taskId: string, updates: Partial<TaskNode>) => void = () => {
   };
   onDeleteTask: (id: string) => void = () => {
@@ -226,29 +509,49 @@ export struct TaskEditor {
     const oldSchema = service.getSchemaById(oldTypeId);
     const newSchema = service.getSchemaById(typeId);
 
-    const oldTypes = oldSchema ? oldSchema.layout.map(c => c.type) : [];
-    const newTypes = newSchema ? newSchema.layout.map(c => c.type) : [];
+    // 激进策略：只针对 customFields 做删除/初始化；TaskNode 原生字段不删
+    const oldFields: FieldSchema[] = oldSchema ? oldSchema.fields : [];
+    const newFields: FieldSchema[] = newSchema ? newSchema.fields : [];
+    const oldFieldIds: string[] = oldFields.map(f => f.id);
+    const newFieldIds: string[] = newFields.map(f => f.id);
 
-    const removedTypes = oldTypes.filter(t => !newTypes.includes(t));
-    const lostParts: string[] = [];
-    removedTypes.forEach(t => {
-      if (t === 'TITLE') {
-        if (this.localTask && this.localTask.name && this.localTask.name.trim().length > 0) {
-          lostParts.push('任务名称');
-        }
-      } else if (t === 'DATE_RANGE') {
-        lostParts.push('起止时间');
-      } else if (t === 'CHECKLIST_SUMMARY' || t === 'TASK_PROGRESS') {
-        if (this.localTask && this.localTask.checklist && this.localTask.checklist.length > 0) {
-          lostParts.push('清单/完成进度');
-        }
-      } else {
-        // 其他组件目前未做完整字段映射，先提示组件类型
-        lostParts.push(`组件(${t})`);
-      }
+    const deletedFieldIds: string[] = oldFieldIds.filter(id => !newFieldIds.includes(id));
+    const addedFieldIds: string[] = newFieldIds.filter(id => !oldFieldIds.includes(id));
+
+    const deletedFieldLabels: string[] = [];
+    deletedFieldIds.forEach((id: string) => {
+      const f = oldFields.find(ff => ff.id === id);
+      deletedFieldLabels.push(f ? f.label : id);
     });
 
     const applySwitch = () => {
+      // 迁移 customFields（激进删除）
+      const currentCustom = taskWithSchema.customFields ? taskWithSchema.customFields : new Map<string, NodeFieldValue>();
+      const nextCustom = new Map<string, NodeFieldValue>();
+
+      // 保留交集
+      newFields.forEach((field: FieldSchema) => {
+        if (currentCustom.has(field.id)) {
+          nextCustom.set(field.id, currentCustom.get(field.id) as NodeFieldValue);
+        }
+      });
+
+      // 初始化新增字段默认值
+      addedFieldIds.forEach((id: string) => {
+        const f = newFields.find(ff => ff.id === id);
+        if (f) {
+          if (f.defaultValue !== undefined) {
+            nextCustom.set(f.id, f.defaultValue);
+          } else {
+            // 最保守兜底：不强行造类型值，保持 null
+            nextCustom.set(f.id, null);
+          }
+        }
+      });
+
+      // 写回
+      taskWithSchema.customFields = nextCustom;
+
       taskWithSchema.typeId = typeId;
       this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
       this.forceUpdateKey++;
@@ -257,13 +560,14 @@ export struct TaskEditor {
       this.onUpdateTask(this.localTask!.id, updates);
     };
 
-    if (lostParts.length > 0) {
+    // 仅提示会被删除的自定义字段
+    if (deletedFieldLabels.length > 0) {
       AlertDialog.show({
         title: '切换节点类型',
         message:
-          `从「${oldSchema ? oldSchema.name : oldTypeId}」切换到「${newSchema ? newSchema.name : typeId}」将导致部分信息无法继续使用：\n` +
-          lostParts.map(s => `- ${s}`).join('\n') +
-          '\n\n相同组件的信息将保留。是否继续？',
+          `从「${oldSchema ? oldSchema.name : oldTypeId}」切换到「${newSchema ? newSchema.name : typeId}」将删除以下自定义字段：\n` +
+          deletedFieldLabels.map(s => `- ${s}`).join('\n') +
+          '\n\nTaskNode 的基础信息（名称/时间/清单等）不会被删除。是否继续？',
         primaryButton: {
           value: '继续切换',
           action: () => {
@@ -625,66 +929,6 @@ export struct TaskEditor {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            Column({ space: 8 }) {
-              Text('任务名称')
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontWeight(ThemeConfig.fontWeightMedium)
-                .fontColor(ColorResource.surfaceEmphasized)
-              TextInput({ text: this.localTask?.name || '', placeholder: '请输入任务名称' })
-                .backgroundColor(ColorResource.transparent)
-                .borderRadius(ThemeConfig.radiusMedium)
-                .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
-                .fontSize(ThemeConfig.fontSizeL)
-                .width('100%')
-                .fontColor(ColorResource.surfaceDeep)
-                .placeholderColor(ColorResource.surfaceEmphasized)
-                .shadow(ThemeConfig.inputShadow)
-                .border({ 
-                  width: 2, 
-                  color: ColorResource.surfaceNeutral, 
-                  radius: ThemeConfig.radiusMedium 
-                })
-                .onFocus(() => {
-                  // 聚焦时的视觉反馈
-                  console.log('[TaskEditor] Task name input focused');
-                })
-                .onBlur(() => {
-                  // 失焦时保存数据
-                  if (this.localTask) {
-                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
-                  }
-                })
-                .enterKeyType(EnterKeyType.Done)
-                .onSubmit(() => {
-                  // 提交时保存并聚焦到下一个输入框
-                  if (this.localTask) {
-                    this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
-                  }
-                })
-                .onChange((value: string) => {
-                  // 验证任务名称
-                  const validation = ValidationUtils.validateProjectName(value);
-                  if (!validation.isValid) {
-                    this.promptAction.showToast({ message: validation.message });
-                    return;
-                  }
-
-                  // 只更新 localTask 用于本地显示（不修改 @Prop task）
-                  if (this.localTask) {
-                    this.localTask.name = value;
-                    
-                    // 更新数据哈希
-                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-                    
-                    // 触发UI更新
-                    this.forceUpdateKey++;
-                    
-                    // 立即通知父组件更新数据（使用 this.localTask.id 而不是闭包中的 displayTask.id）
-                    this.onUpdateTask(this.localTask.id, { name: value });
-                  }
-                })
-            }
-
              // 日期选择区域 - 使用自定义Tab切换（苹果风格）
              // 节点类型选择
              Column({ space: 8 }) {
@@ -718,124 +962,24 @@ export struct TaskEditor {
                 }
               }
 
-             Column({ space: 0 }) {
-               // Tab切换按钮栏
-               Row({ space: 0 }) {
-                 // 开始日期Tab
-                 Column() {
-                   Text('开始日期')
-                     .fontSize(ThemeConfig.fontSizeM)
-                     .fontWeight(this.dateTabIndex === 0 ? FontWeight.Medium : FontWeight.Normal)
-                     .fontColor(this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.textSecondary)
-                     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-                 }
-                 .layoutWeight(1)
-                 .backgroundColor(
-                   this.dateTabIndex === 0 ? ColorResource.primaryUltraLight : ColorResource.transparent
-                 )
-                 .borderRadius({ topLeft: ThemeConfig.radiusMedium, topRight: 0, bottomLeft: 0, bottomRight: 0 })
-                 .border({ 
-                   width: { bottom: this.dateTabIndex === 0 ? 2 : 0 }, 
-                   color: this.dateTabIndex === 0 ? ColorResource.primaryColor : ColorResource.transparent
-                 })
-                 .onClick(() => {
-                   this.dateTabIndex = 0;
-                 })
-                 
-                 // 结束日期Tab
-                 Column() {
-                   Text('结束日期')
-                     .fontSize(ThemeConfig.fontSizeM)
-                     .fontWeight(this.dateTabIndex === 1 ? FontWeight.Medium : FontWeight.Normal)
-                     .fontColor(this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.textSecondary)
-                     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-                 }
-                 .layoutWeight(1)
-                 .backgroundColor(
-                   this.dateTabIndex === 1 ? ColorResource.primaryUltraLight : ColorResource.transparent
-                 )
-                 .borderRadius({ topLeft: 0, topRight: ThemeConfig.radiusMedium, bottomLeft: 0, bottomRight: 0 })
-                 .border({ 
-                   width: { bottom: this.dateTabIndex === 1 ? 2 : 0 }, 
-                   color: this.dateTabIndex === 1 ? ColorResource.primaryColor : ColorResource.transparent
-                 })
-                 .onClick(() => {
-                   this.dateTabIndex = 1;
-                 })
-               }
-               .width('100%')
-               .backgroundColor(ColorResource.surfaceLight)
-               .borderRadius({ 
-                 topLeft: ThemeConfig.radiusMedium, 
-                 topRight: ThemeConfig.radiusMedium, 
-                 bottomLeft: 0, 
-                 bottomRight: 0 
-               })
-               .border({ 
-                 width: { bottom: 1 }, 
-                 color: ColorResource.surfaceNeutral 
-               })
-               .shadow(ThemeConfig.shadowSmall)
-
-               // 日期选择器内容
-               if (this.dateTabIndex === 0) {
-                 DatePicker({
-                   start: new Date('2020-01-01'),
-                   end: this.displayEndDate, // 限制开始日期不能晚于结束日期
-                   selected: this.displayStartDate
-                 })
-                   .backgroundColor(ColorResource.transparent)
-                   .borderRadius(12)
-                   .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-                   .border({ width: 0, radius: 12 })
+             // 动态编辑区域（按 schema.layout 渲染）
+             Column({ space: 14 }) {
+               if (this.getCurrentSchema() && this.getCurrentSchema()!.layout && this.getCurrentSchema()!.layout.length > 0) {
+                 ForEach(this.getCurrentSchema()!.layout, (component: NodeComponentSchema, index: number) => {
+                   Column({ space: 8 }) {
+                     this.renderComponentEditor(component);
+                   }
                    .width('100%')
-                  .onDateChange((value: Date) => {
-                    if (!this.localTask) return;
-                    
-                    const newStartDate = value;
-                    
-                    // 更新显示数据
-                    this.displayStartDate = newStartDate;
-                    
-                    // 更新 localTask
-                    this.localTask.startDate = newStartDate;
-                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-                    this.forceUpdateKey++;
-                    
-                    // 通知父组件
-                    this.onUpdateTask(this.localTask.id, { 
-                      startDate: newStartDate
-                    });
-                  })
+                   .padding(12)
+                   .backgroundColor(ColorResource.transparent)
+                   .borderRadius(ThemeConfig.radiusMedium)
+                   .border({ width: 1, color: ColorResource.surfaceNeutral, radius: ThemeConfig.radiusMedium })
+                 }, (component: NodeComponentSchema, index: number) => `task-editor-layout-${component.id}-${index}-${this.forceUpdateKey}`)
                } else {
-                 DatePicker({
-                   start: this.displayStartDate, // 限制结束日期不能早于开始日期
-                   end: new Date('2030-12-31'),
-                   selected: this.displayEndDate
-                 })
-                   .backgroundColor(ColorResource.transparent)
-                   .borderRadius(12)
-                   .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                   .border({ width: 0, radius: 12 })
-                   .width('100%')
-                  .onDateChange((value: Date) => {
-                    if (!this.localTask) return;
-                    
-                    const newEndDate = value;
-                    
-                    // 更新显示数据
-                    this.displayEndDate = newEndDate;
-                    
-                    // 更新 localTask
-                    this.localTask.endDate = newEndDate;
-                    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-                    this.forceUpdateKey++;
-                    
-                    // 通知父组件
-                    this.onUpdateTask(this.localTask.id, { 
-                      endDate: newEndDate
-                    });
-                  })
+                 Text('当前节点类型没有可编辑的布局')
+                   .fontSize(ThemeConfig.fontSizeS)
+                   .fontColor(ColorResource.textTertiary)
+                   .width('100%');
                }
              }
              .width('100%')

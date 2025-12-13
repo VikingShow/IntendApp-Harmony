@@ -589,8 +589,8 @@ export class CanvasRenderer {
       const MIN_W = 170;
       const MAX_W = 260;
       const MIN_H = 86;
-      const TOP_PADDING = 22;
-      const BOTTOM_PADDING = 6;
+      const TOP_PADDING = 14;
+      const BOTTOM_PADDING = 8;
       const isSelected = task.id === config.selectedTaskId;
       const drawX = task.x + config.canvasOffsetX;
       const drawY = task.y + config.canvasOffsetY;
@@ -654,7 +654,7 @@ export class CanvasRenderer {
           return y;
         }
 
-        const LINE_H = 24; // 统一行高
+        const LINE_H = 20; // 统一行高
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
           if (t === 'TITLE') { y += LINE_H + 4; return; }
@@ -708,8 +708,8 @@ export class CanvasRenderer {
 
       // 绘制内容
       let cursorY = drawY + TOP_PADDING;
-      const leftX = drawX + 15;
-      const LINE_HEIGHT = 24; // 统一行高
+      const leftX = drawX + 12;
+      const LINE_HEIGHT = 20; // 统一行高
       this.context.textBaseline = 'top'; // 设置文本基线为顶部，便于计算位置
       const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
 
@@ -785,7 +785,7 @@ export class CanvasRenderer {
               ? task.checklist.filter((c: ChecklistItem) => c.isCompleted).length
               : 0;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `24px HarmonyOS Sans`;
+            this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`☑️ ${done}/${total} 项已完成`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
@@ -827,8 +827,8 @@ export class CanvasRenderer {
           if (t === 'PRIORITY_BADGE') {
             const propStyle = comp && comp.props && comp.props.style ? String(comp.props.style) : 'badge';
             const v = getCustomStr('_priority');
-            const priorityText = v && v.length > 0 ? v : '高优先级';
-            this.context.font = `24px HarmonyOS Sans`;
+            const priorityText = v && v.length > 0 ? v : '高';
+            this.context.font = `18px HarmonyOS Sans`;
             
             if (propStyle === 'icon') {
               // 图标样式：🔥🔥🔥
@@ -840,22 +840,24 @@ export class CanvasRenderer {
               this.context.fillText(priorityText, leftX, cursorY);
               cursorY += LINE_HEIGHT;
             } else {
-              // 默认徽章样式
-              const badgePadX = 8;
-              const badgeH = 20;
-              this.context.font = `22px HarmonyOS Sans`;
+              // 默认徽章样式：贴片高度12，垂直居中于行高20
+              const badgePadX = 5;
+              const badgeH = 12;
               const badgeText = priorityText.substring(0, 1);
               const badgeW = this.context.measureText(badgeText).width + badgePadX * 2;
+              const badgeY = cursorY + (LINE_HEIGHT - badgeH) / 2; // 垂直居中
               // 绘制徽章背景
               this.context.fillStyle = '#FF3B30';
-              this.drawRoundRect(this.context, leftX, cursorY, badgeW, badgeH, 4);
+              this.drawRoundRect(this.context, leftX, badgeY, badgeW, badgeH, 3);
               this.context.fill();
-              // 绘制徽章文字
+              // 绘制徽章文字（垂直居中）
               this.context.fillStyle = '#FFFFFF';
-              this.context.fillText(badgeText, leftX + badgePadX, cursorY + 2);
+              this.context.font = `22px HarmonyOS Sans`;
+              this.context.fillText(badgeText, leftX + badgePadX, badgeY - 2);
               // 绘制优先级文字
               this.context.fillStyle = '#FF3B30';
-              this.context.fillText(priorityText, leftX + badgeW + 8, cursorY + 2);
+              this.context.font = `22px HarmonyOS Sans`;
+              this.context.fillText(priorityText, leftX + badgeW + 5, badgeY - 2);
               cursorY += LINE_HEIGHT;
             }
             return;
@@ -864,61 +866,64 @@ export class CanvasRenderer {
             const propStyle = comp && comp.props && comp.props.style ? String(comp.props.style) : 'dot';
             const v = getCustomStr('_status');
             const statusText = v && v.length > 0 ? v : '进行中';
+            this.context.font = `22px HarmonyOS Sans`;
             
             if (propStyle === 'label') {
               // 标签样式
-              const labelPadX = 8;
-              const labelH = 20;
-              this.context.font = `22px HarmonyOS Sans`;
+              const labelPadX = 5;
+              const labelH = 12;
               const labelW = this.context.measureText(statusText).width + labelPadX * 2;
+              const labelY = cursorY + (LINE_HEIGHT - labelH) / 2;
               this.context.fillStyle = '#67C23A';
-              this.drawRoundRect(this.context, leftX, cursorY, labelW, labelH, 4);
+              this.drawRoundRect(this.context, leftX, labelY, labelW, labelH, 3);
               this.context.fill();
               this.context.fillStyle = '#FFFFFF';
-              this.context.fillText(statusText, leftX + labelPadX, cursorY + 2);
+              this.context.fillText(statusText, leftX + labelPadX, labelY - 2);
               cursorY += LINE_HEIGHT;
             } else {
               // 默认圆点样式
+              const dotY = cursorY + LINE_HEIGHT / 2; // 圆点垂直居中
               this.context.beginPath();
-              this.context.arc(leftX + 4, cursorY + 8, 4, 0, Math.PI * 2);
+              this.context.arc(leftX + 4, dotY, 4, 0, Math.PI * 2);
               this.context.fillStyle = '#67C23A';
               this.context.fill();
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-              this.context.font = `24px HarmonyOS Sans`;
-              this.context.fillText(statusText, leftX + 16, cursorY);
+              this.context.fillText(statusText, leftX + 14, cursorY);
               cursorY += LINE_HEIGHT;
             }
             return;
           }
           if (t === 'ASSIGNEE') {
             const v = getCustomStr('_assignee');
-            const assigneeText = v && v.length > 0 ? v : '张三';
+            const assigneeText = v && v.length > 0 ? v : '负责人';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `24px HarmonyOS Sans`;
+            this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
           }
           if (t === 'TAGS') {
             const tags = getCustomTags('_tags');
-            this.context.font = `22px HarmonyOS Sans`;
 
             // 如果没有标签，显示示例标签
-            const displayTags = tags.length > 0 ? tags : ['前端', '紧急'];
+            const displayTags = tags.length > 0 ? tags : ['标签1', '标签2'];
 
             // 标签 chips
             const maxTags = 3;
             const visibleTags = displayTags.slice(0, maxTags);
-            const chipPaddingX = 6;
-            const chipHeight = 18;
-            const chipRadius = 4;
-            const chipY = cursorY + 1; // 与图标对齐
+            const chipPaddingX = 5;
+            const chipHeight = 12;
+            const chipRadius = 3;
+            const chipY = cursorY + (LINE_HEIGHT - chipHeight) / 2; // 垂直居中
 
             // 绘制标签图标
+            this.context.font = `24px HarmonyOS Sans`;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.fillText(`🏷️`, leftX, cursorY);
-            let chipX = leftX + 28;
+            let chipX = leftX + 24;
 
+            // 切换到较小字体绘制标签文字
+            this.context.font = `22px HarmonyOS Sans`;
             visibleTags.forEach((tag: string, index: number) => {
               const textWidth = this.context.measureText(tag).width;
               const chipWidth = textWidth + chipPaddingX * 2;
@@ -936,11 +941,11 @@ export class CanvasRenderer {
               this.drawRoundRect(this.context, chipX, chipY, chipWidth, chipHeight, chipRadius);
               this.context.fill();
 
-              // 文本
+              // 文本（垂直居中）
               this.context.fillStyle = index === 1 ? '#FF3B30' : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor);
-              this.context.fillText(tag, chipX + chipPaddingX, chipY + 1);
+              this.context.fillText(tag, chipX + chipPaddingX, chipY - 2);
 
-              chipX += chipWidth + 6;
+              chipX += chipWidth + 4;
             });
 
             cursorY += LINE_HEIGHT;
@@ -952,7 +957,7 @@ export class CanvasRenderer {
             const label = getFieldLabel(fid, fid && fid.length > 0 ? fid : '字段');
             const displayText = v && v.length > 0 ? v : '未绑定字段';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
-            this.context.font = `24px HarmonyOS Sans`;
+            this.context.font = `22px HarmonyOS Sans`;
             this.context.fillText(`✏️ ${label}: ${displayText}`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
@@ -960,7 +965,7 @@ export class CanvasRenderer {
 
           // 未知组件类型
           this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-          this.context.font = `24px HarmonyOS Sans`;
+          this.context.font = `22px HarmonyOS Sans`;
           this.context.fillText(`${t}`, leftX, cursorY);
           cursorY += LINE_HEIGHT;
         });
@@ -969,7 +974,7 @@ export class CanvasRenderer {
       // 选中时在节点右上角外侧显示类型标签（badge），避免占用节点内部空间
       if (isSelected) {
         const label = schemaName;
-        this.context.font = `20px HarmonyOS Sans`;
+        this.context.font = `22px HarmonyOS Sans`;
         const textWidth = this.context.measureText(label).width;
         const padX = 10;
         const padY = 6;
@@ -978,10 +983,10 @@ export class CanvasRenderer {
         const badgeX = drawX + NODE_WIDTH - badgeW + 6;
         const badgeY = drawY - badgeH - 6;
 
-        // 背景
-        this.context.fillStyle = this.isDarkMode ? 'rgba(24,24,26,0.95)' : 'rgba(255,255,255,0.95)';
-        this.drawRoundRect(this.context, badgeX, badgeY, badgeW, badgeH, 14);
-        this.context.fill();
+        // 背景 - 透明
+        // this.context.fillStyle = this.isDarkMode ? 'rgba(24,24,26,0.95)' : 'rgba(255,255,255,0.95)';
+        // this.drawRoundRect(this.context, badgeX, badgeY, badgeW, badgeH, 14);
+        // this.context.fill();
 
         // 文本
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;

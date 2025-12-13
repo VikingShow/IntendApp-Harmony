@@ -173,7 +173,7 @@ export struct TaskEditor {
       return schemas;
     }
 
-    // 兜底：服务里没有数据时，仍然用内置默认两种类型
+    // 兜底：服务里没有数据时，返回默认标准任务类型
     return [
       {
         id: 'standard',
@@ -181,21 +181,7 @@ export struct TaskEditor {
         name: '标准任务',
         description: '默认的标准任务节点',
         style: {
-          fillColor: '#007AFF'
-        },
-        fields: [],
-        layout: [],
-        rules: [],
-        isSystem: true,
-        isDraft: false
-      },
-      {
-        id: 'milestone',
-        version: 1,
-        name: '里程碑',
-        description: '用于标记关键里程碑的节点',
-        style: {
-          fillColor: '#FF9500'
+          fillColor: '#409EFF'
         },
         fields: [],
         layout: [],

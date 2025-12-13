@@ -13,7 +13,14 @@
  */
 
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
-import { NodeSchema, NodeComponentSchema, FieldSchema, FieldType, NodeComponentType, NodeStyleSchema } from '../model/NodeSchema';
+import {
+  NodeSchema,
+  NodeComponentSchema,
+  FieldSchema,
+  FieldType,
+  NodeComponentType,
+  NodeStyleSchema
+} from '../model/NodeSchema';
 import { NodeSchemaService } from '../services/NodeSchemaService';
 import { SchemaErrorBoundary, ErrorType } from '../utils/ErrorBoundary';
 import { PromptAction } from '@kit.ArkUI';
@@ -81,30 +88,70 @@ class SchemaDiffHelper {
   }
 
   private static compareStyle(oldStyle: NodeStyleSchema, newStyle: NodeStyleSchema, changes: SchemaChange[]) {
-    const styleMap: Record<string, string> = {
-      'fillColor': '填充色',
-      'criticalColor': '关键色',
-      'borderColor': '边框色',
-      'borderRadius': '圆角',
-      'borderWidth': '边框宽',
-      'icon': '图标',
-      'badgeColor': '徽标色'
-    };
-
-    const oldStyleRecord = oldStyle as unknown as Record<string, Object | undefined>;
-    const newStyleRecord = newStyle as unknown as Record<string, Object | undefined>;
-
-    Object.keys(styleMap).forEach(key => {
-      if (oldStyleRecord[key] !== newStyleRecord[key]) {
-        changes.push({
-          type: 'modify',
-          category: 'style',
-          name: styleMap[key],
-          oldValue: String(oldStyleRecord[key] || '默认'),
-          newValue: String(newStyleRecord[key] || '默认')
-        });
-      }
-    });
+    // 直接比较每个已知的样式属性
+    if (oldStyle.fillColor !== newStyle.fillColor) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '填充色',
+        oldValue: String(oldStyle.fillColor || '默认'),
+        newValue: String(newStyle.fillColor || '默认')
+      });
+    }
+    if (oldStyle.criticalColor !== newStyle.criticalColor) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '关键色',
+        oldValue: String(oldStyle.criticalColor || '默认'),
+        newValue: String(newStyle.criticalColor || '默认')
+      });
+    }
+    if (oldStyle.borderColor !== newStyle.borderColor) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '边框色',
+        oldValue: String(oldStyle.borderColor || '默认'),
+        newValue: String(newStyle.borderColor || '默认')
+      });
+    }
+    if (oldStyle.borderRadius !== newStyle.borderRadius) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '圆角',
+        oldValue: String(oldStyle.borderRadius || '默认'),
+        newValue: String(newStyle.borderRadius || '默认')
+      });
+    }
+    if (oldStyle.borderWidth !== newStyle.borderWidth) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '边框宽',
+        oldValue: String(oldStyle.borderWidth || '默认'),
+        newValue: String(newStyle.borderWidth || '默认')
+      });
+    }
+    if (oldStyle.icon !== newStyle.icon) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '图标',
+        oldValue: String(oldStyle.icon || '默认'),
+        newValue: String(newStyle.icon || '默认')
+      });
+    }
+    if (oldStyle.badgeColor !== newStyle.badgeColor) {
+      changes.push({
+        type: 'modify',
+        category: 'style',
+        name: '徽标色',
+        oldValue: String(oldStyle.badgeColor || '默认'),
+        newValue: String(newStyle.badgeColor || '默认')
+      });
+    }
   }
 
   private static compareFields(oldFields: FieldSchema[], newFields: FieldSchema[], changes: SchemaChange[]) {
@@ -165,7 +212,8 @@ class SchemaDiffHelper {
     });
   }
 
-  private static compareLayout(oldLayout: NodeComponentSchema[], newLayout: NodeComponentSchema[], changes: SchemaChange[]) {
+  private static compareLayout(oldLayout: NodeComponentSchema[], newLayout: NodeComponentSchema[],
+    changes: SchemaChange[]) {
     // 简化处理：只比较数量和组件类型变化
     // 如果完全一致则忽略，如果有变动简单描述
     if (oldLayout.length !== newLayout.length) {
@@ -646,7 +694,7 @@ struct ImportJsonDialog {
       const decoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
       const content = decoder.decodeToString(new Uint8Array(buffer));
       this.importJson = content;
-      
+
       if (!content || content.trim().length === 0) {
         console.warn('[ImportJsonDialog] Read empty content from file');
         this.selectedFileName += ' (空文件)';
@@ -872,12 +920,6 @@ struct DeleteConfirmDialog {
 }
 
 
-
-
-
-
-
-
 @CustomDialog
 struct VersionDiffDialog {
   controller: CustomDialogController;
@@ -923,7 +965,12 @@ struct VersionDiffDialog {
             .fontSize(10)
             .fontColor(Color.White)
             .backgroundColor(this.getCategoryColor(change.category))
-            .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+            .padding({
+              left: 4,
+              right: 4,
+              top: 2,
+              bottom: 2
+            })
             .borderRadius(4);
 
           Text(change.name)
@@ -989,7 +1036,7 @@ struct VersionDiffDialog {
           .fontSize(17)
           .fontWeight(FontWeight.Medium)
           .fontColor(ColorResource.textPrimary);
-        
+
         Blank();
 
         if (this.oldSchema && this.newSchema) {
@@ -1053,8 +1100,10 @@ struct HistoryDialog {
   schemaId: string = '';
   schemaName: string = '';
   @State history: NodeSchema[] = [];
-  onRestore: (version: number) => void = () => {};
-  onCompare: (oldVersion: NodeSchema, newVersion: NodeSchema) => void = () => {};
+  onRestore: (version: number) => void = () => {
+  };
+  onCompare: (oldVersion: NodeSchema, newVersion: NodeSchema) => void = () => {
+  };
 
   aboutToAppear() {
     this.history = NodeSchemaService.getInstance().getHistory(this.schemaId);
@@ -1099,7 +1148,7 @@ struct HistoryDialog {
                       .fontSize(16)
                       .fontWeight(FontWeight.Medium)
                       .fontColor(ColorResource.textPrimary);
-                    
+
                     if (schema.meta?.updatedAt) {
                       Text(new Date(schema.meta.updatedAt).toLocaleString())
                         .fontSize(12)
@@ -1107,7 +1156,7 @@ struct HistoryDialog {
                     }
                   }
                   .alignItems(VerticalAlign.Bottom);
-                  
+
                   if (schema.description) {
                     Text(schema.description)
                       .fontSize(12)
@@ -1180,7 +1229,8 @@ struct RenameNodeDialog {
   controller: CustomDialogController;
   oldName: string = '';
   @State newName: string = '';
-  onConfirm: (name: string) => void = () => {};
+  onConfirm: (name: string) => void = () => {
+  };
 
   aboutToAppear() {
     this.newName = this.oldName;
@@ -1721,22 +1771,28 @@ struct NodeWorkspacePage {
 
     try {
       const parsed: Object = JSON.parse(json);
-      
+
       // 处理数组情况（批量导入）
       if (Array.isArray(parsed)) {
         const parsedArray = parsed as object[];
         let successCount = 0;
         let failCount = 0;
-        
+
         parsedArray.forEach((item: object) => {
           const schema = item as NodeSchema;
           // 简单验证
           if (schema.id && schema.name && schema.style) {
             // 确保可选字段存在
-            if (!schema.fields) schema.fields = [];
-            if (!schema.layout) schema.layout = [];
-            if (!schema.rules) schema.rules = [];
-            
+            if (!schema.fields) {
+              schema.fields = [];
+            }
+            if (!schema.layout) {
+              schema.layout = [];
+            }
+            if (!schema.rules) {
+              schema.rules = [];
+            }
+
             this.schemaService.upsertSchema(schema);
             successCount++;
           } else {
@@ -1747,9 +1803,9 @@ struct NodeWorkspacePage {
         this.reloadSchemas();
         this.refreshSchemaJson();
         if (successCount > 0) {
-          this.promptAction.showToast({ 
-            message: `批量导入成功：${successCount} 个` + (failCount > 0 ? `，失败 ${failCount} 个` : ''), 
-            duration: 2000 
+          this.promptAction.showToast({
+            message: `批量导入成功：${successCount} 个` + (failCount > 0 ? `，失败 ${failCount} 个` : ''),
+            duration: 2000
           });
         } else {
           this.promptAction.showToast({ message: '导入失败：未找到有效的节点类型数据', duration: 2000 });
@@ -1767,9 +1823,15 @@ struct NodeWorkspacePage {
       }
 
       // 补充缺失的可选字段
-      if (!schema.fields) schema.fields = [];
-      if (!schema.layout) schema.layout = [];
-      if (!schema.rules) schema.rules = [];
+      if (!schema.fields) {
+        schema.fields = [];
+      }
+      if (!schema.layout) {
+        schema.layout = [];
+      }
+      if (!schema.rules) {
+        schema.rules = [];
+      }
 
       // 检查是否已存在
       const existing = this.schemas.find(s => s.id === schema.id);
@@ -2746,6 +2808,50 @@ struct NodeWorkspacePage {
                 }
                 .layoutWeight(1)
                 .alignItems(HorizontalAlign.Start);
+
+                // 更多操作菜单
+                Row() {
+                  Text('⋮')
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(ColorResource.textSecondary)
+                    .textAlign(TextAlign.Center)
+                    .width(24)
+                    .height(24);
+                }
+                .margin({ left: 4 })
+                .borderRadius(4)
+                .backgroundColor(Color.Transparent)
+                .bindMenu([
+                  {
+                    value: '编辑名称',
+                    enabled: !schema.isSystem,
+                    action: () => {
+                      this.showRenameDialog(schema);
+                    }
+                  },
+                  {
+                    value: schema.isDefault ? '已设为默认' : '设为默认',
+                    enabled: !schema.isDefault,
+                    action: () => {
+                      this.schemaService.setDefaultSchema(schema.id);
+                      this.reloadSchemas();
+                    }
+                  },
+                  {
+                    value: '版本历史',
+                    enabled: true,
+                    action: () => {
+                      this.showHistoryDialog(schema);
+                    }
+                  },
+                  {
+                    value: '当前版本: ' + (schema.isDraft ? `草稿(v${schema.version})` : `v${schema.version}`),
+                    enabled: false, // 仅展示信息
+                    action: () => {
+                    }
+                  }
+                ])
               }
               .width('100%')
               .padding({
@@ -2764,49 +2870,6 @@ struct NodeWorkspacePage {
                 this.selectedSchemaId = schema.id;
                 this.updateSelectedSchemaObject();
               });
-
-              // 更多操作菜单
-              Row() {
-                Text('⋮')
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(ColorResource.textSecondary)
-                  .textAlign(TextAlign.Center)
-                  .width(24)
-                  .height(24);
-              }
-              .margin({ left: 4 })
-              .borderRadius(4)
-              .backgroundColor(Color.Transparent)
-              .bindMenu([
-                {
-                  value: '编辑名称',
-                  enabled: !schema.isSystem,
-                  action: () => {
-                     this.showRenameDialog(schema);
-                  }
-                },
-                {
-                  value: schema.isDefault ? '已设为默认' : '设为默认',
-                  enabled: !schema.isDefault,
-                  action: () => {
-                    this.schemaService.setDefaultSchema(schema.id);
-                    this.reloadSchemas();
-                  }
-                },
-                {
-                  value: '版本历史',
-                  enabled: true,
-                  action: () => {
-                    this.showHistoryDialog(schema);
-                  }
-                },
-                {
-                  value: '当前版本: ' + (schema.isDraft ? `草稿(v${schema.version})` : `v${schema.version}`),
-                  enabled: false, // 仅展示信息
-                  action: () => {}
-                }
-              ])
             }, (schema: NodeSchema) => schema.id);
           }
         }
@@ -2824,17 +2887,35 @@ struct NodeWorkspacePage {
           .color(ColorResource.surfaceEmphasized)
           .opacity(0.3);
 
-        Button('+ 新建类型')
-          .width('100%')
-          .height(40)
-          .fontSize(ThemeConfig.fontSizeS)
-          .backgroundColor(ColorResource.primaryColor)
-          .fontColor(Color.White)
-          .borderRadius(8)
-          .onClick(() => {
-            this.createNewSchema();
-          });
+        // 第一行：新建 + 删除
+        Row({ space: 8 }) {
+          Button('+ 新建')
+            .layoutWeight(1)
+            .height(36)
+            .fontSize(ThemeConfig.fontSizeS)
+            .backgroundColor(ColorResource.primaryColor)
+            .fontColor(Color.White)
+            .borderRadius(8)
+            .onClick(() => {
+              this.createNewSchema();
+            });
 
+          Button('删除')
+            .layoutWeight(1)
+            .height(36)
+            .fontSize(ThemeConfig.fontSizeS)
+            .backgroundColor('#FF3B30')
+            .fontColor(Color.White)
+            .borderRadius(8)
+            .enabled(!!this.getSelectedSchema() && !this.isSelectedSchemaSystem())
+            .opacity((this.getSelectedSchema() && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
+            .onClick(() => {
+              this.showDeleteSchemaDialog();
+            });
+        }
+        .width('100%');
+
+        // 第二行：发布 + 存为草稿
         if (this.getSelectedSchema()) {
           Row({ space: 8 }) {
             Button('发布')
@@ -2847,24 +2928,20 @@ struct NodeWorkspacePage {
               .enabled((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem())
               .opacity(((this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
               .onClick(() => {
-                if ((this.getSelectedSchema() as NodeSchema).isDraft) {
-                  this.publishSelectedDraft();
-                }
+                this.publishSelectedDraft();
               });
 
-            Button((this.getSelectedSchema() as NodeSchema).isDraft ? '删除' : '存为草稿')
+            Button('存为草稿')
               .layoutWeight(1)
               .height(36)
               .fontSize(ThemeConfig.fontSizeS)
-              .backgroundColor((this.getSelectedSchema() as NodeSchema).isDraft ? '#FF3B30' : ColorResource.surface)
-              .fontColor((this.getSelectedSchema() as NodeSchema).isDraft ? Color.White : ColorResource.textPrimary)
+              .backgroundColor(ColorResource.surface)
+              .fontColor(ColorResource.textPrimary)
               .borderRadius(8)
+              .enabled(!(this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem())
+              .opacity((!(this.getSelectedSchema() as NodeSchema).isDraft && !this.isSelectedSchemaSystem()) ? 1 : 0.4)
               .onClick(() => {
-                if ((this.getSelectedSchema() as NodeSchema).isDraft) {
-                  this.showDeleteSchemaDialog();
-                } else {
-                  this.createDraftFromSelectedPublished();
-                }
+                this.createDraftFromSelectedPublished();
               });
           }
           .width('100%');
@@ -3088,7 +3165,7 @@ struct NodeWorkspacePage {
                     .fontSize(ThemeConfig.fontSizeS)
                     .fontColor(ColorResource.textTertiary)
                     .width(80);
-                  Text(`${(this.getSelectedSchema() as NodeSchema).style.borderRadius || 16}px`)
+                  Text(`${(this.getSelectedSchema() as NodeSchema).style.borderRadius !== undefined ? (this.getSelectedSchema() as NodeSchema).style.borderRadius : 16}px`)
                     .fontSize(ThemeConfig.fontSizeS)
                     .fontColor(ColorResource.textPrimary)
                     .fontWeight(FontWeight.Medium)
@@ -3662,7 +3739,7 @@ struct NodeWorkspacePage {
                   .fontColor(ColorResource.textTertiary)
                   .layoutWeight(1);
 
-                Text(`${(this.getSelectedSchema() as NodeSchema).style.borderRadius || 16}px`)
+                Text(`${(this.getSelectedSchema() as NodeSchema).style.borderRadius !== undefined ? (this.getSelectedSchema() as NodeSchema).style.borderRadius : 0}px`)
                   .fontSize(ThemeConfig.fontSizeS)
                   .fontColor(ColorResource.textPrimary)
                   .fontWeight(FontWeight.Medium);
@@ -3670,7 +3747,8 @@ struct NodeWorkspacePage {
               .width('100%');
 
               Slider({
-                value: (this.getSelectedSchema() as NodeSchema).style.borderRadius || 16,
+                value: (this.getSelectedSchema() as NodeSchema).style.borderRadius !== undefined ?
+                  (this.getSelectedSchema() as NodeSchema).style.borderRadius : 16,
                 min: 0,
                 max: 32,
                 step: 2,

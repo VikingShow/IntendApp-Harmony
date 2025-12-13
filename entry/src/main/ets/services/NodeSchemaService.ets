@@ -78,9 +78,8 @@ export class NodeSchemaService {
   /**
    * 初始化内置节点类型
    *
-   * 与 TaskEditor 中使用的默认节点类型保持一致：
-   * - standard：标准任务（蓝色）
-   * - milestone：里程碑（橙色）
+   * 系统内置节点类型：
+   * - standard：标准任务（蓝色）- 默认的通用任务类型
    */
   private initializeDefaultSchemas(): void {
     const now = Date.now();
@@ -88,7 +87,7 @@ export class NodeSchemaService {
       id: 'standard',
       version: 1,
       name: '标准任务',
-      description: '默认的标准任务节点，适用于常规开发任务',
+      description: '默认的标准任务节点，适用于所有常规任务',
       meta: {
         author: 'system',
         createdAt: now,
@@ -96,8 +95,8 @@ export class NodeSchemaService {
         category: 'builtin'
       },
       style: {
-        fillColor: '#007AFF',
-        criticalColor: '#FF3B30',
+        fillColor: '#409EFF',
+        criticalColor: '#D0021B',
         borderRadius: 16,
         borderWidth: 2
       },
@@ -108,32 +107,7 @@ export class NodeSchemaService {
       isDraft: false
     };
 
-    const milestone: NodeSchema = {
-      id: 'milestone',
-      version: 1,
-      name: '里程碑',
-      description: '用于标记关键里程碑和重要节点',
-      meta: {
-        author: 'system',
-        createdAt: now,
-        updatedAt: now,
-        category: 'builtin'
-      },
-      style: {
-        fillColor: '#FF9500',
-        criticalColor: '#FF2D55',
-        borderRadius: 16,
-        borderWidth: 3
-      },
-      fields: [],
-      layout: [],
-      rules: [],
-      isSystem: true,
-      isDraft: false
-    };
-
     this.publishedSchemas.set(standard.id, standard);
-    this.publishedSchemas.set(milestone.id, milestone);
   }
 
   /**

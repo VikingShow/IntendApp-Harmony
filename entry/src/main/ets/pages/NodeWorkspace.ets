@@ -1390,6 +1390,19 @@ struct HistoryDialog {
                     .fill(this.selectedPreviewSchema.style.fillColor);
                 }
 
+                // 关键色
+                if (this.selectedPreviewSchema.style.criticalColor) {
+                  Row({ space: 4 }) {
+                    Text('关键色')
+                      .fontSize(9)
+                      .fontColor(ColorResource.textTertiary);
+                    Circle()
+                      .width(10)
+                      .height(10)
+                      .fill(this.selectedPreviewSchema.style.criticalColor);
+                  }
+                }
+
                 if (this.selectedPreviewSchema.style.borderRadius !== undefined) {
                   Text(`圆角: ${this.selectedPreviewSchema.style.borderRadius}px`)
                     .fontSize(9)
@@ -1402,7 +1415,7 @@ struct HistoryDialog {
                   .fontColor(ColorResource.textTertiary);
               }
               .margin({ top: 8 })
-              .key(`info_${this.selectedPreviewSchema.version}`);
+              .key(`info_${this.selectedPreviewSchema.version}_${this.selectedPreviewSchema.style.criticalColor || 'none'}`);
             } else {
               Column() {
                 Text('点击左侧版本查看预览')
@@ -2163,8 +2176,10 @@ struct NodeWorkspacePage {
       ports: schema.ports,
       style: {
         fillColor: color.trim(),
+        criticalColor: schema.style.criticalColor,
         borderColor: schema.style.borderColor,
         borderRadius: schema.style.borderRadius,
+        borderWidth: schema.style.borderWidth,
         icon: schema.style.icon,
         badgeColor: schema.style.badgeColor
       },
@@ -2201,8 +2216,10 @@ struct NodeWorkspacePage {
       ports: schema.ports,
       style: {
         fillColor: schema.style.fillColor,
+        criticalColor: schema.style.criticalColor,
         borderColor: color.trim().length > 0 ? color.trim() : undefined,
         borderRadius: schema.style.borderRadius,
+        borderWidth: schema.style.borderWidth,
         icon: schema.style.icon,
         badgeColor: schema.style.badgeColor
       },
@@ -2241,6 +2258,7 @@ struct NodeWorkspacePage {
         criticalColor: schema.style.criticalColor,
         borderColor: schema.style.borderColor,
         borderRadius: radius,
+        borderWidth: schema.style.borderWidth,
         icon: schema.style.icon,
         badgeColor: schema.style.badgeColor
       },
@@ -2275,6 +2293,7 @@ struct NodeWorkspacePage {
         criticalColor: color.trim().length > 0 ? color.trim() : undefined,
         borderColor: schema.style.borderColor,
         borderRadius: schema.style.borderRadius,
+        borderWidth: schema.style.borderWidth,
         icon: schema.style.icon,
         badgeColor: schema.style.badgeColor
       },
@@ -2348,8 +2367,10 @@ struct NodeWorkspacePage {
       ports: schema.ports,
       style: {
         fillColor: schema.style.fillColor,
+        criticalColor: schema.style.criticalColor,
         borderColor: schema.style.borderColor,
         borderRadius: schema.style.borderRadius,
+        borderWidth: schema.style.borderWidth,
         icon: icon.trim().length > 0 ? icon.trim() : undefined,
         badgeColor: schema.style.badgeColor
       },

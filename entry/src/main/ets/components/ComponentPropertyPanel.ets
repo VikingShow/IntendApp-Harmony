@@ -4,7 +4,7 @@
  * 根据选中的组件类型显示相应的属性编辑器
  */
 
-import { NodeComponentType, NodeComponentSchema, FieldSchema, NodeStyleSchema } from '../model/NodeSchema';
+import { NodeComponentType, NodeComponentSchema, NodeComponentProps, FieldSchema, FieldType, NodeStyleSchema } from '../model/NodeSchema';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 @Component
@@ -13,6 +13,8 @@ export struct ComponentPropertyPanel {
   @Prop availableFields: FieldSchema[] = [];
   @Prop schemaStyle: NodeStyleSchema | null = null;
 
+  @State private newOptionInput: string = '';
+
   onFillColorChange?: (color: string) => void;
   onCriticalColorChange?: (color: string) => void;
   onPickFillColor?: () => void;
@@ -20,6 +22,7 @@ export struct ComponentPropertyPanel {
   onBorderColorChange?: (color: string) => void;
   onBorderRadiusChange?: (radius: number) => void;
   onPropertyChange?: (component: NodeComponentSchema) => void;
+  onFieldChange?: (field: FieldSchema) => void;
 
   private getComponentTypeLabel(type: NodeComponentType): string {
     const typeMap: Record<string, string> = {
@@ -51,6 +54,30 @@ export struct ComponentPropertyPanel {
       'CUSTOM_FIELD': '✏️'
     };
     return iconMap[type] || '📦';
+  }
+  private getReservedFieldIdForType(type: NodeComponentType): string {
+    if (type === 'PRIORITY_BADGE') return '_priority';
+    if (type === 'ASSIGNEE') return '_assignee';
+    if (type === 'TAGS') return '_tags';
+    if (type === 'STATUS_DOT') return '_status';
+    return '';
+  }
+
+  private getBoundFieldForSelectedComponent(): FieldSchema | null {
+    if (!this.selectedComponent || this.availableFields.length === 0) {
+      return null;
+    }
+
+    let fieldId: string | undefined = this.selectedComponent.fieldId;
+    if (!fieldId || fieldId.length === 0) {
+      fieldId = this.getReservedFieldIdForType(this.selectedComponent.type);
+    }
+    if (!fieldId || fieldId.length === 0) {
+      return null;
+    }
+
+    const found = this.availableFields.find((f: FieldSchema) => f.id === fieldId);
+    return found || null;
   }
 
   build() {
@@ -101,117 +128,83 @@ export struct ComponentPropertyPanel {
     Column({ space: 0 }) {
       // 样式编辑区
       if (this.schemaStyle) {
-        Column({ space: 12 }) {
-          Text('节点卡片样式')
-            .fontSize(ThemeConfig.fontSizeM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorResource.textPrimary);
-
-          // 普通节点颜色
-          Column({ space: 6 }) {
-            Row({ space: 8 }) {
-              Text('普通节点颜色')
+        Column({ space: 6 }) {
+          // 第一行：颜色配置
+          Row({ space: 12 }) {
+            // 普通颜色
+            Row({ space: 6 }) {
+              Text('普通')
                 .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .layoutWeight(1);
-
-              Button('调色盘')
-                .height(28)
-                .fontSize(ThemeConfig.fontSizeXS)
-                .backgroundColor(ColorResource.surface)
-                .fontColor(ColorResource.primaryColor)
-                .borderRadius(6)
+                .fontColor(ColorResource.textTertiary);
+              Row()
+                .width(24)
+                .height(24)
+                .backgroundColor(this.schemaStyle.fillColor || '#409EFF')
+                .borderRadius(4)
                 .onClick(() => {
                   if (this.onPickFillColor) {
                     this.onPickFillColor();
                   }
                 });
+              TextInput({ text: this.schemaStyle.fillColor, placeholder: '#hex' })
+                .width(70)
+                .height(26)
+                .fontSize(10)
+                .backgroundColor(ColorResource.backgroundInput)
+                .borderRadius(4)
+                .padding({ left: 6, right: 6 })
+                .onChange((value: string) => {
+                  if (this.onFillColorChange) {
+                    this.onFillColorChange(value);
+                  }
+                });
             }
-            .width('100%');
 
-            TextInput({
-              text: this.schemaStyle.fillColor,
-              placeholder: '支持 #RRGGBB / rgb(r,g,b)'
-            })
-              .width('100%')
-              .height(40)
-              .fontSize(ThemeConfig.fontSizeM)
-              .backgroundColor(ColorResource.backgroundInput)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .padding({ left: 12, right: 12 })
-              .onChange((value: string) => {
-                if (this.onFillColorChange) {
-                  this.onFillColorChange(value);
-                }
-              });
-          }
-          .width('100%')
-          .alignItems(HorizontalAlign.Start);
-
-          // 关键节点颜色
-          Column({ space: 6 }) {
-            Row({ space: 8 }) {
-              Text('关键节点颜色')
+            // 关键颜色
+            Row({ space: 6 }) {
+              Text('关键')
                 .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .layoutWeight(1);
-
-              Button('调色盘')
-                .height(28)
-                .fontSize(ThemeConfig.fontSizeXS)
-                .backgroundColor(ColorResource.surface)
-                .fontColor(ColorResource.primaryColor)
-                .borderRadius(6)
+                .fontColor(ColorResource.textTertiary);
+              Row()
+                .width(24)
+                .height(24)
+                .backgroundColor(this.schemaStyle.criticalColor || '#D0021B')
+                .borderRadius(4)
                 .onClick(() => {
                   if (this.onPickCriticalColor) {
                     this.onPickCriticalColor();
                   }
                 });
+              TextInput({ text: this.schemaStyle.criticalColor || '', placeholder: '#hex' })
+                .width(70)
+                .height(26)
+                .fontSize(10)
+                .backgroundColor(ColorResource.backgroundInput)
+                .borderRadius(4)
+                .padding({ left: 6, right: 6 })
+                .onChange((value: string) => {
+                  if (this.onCriticalColorChange) {
+                    this.onCriticalColorChange(value);
+                  }
+                });
             }
-            .width('100%');
-
-            TextInput({
-              text: this.schemaStyle.criticalColor ? (this.schemaStyle.criticalColor as string) : '',
-              placeholder: '留空=默认（支持 # / rgb）'
-            })
-              .width('100%')
-              .height(40)
-              .fontSize(ThemeConfig.fontSizeM)
-              .backgroundColor(ColorResource.backgroundInput)
-              .borderRadius(ThemeConfig.radiusMedium)
-              .padding({ left: 12, right: 12 })
-              .onChange((value: string) => {
-                if (this.onCriticalColorChange) {
-                  this.onCriticalColorChange(value);
-                }
-              });
           }
-          .width('100%')
-          .alignItems(HorizontalAlign.Start);
+          .width('100%');
 
-          // 圆角
-          Column({ space: 6 }) {
-            Row({ space: 8 }) {
-              Text('圆角')
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .layoutWeight(1);
-
-              Text(`${this.schemaStyle.borderRadius || 16}px`)
-                .fontSize(ThemeConfig.fontSizeS)
-                .fontColor(ColorResource.textPrimary)
-                .fontWeight(FontWeight.Medium);
-            }
-            .width('100%');
-
+          // 第二行：圆角
+          Row({ space: 8 }) {
+            Text(`圆角 ${this.schemaStyle.borderRadius || 16}px`)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.textTertiary)
+              .width(60);
             Slider({
               value: this.schemaStyle.borderRadius || 16,
               min: 0,
-              max: 32,
+              max: 64,
               step: 2,
               style: SliderStyle.InSet
             })
-              .width('100%')
+              .layoutWeight(1)
               .trackColor(ColorResource.backgroundSecondary)
               .selectedColor(ColorResource.primaryColor)
               .onChange((value: number) => {
@@ -220,14 +213,13 @@ export struct ComponentPropertyPanel {
                 }
               });
           }
-          .width('100%')
-          .alignItems(HorizontalAlign.Start);
+          .width('100%');
         }
         .width('100%')
-        .padding(16)
+        .padding(10)
         .backgroundColor(ColorResource.surface)
-        .borderRadius(12)
-        .margin({ left: 16, right: 16, top: 12, bottom: 12 });
+        .borderRadius(8)
+        .margin({ left: 16, right: 16, top: 6, bottom: 6 });
       }
 
       Divider()
@@ -480,14 +472,48 @@ export struct ComponentPropertyPanel {
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start);
+
+          // 对 TAGS 组件增加标签预选值配置
+          if (this.selectedComponent.type === 'TAGS') {
+            this.OptionsListEditor('_tags', '标签预选值', '输入新标签');
+            this.StyleSelector(['标签', '文字'], ['tag', 'text']);
+          }
+
+        } else if (this.selectedComponent.type === 'PRIORITY_BADGE') {
+          // 优先级组件配置
+          this.OptionsListEditor('_priority', '优先级选项', '输入新选项');
+          this.StyleSelector(['徽章', '文字', '图标'], ['badge', 'text', 'icon']);
+
+        } else if (this.selectedComponent.type === 'STATUS_DOT') {
+          // 状态点组件配置
+          this.OptionsListEditor('_status', '状态选项', '输入新状态');
+          this.StyleSelector(['圆点', '标签'], ['dot', 'label']);
+
+          // 状态颜色说明
+          Column({ space: 4 }) {
+            Text('状态颜色参考')
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.textTertiary);
+
+            Row({ space: 6 }) {
+              this.ColorDot('#52C41A', '完成');
+              this.ColorDot('#1890FF', '进行');
+              this.ColorDot('#FAAD14', '阻塞');
+              this.ColorDot('#D9D9D9', '未始');
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .margin({ top: 8 });
+
         } else {
-          // 其他组件的通用配置
+          // 其他组件（如日期范围、进度条等）自动配置
           Column({ space: 8 }) {
-            Text('该组件暂无特殊配置项')
+            Text('自动配置')
               .fontSize(ThemeConfig.fontSizeS)
               .fontColor(ColorResource.textTertiary);
 
-            Text('组件将使用默认样式渲染')
+            Text('该组件根据任务数据自动渲染，无需额外配置')
               .fontSize(ThemeConfig.fontSizeXS)
               .fontColor(ColorResource.textSecondary)
               .lineHeight(16);
@@ -525,5 +551,239 @@ export struct ComponentPropertyPanel {
       'CUSTOM_FIELD': '显示自定义字段的值，需要先在字段管理中创建字段并绑定。'
     };
     return descriptions[type] || '该组件的详细说明暂未提供。';
+  }
+
+  private getFieldOptionsArray(fieldId: string): string[] {
+    const field = this.availableFields.find((f: FieldSchema) => f.id === fieldId);
+    if (field && field.options && field.options.length > 0) {
+      return field.options as string[];
+    }
+    return [];
+  }
+
+  private getFieldLabelForId(fieldId: string): string {
+    const labelMap: Record<string, string> = {
+      '_priority': '优先级',
+      '_status': '状态',
+      '_tags': '标签',
+      '_assignee': '负责人'
+    };
+    return labelMap[fieldId] || fieldId;
+  }
+
+  private getFieldTypeForId(fieldId: string): FieldType {
+    if (fieldId === '_priority') return 'select';
+    if (fieldId === '_status') return 'select';
+    if (fieldId === '_tags') return 'checklist';
+    if (fieldId === '_assignee') return 'text';
+    return 'text';
+  }
+
+  private isStyleSelected(value: string, index: number): boolean {
+    const currentStyle = this.selectedComponent?.props?.style;
+    return currentStyle === value || (index === 0 && !currentStyle);
+  }
+
+  private addFieldOption(fieldId: string, newOption: string): void {
+    if (!this.onFieldChange) {
+      console.error('ComponentPropertyPanel: onFieldChange callback not set');
+      return;
+    }
+    if (!newOption || !newOption.trim()) {
+      return;
+    }
+    const trimmedOption = newOption.trim();
+
+    // 查找现有字段，如果不存在则创建新的
+    let field = this.availableFields.find((f: FieldSchema) => f.id === fieldId);
+    let currentOptions: string[] = [];
+
+    if (field && field.options) {
+      currentOptions = field.options as string[];
+    }
+
+    // 检查是否已存在
+    if (currentOptions.includes(trimmedOption)) {
+      return;
+    }
+
+    const newOptions = [...currentOptions, trimmedOption];
+    const updatedField: FieldSchema = {
+      id: fieldId,
+      label: field?.label || this.getFieldLabelForId(fieldId),
+      type: field?.type || this.getFieldTypeForId(fieldId),
+      required: field?.required || false,
+      defaultValue: field?.defaultValue,
+      options: newOptions
+    };
+
+    this.onFieldChange(updatedField);
+    this.newOptionInput = '';
+  }
+
+  private removeFieldOption(fieldId: string, optionToRemove: string): void {
+    if (!this.onFieldChange) {
+      console.error('ComponentPropertyPanel: onFieldChange callback not set');
+      return;
+    }
+
+    const field = this.availableFields.find((f: FieldSchema) => f.id === fieldId);
+    let currentOptions: string[] = [];
+
+    if (field && field.options) {
+      currentOptions = field.options as string[];
+    }
+
+    const newOptions = currentOptions.filter((opt: string) => opt !== optionToRemove);
+    const updatedField: FieldSchema = {
+      id: fieldId,
+      label: field?.label || this.getFieldLabelForId(fieldId),
+      type: field?.type || this.getFieldTypeForId(fieldId),
+      required: field?.required || false,
+      defaultValue: field?.defaultValue,
+      options: newOptions.length > 0 ? newOptions : undefined
+    };
+
+    this.onFieldChange(updatedField);
+  }
+
+  private updateComponentStyle(style: string): void {
+    if (!this.selectedComponent) {
+      console.error('ComponentPropertyPanel: selectedComponent is null');
+      return;
+    }
+    if (!this.onPropertyChange) {
+      console.error('ComponentPropertyPanel: onPropertyChange callback not set');
+      return;
+    }
+    const newProps: NodeComponentProps = {
+      style: style,
+      maxLines: this.selectedComponent.props?.maxLines,
+      highlight: this.selectedComponent.props?.highlight,
+      color: this.selectedComponent.props?.color
+    };
+    const updated: NodeComponentSchema = {
+      id: this.selectedComponent.id,
+      type: this.selectedComponent.type,
+      fieldId: this.selectedComponent.fieldId,
+      props: newProps
+    };
+    this.onPropertyChange(updated);
+  }
+
+  @Builder
+  StyleOptionBtn(label: string, value: string, isSelected: boolean) {
+    Text(label)
+      .fontSize(ThemeConfig.fontSizeS)
+      .fontColor(isSelected ? Color.White : ColorResource.textSecondary)
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .backgroundColor(isSelected ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+      .borderRadius(6)
+      .onClick(() => {
+        this.updateComponentStyle(value);
+      });
+  }
+
+  @Builder
+  ColorDot(color: string, label: string) {
+    Row({ space: 4 }) {
+      Circle()
+        .width(10)
+        .height(10)
+        .fill(color);
+      Text(label)
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(ColorResource.textTertiary);
+    }
+  }
+
+  // 通用选项列表编辑器
+  @Builder
+  OptionsListEditor(fieldId: string, title: string, placeholder: string) {
+    Column({ space: 8 }) {
+      Text(title)
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textTertiary);
+
+      // 选项列表
+      ForEach(this.getFieldOptionsArray(fieldId), (option: string, index: number) => {
+        Row({ space: 8 }) {
+          Text(option)
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontColor(ColorResource.textPrimary)
+            .layoutWeight(1);
+
+          Text('×')
+            .fontSize(16)
+            .fontColor(ColorResource.textTertiary)
+            .width(24)
+            .height(24)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .borderRadius(12)
+            .onClick(() => {
+              this.removeFieldOption(fieldId, option);
+            });
+        }
+        .width('100%')
+        .padding(8)
+        .backgroundColor(ColorResource.backgroundSecondary)
+        .borderRadius(6);
+      }, (option: string, index: number) => `${fieldId}_${index}_${option}`);
+
+      // 新增选项
+      Row({ space: 8 }) {
+        TextInput({ text: this.newOptionInput, placeholder: placeholder })
+          .layoutWeight(1)
+          .height(32)
+          .fontSize(ThemeConfig.fontSizeS)
+          .backgroundColor(ColorResource.backgroundInput)
+          .borderRadius(6)
+          .padding({ left: 10, right: 10 })
+          .onChange((value: string) => {
+            this.newOptionInput = value;
+          });
+
+        Button('添加')
+          .height(32)
+          .fontSize(ThemeConfig.fontSizeXS)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor(Color.White)
+          .borderRadius(6)
+          .onClick(() => {
+            this.addFieldOption(fieldId, this.newOptionInput);
+          });
+      }
+      .width('100%');
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  // 通用样式选择器
+  @Builder
+  StyleSelector(labels: string[], values: string[]) {
+    Column({ space: 6 }) {
+      Text('显示样式')
+        .fontSize(ThemeConfig.fontSizeS)
+        .fontColor(ColorResource.textTertiary);
+
+      Row({ space: 8 }) {
+        ForEach(labels, (label: string, index: number) => {
+          Text(label)
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontColor(this.isStyleSelected(values[index], index) ? Color.White : ColorResource.textSecondary)
+            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+            .backgroundColor(this.isStyleSelected(values[index], index) ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+            .borderRadius(6)
+            .onClick(() => {
+              this.updateComponentStyle(values[index]);
+            });
+        }, (label: string, index: number) => `style_${index}_${label}`);
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .margin({ top: 8 });
   }
 }

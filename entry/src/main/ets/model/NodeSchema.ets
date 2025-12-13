@@ -117,6 +117,8 @@ export interface NodeComponentProps {
   maxLines?: number;
   highlight?: boolean;
   color?: string;
+  /** 显示样式（如 badge/text/icon/dot/label/tag） */
+  style?: string;
 }
 
 /**

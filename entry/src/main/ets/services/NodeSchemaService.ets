@@ -114,6 +114,19 @@ export class NodeSchemaService {
           type: 'select',
           required: false,
           options: ['未开始', '进行中', '阻塞', '已完成']
+        },
+        {
+          id: '_tags',
+          label: '标签',
+          type: 'checklist',
+          required: false,
+          options: ['前端', '后端', '设计', '测试', '文档']
+        },
+        {
+          id: '_assignee',
+          label: '负责人',
+          type: 'text',
+          required: false
         }
       ],
       layout: [

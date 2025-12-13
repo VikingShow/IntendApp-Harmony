@@ -2468,7 +2468,16 @@ struct NodeWorkspacePage {
       return;
     }
 
-    const updatedFields = schema.fields.map(f => f.id === fieldId ? updatedField : f);
+    // 检查字段是否已存在
+    const existingIndex = schema.fields.findIndex(f => f.id === fieldId);
+    let updatedFields: FieldSchema[];
+    if (existingIndex >= 0) {
+      // 更新现有字段
+      updatedFields = schema.fields.map(f => f.id === fieldId ? updatedField : f);
+    } else {
+      // 添加新字段
+      updatedFields = [...schema.fields, updatedField];
+    }
     const updated: NodeSchema = {
       id: schema.id,
       version: schema.version,
@@ -4288,6 +4297,46 @@ struct NodeWorkspacePage {
                       .width('100%')
                       .alignItems(HorizontalAlign.Start);
                     }
+
+                    // 选项列表（用于 select / checklist 预设）
+                    if (field.type === 'select' || field.type === 'checklist') {
+                      Column({ space: 6 }) {
+                        Text('选项列表')
+                          .fontSize(ThemeConfig.fontSizeXS)
+                          .fontColor(ColorResource.textTertiary);
+
+                        TextInput({
+                          text: field.options && field.options.length > 0
+                            ? field.options.join(', ')
+                            : '',
+                          placeholder: field.type === 'select'
+                            ? '用逗号分隔，例如：未开始, 进行中, 阻塞, 已完成'
+                            : '用逗号分隔，例如：前端, 后端, 设计'
+                        })
+                          .width('100%')
+                          .height(36)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .backgroundColor(ColorResource.backgroundInput)
+                          .borderRadius(6)
+                          .padding({ left: 10, right: 10 })
+                          .onChange((value: string) => {
+                            const options = value.split(',')
+                              .map(v => v.trim())
+                              .filter(v => v.length > 0);
+                            const updated: FieldSchema = {
+                              id: field.id,
+                              label: field.label,
+                              type: field.type,
+                              required: field.required,
+                              defaultValue: field.defaultValue,
+                              options: options.length > 0 ? options : undefined
+                            };
+                            this.updateFieldInSelectedSchema(field.id, updated);
+                          });
+                      }
+                      .width('100%')
+                      .alignItems(HorizontalAlign.Start);
+                    }
                   }
                   .width('100%')
                   .padding(14)
@@ -4923,6 +4972,10 @@ struct NodeWorkspacePage {
               },
               onPropertyChange: (component: NodeComponentSchema) => {
                 this.handleComponentPropertyChange(component);
+              },
+              onFieldChange: (field: FieldSchema) => {
+                // 使用已有的字段更新方法，把 options 等保存回当前 schema
+                this.updateFieldInSelectedSchema(field.id, field);
               }
             });
           }
@@ -5028,6 +5081,9 @@ struct NodeWorkspacePage {
                     },
                     onPropertyChange: (component: NodeComponentSchema) => {
                       this.handleComponentPropertyChange(component);
+                    },
+                    onFieldChange: (field: FieldSchema) => {
+                      this.updateFieldInSelectedSchema(field.id, field);
                     }
                   });
                 }

@@ -845,19 +845,19 @@ export class CanvasRenderer {
               const badgeH = 12;
               const badgeText = priorityText.substring(0, 1);
               const badgeW = this.context.measureText(badgeText).width + badgePadX * 2;
-              const badgeY = cursorY + (LINE_HEIGHT - badgeH) / 2; // 垂直居中
+              const badgeY = cursorY + (LINE_HEIGHT - badgeH) / 2 ; // 垂直居中，向上微调
               // 绘制徽章背景
               this.context.fillStyle = '#FF3B30';
-              this.drawRoundRect(this.context, leftX, badgeY, badgeW, badgeH, 3);
+              this.drawRoundRect(this.context, leftX-2, badgeY, badgeW, badgeH, 3);
               this.context.fill();
               // 绘制徽章文字（垂直居中）
               this.context.fillStyle = '#FFFFFF';
               this.context.font = `22px HarmonyOS Sans`;
-              this.context.fillText(badgeText, leftX + badgePadX, badgeY - 2);
+              this.context.fillText(badgeText, leftX + badgePadX-3, badgeY );
               // 绘制优先级文字
               this.context.fillStyle = '#FF3B30';
               this.context.font = `22px HarmonyOS Sans`;
-              this.context.fillText(priorityText, leftX + badgeW + 5, badgeY - 2);
+              this.context.fillText(priorityText, leftX + badgeW + 5, badgeY );
               cursorY += LINE_HEIGHT;
             }
             return;
@@ -888,7 +888,7 @@ export class CanvasRenderer {
               this.context.fillStyle = '#67C23A';
               this.context.fill();
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-              this.context.fillText(statusText, leftX + 14, cursorY);
+              this.context.fillText(statusText, leftX + 14, cursorY+4);
               cursorY += LINE_HEIGHT;
             }
             return;
@@ -898,7 +898,7 @@ export class CanvasRenderer {
             const assigneeText = v && v.length > 0 ? v : '负责人';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY);
+            this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY+3);
             cursorY += LINE_HEIGHT;
             return;
           }
@@ -914,7 +914,7 @@ export class CanvasRenderer {
             const chipPaddingX = 5;
             const chipHeight = 12;
             const chipRadius = 3;
-            const chipY = cursorY + (LINE_HEIGHT - chipHeight) / 2; // 垂直居中
+            const chipY = cursorY + (LINE_HEIGHT - chipHeight) / 2 - 2; // 垂直居中，向上微调
 
             // 绘制标签图标
             this.context.font = `24px HarmonyOS Sans`;
@@ -943,7 +943,7 @@ export class CanvasRenderer {
 
               // 文本（垂直居中）
               this.context.fillStyle = index === 1 ? '#FF3B30' : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor);
-              this.context.fillText(tag, chipX + chipPaddingX, chipY - 2);
+              this.context.fillText(tag, chipX + chipPaddingX, chipY );
 
               chipX += chipWidth + 4;
             });

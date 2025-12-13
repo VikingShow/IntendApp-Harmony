@@ -4769,28 +4769,24 @@ struct NodeWorkspacePage {
             .layoutWeight(1);
 
           Row({ space: 8 }) {
-            Button('重置')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.backgroundSecondary)
-              .fontColor(ColorResource.textSecondary)
-              .borderRadius(8)
-              .onClick(() => {
-                this.resetLayout();
-              });
+            Stack({ alignContent: Alignment.TopEnd }) {
+              Button('自定义组件')
+                .fontSize(ThemeConfig.fontSizeS)
+                .height(36)
+                .backgroundColor(ColorResource.backgroundSecondary)
+                .fontColor(ColorResource.textTertiary)
+                .borderRadius(8)
+                .enabled(false);
 
-            Button('自定义组件')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.surface)
-              .fontColor(ColorResource.primaryColor)
-              .borderRadius(8)
-              .onClick(() => {
-                this.getUIContext().getRouter().pushUrl({
-                  url: 'pages/CustomComponentDesigner',
-                  params: { schemaId: this.selectedSchemaId }
-                } as router.RouterOptions);
-              });
+              Text('即将推出')
+                .fontSize(10)
+                .fontColor(ColorResource.textTertiary)
+                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                .backgroundColor(ColorResource.surface)
+                .borderRadius(10)
+                .opacity(0.9)
+                .margin({ top: -8, right: -6 });
+            }
 
             Button('保存')
               .fontSize(ThemeConfig.fontSizeS)

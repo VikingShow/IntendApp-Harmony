@@ -715,21 +715,27 @@ export class CanvasRenderer {
 
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
         this.context.font = `22px HarmonyOS Sans`;
-        const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
+        // 紧凑日期格式：月/日 ~ 月/日 (天数)
+        const startM = task.startDate.getMonth() + 1;
+        const startD = task.startDate.getDate();
+        const endM = task.endDate.getMonth() + 1;
+        const endD = task.endDate.getDate();
+        const dateString = `📅 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
         this.context.fillText(dateString, leftX, cursorY);
         cursorY += 18;
 
         const timeProgress = this.getTimeProgress(task);
+        this.context.font = `20px HarmonyOS Sans`;
         this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-        cursorY += 5;
-        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, timeProgress, ThemeConfig.taskNormal.toString());
-        cursorY += 18;
+        cursorY += 4;
+        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
+        cursorY += 16;
 
         const completionProgress = this.getCompletionProgress(task);
         this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-        cursorY += 5;
-        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, completionProgress, ThemeConfig.taskProgress.toString());
-        cursorY += 18;
+        cursorY += 4;
+        this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
+        cursorY += 16;
       } else {
         layout.forEach((comp: NodeComponentSchema) => {
           const t: string = comp && comp.type ? String(comp.type) : '';
@@ -745,7 +751,12 @@ export class CanvasRenderer {
           if (t === 'DATE_RANGE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            const dateString = `${task.startDate.toLocaleDateString()} ~ ${task.endDate.toLocaleDateString()} (${this.getDuration(task)}天)`;
+            // 紧凑日期格式：月/日 ~ 月/日 (天数)
+            const startM = task.startDate.getMonth() + 1;
+            const startD = task.startDate.getDate();
+            const endM = task.endDate.getMonth() + 1;
+            const endD = task.endDate.getDate();
+            const dateString = `📅 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
             this.context.fillText(dateString, leftX, cursorY);
             cursorY += 18;
             return;
@@ -764,21 +775,21 @@ export class CanvasRenderer {
           if (t === 'TIME_PROGRESS') {
             const timeProgress = this.getTimeProgress(task);
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `20px HarmonyOS Sans`;
             this.context.fillText(`时间: ${timeProgress}%`, leftX, cursorY);
-            cursorY += 5;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, timeProgress, ThemeConfig.taskNormal.toString());
-            cursorY += 18;
+            cursorY += 4;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, timeProgress, '#409EFF');
+            cursorY += 16;
             return;
           }
           if (t === 'TASK_PROGRESS') {
             const completionProgress = this.getCompletionProgress(task);
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.font = `22px HarmonyOS Sans`;
+            this.context.font = `20px HarmonyOS Sans`;
             this.context.fillText(`完成: ${completionProgress}%`, leftX, cursorY);
-            cursorY += 5;
-            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 5, completionProgress, ThemeConfig.taskProgress.toString());
-            cursorY += 18;
+            cursorY += 4;
+            this.drawProgressBar(leftX, cursorY, NODE_WIDTH - 30, 6, completionProgress, '#67C23A');
+            cursorY += 16;
             return;
           }
           if (t === 'PRIORITY_BADGE') {

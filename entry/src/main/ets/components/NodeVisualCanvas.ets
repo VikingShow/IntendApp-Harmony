@@ -186,7 +186,7 @@ export struct NodeVisualCanvas {
           .margin({ bottom: 12 });
 
           // 真实节点卡片（可拖拽编辑）
-          Column({ space: 8 }) {
+          Column({ space: 0 }) {
             if (this.schema !== null && this.schema.layout.length === 0) {
               // 空状态
               Column({ space: 12 }) {
@@ -255,13 +255,13 @@ export struct NodeVisualCanvas {
                   // 上方拖放区（每个组件之间）
                   Row()
                     .width('100%')
-                    .height(this.dragOverIndex === index && this.isDragOver ? 32 : 8)
+                    .height(this.dragOverIndex === index && this.isDragOver ? 24 : 2)
                     .border({
                       width: 2,
                       color: ColorResource.primaryColor,
                       style: BorderStyle.Dashed
                     })
-                    .borderRadius(6)
+                    .borderRadius(4)
                     .opacity(this.dragOverIndex === index && this.isDragOver ? 0.5 : 0)
                     .onDragEnter(() => {
                       this.isDragOver = true;
@@ -335,13 +335,13 @@ export struct NodeVisualCanvas {
                   if (this.schema && index === this.schema.layout.length - 1) {
                     Row()
                       .width('100%')
-                      .height(this.dragOverIndex === index + 1 && this.isDragOver ? 32 : 8)
+                      .height(this.dragOverIndex === index + 1 && this.isDragOver ? 24 : 2)
                       .border({
                         width: 2,
                         color: ColorResource.primaryColor,
                         style: BorderStyle.Dashed
                       })
-                      .borderRadius(6)
+                      .borderRadius(4)
                       .opacity(this.dragOverIndex === index + 1 && this.isDragOver ? 0.5 : 0)
                       .onDragEnter(() => {
                         this.isDragOver = true;
@@ -445,7 +445,7 @@ export struct NodeVisualCanvas {
         .justifyContent(FlexAlign.Center);
 
         // 真实效果预览卡片（只读，无拖拽）
-        Column({ space: 8 }) {
+        Column({ space: 0 }) {
           if (this.schema !== null && this.schema.layout.length === 0) {
             Column({ space: 8 }) {
               Text('暂无组件')

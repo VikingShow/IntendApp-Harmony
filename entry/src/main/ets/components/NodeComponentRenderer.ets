@@ -115,12 +115,12 @@ export struct NodeComponentPreview {
         this.renderComponentContent();
       }
       .width('100%')
-      .padding(10)
-      .backgroundColor(ColorResource.surface)
-      .borderRadius(6)
+      .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+      .backgroundColor(this.isSelected ? 'rgba(0, 122, 255, 0.08)' : Color.Transparent)
+      .borderRadius(4)
       .border({
-        width: this.isSelected ? 2 : 1,
-        color: this.isSelected ? ColorResource.primaryColor : ColorResource.surfaceEmphasized
+        width: this.isSelected ? 1 : 0,
+        color: this.isSelected ? ColorResource.primaryColor : Color.Transparent
       })
       .onClick(() => {
         if (this.handleClick) {
@@ -143,15 +143,15 @@ export struct NodeComponentPreview {
       if (this.isSelected && this.handleDelete) {
         Button() {
           Text('×')
-            .fontSize(18)
+            .fontSize(14)
             .fontColor(Color.White);
         }
-        .width(24)
-        .height(24)
+        .width(18)
+        .height(18)
         .padding(0)
         .backgroundColor('#FF3B30')
-        .borderRadius(12)
-        .margin({ top: -8, right: -8 })
+        .borderRadius(9)
+        .margin({ top: -6, right: -6 })
         .onClick(() => {
           if (this.handleDelete) {
             this.handleDelete();

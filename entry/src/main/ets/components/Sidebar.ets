@@ -34,6 +34,8 @@
 import { Project, TaskNode, ChecklistItem } from '../model/ProjectData';
 import { TaskEditor } from './TaskEditor';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { NodeSchema } from '../model/NodeSchema';
+import { NodeSchemaService } from '../services/NodeSchemaService';
 import { ResponsiveColorConfig } from '../utils/ResponsiveColorConfig';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PromptAction } from '@kit.ArkUI';
@@ -89,8 +91,53 @@ export struct Sidebar {
   @State private lastEditedTaskId: string | null = null; // 记录最后编辑的任务ID，用于显示Tab标题
   @State private editorRefreshKey: number = 0; // 用于强制刷新TaskEditor
 
+  @State private showProjectSettingsDialog: boolean = false;
+  @State private tempProjectDefaultTypeId: string = '';
+
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
+
+  private getProjectDefaultTypeId(): string {
+    if (this.project && this.project.defaultNodeTypeId && this.project.defaultNodeTypeId.length > 0) {
+      return this.project.defaultNodeTypeId;
+    }
+    const schemaService = NodeSchemaService.getInstance();
+    return schemaService.getDefaultSchemaId();
+  }
+
+  private getAvailableNodeSchemas(): NodeSchema[] {
+    const schemaService = NodeSchemaService.getInstance();
+    const schemas = schemaService.getAllSchemas();
+    if (schemas && schemas.length > 0) {
+      return schemas;
+    }
+    return [];
+  }
+
+  private getSchemaNameById(typeId: string): string {
+    const schemaService = NodeSchemaService.getInstance();
+    const schema = schemaService.getSchemaById(typeId);
+    return schema ? schema.name : typeId;
+  }
+
+  private openProjectSettingsDialog(): void {
+    if (!this.project) {
+      return;
+    }
+    this.tempProjectDefaultTypeId = this.getProjectDefaultTypeId();
+    this.showProjectSettingsDialog = true;
+  }
+
+  private saveProjectSettings(): void {
+    if (!this.project) {
+      return;
+    }
+    // 写入项目默认节点类型（项目优先级高于全局默认）
+    this.project.defaultNodeTypeId = this.tempProjectDefaultTypeId;
+    this.showProjectSettingsDialog = false;
+    this.onSave();
+    this.promptAction.showToast({ message: '项目设置已保存' });
+  }
   
   /**
    * 获取当前应该显示的Tab索引
@@ -947,7 +994,7 @@ export struct Sidebar {
     if (this.project) {
       Column({ space: 16 }) {
         // --- 顶部操作栏 ---
-        Row({space: 16}) {
+        Row({space: 6}) {
           // 返回主页按钮 - 现代化设计
           Button() {
             Text('←')
@@ -955,13 +1002,13 @@ export struct Sidebar {
               .fontColor(ColorResource.surfaceBold)
               .fontWeight(ThemeConfig.fontWeightBold)
           }
-          .width(52)
-          .height(52)
+          .width(44)
+          .height(44)
           .type(ButtonType.Circle)
           .backgroundColor(ColorResource.surfaceLight)
-          .borderRadius(26)
+          .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
-          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 26 })
+          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 22 })
           .onClick(() => { this.onBack() })
 
           // 新建任务按钮（仅编辑页显示）- 现代化设计
@@ -972,51 +1019,159 @@ export struct Sidebar {
                 .fontColor(Color.White)
                 .fontWeight(ThemeConfig.fontWeightBold)
             }
-            .width(52)
-            .height(52)
+            .width(44)
+            .height(44)
             .backgroundColor(ColorResource.successColor)
-            .borderRadius(26)
+            .borderRadius(22)
             .shadow(ThemeConfig.shadowMedium)
-            .border({ width: 2, color: ColorResource.successLight, radius: 26 })
+            .border({ width: 2, color: ColorResource.successLight, radius: 22 })
             .onClick(() => { this.onAddTask() })
-            .margin({ left: 12 })
+            .margin({ left: 4 })
           }
 
           // 保存项目按钮 - 现代化设计
           Button({ type: ButtonType.Circle }) {
             Text('💾')
-              .fontSize(ThemeConfig.fontSizeL)
+              .fontSize(ThemeConfig.fontSizeM)
               .fontColor(Color.White)
           }
-          .width(52)
-          .height(52)
+          .width(44)
+          .height(44)
           .backgroundColor(ColorResource.primaryColor)
-          .borderRadius(26)
+          .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
-          .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 26 })
+          .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 22 })
           .onClick(() => { this.onSave() })
-          .margin({ left: 12 })
+          .margin({ left: 4 })
           
           // 导出按钮 - 使用 bindMenu 实现下拉菜单
           Button({ type: ButtonType.Circle }) {
             Text('📤')
-              .fontSize(ThemeConfig.fontSizeL)
+              .fontSize(ThemeConfig.fontSizeM)
               .fontColor(Color.White)
           }
-          .width(52)
-          .height(52)
+          .width(44)
+          .height(44)
           .backgroundColor(ColorResource.successColor)
-          .borderRadius(26)
+          .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
-          .border({ width: 2, color: ColorResource.successLight, radius: 26 })
-          .margin({ left: 12 })
+          .border({ width: 2, color: ColorResource.successLight, radius: 22 })
+          .margin({ left: 4 })
           .bindMenu(this.ExportMenu())
+
+          // 项目设置按钮（紧挨导出按钮）
+          Button({ type: ButtonType.Circle }) {
+            Text('⚙️')
+              .fontSize(ThemeConfig.fontSizeM)
+              .fontColor(Color.White)
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor(ColorResource.surfaceEmphasized)
+          .borderRadius(22)
+          .shadow(ThemeConfig.shadowMedium)
+          .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 22 })
+          .margin({ left: 4 })
+          .onClick(() => {
+            this.openProjectSettingsDialog();
+          })
 
           // 占位拉伸
           Blank().layoutWeight(1)
         }
         .width('100%')
         .margin({ bottom: 16 })
+
+        if (this.showProjectSettingsDialog) {
+          Column({ space: 12 }) {
+            Text('项目设置')
+              .fontSize(ThemeConfig.fontSizeL)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorResource.textPrimary);
+
+            Column({ space: 8 }) {
+              Text('默认节点类型')
+                .fontSize(ThemeConfig.fontSizeS)
+                .fontColor(ColorResource.textSecondary);
+
+              Text(`当前: ${this.getSchemaNameById(this.tempProjectDefaultTypeId)}`)
+                .fontSize(ThemeConfig.fontSizeS)
+                .fontColor(ColorResource.textTertiary);
+
+              Column({ space: 6 }) {
+                ForEach(this.getAvailableNodeSchemas(), (schema: NodeSchema) => {
+                  Row({ space: 8 }) {
+                    Radio({ value: schema.id, group: 'projectDefaultType' })
+                      .checked(this.tempProjectDefaultTypeId === schema.id)
+                      .onChange((checked: boolean) => {
+                        if (checked) {
+                          this.tempProjectDefaultTypeId = schema.id;
+                        }
+                      });
+
+                    Column({ space: 2 }) {
+                      Row({ space: 6 }) {
+                        Text(schema.name)
+                          .fontSize(ThemeConfig.fontSizeS)
+                          .fontColor(ColorResource.textPrimary);
+                        if (schema.isDefault) {
+                          Text('全局默认')
+                            .fontSize(ThemeConfig.fontSizeXS)
+                            .fontColor(ColorResource.primaryColor);
+                        }
+                      }
+                      Text(schema.id)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.textTertiary);
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1);
+                  }
+                  .width('100%')
+                  .padding(10)
+                  .backgroundColor(this.tempProjectDefaultTypeId === schema.id ? ColorResource.backgroundSecondary : Color.Transparent)
+                  .borderRadius(8);
+                }, (schema: NodeSchema) => schema.id);
+              }
+              .width('100%');
+            }
+            .width('100%')
+            .padding(14)
+            .backgroundColor(ColorResource.surface)
+            .borderRadius(12)
+            .shadow(ThemeConfig.shadowSmall);
+
+            Row({ space: 12 }) {
+              Button('取消')
+                .layoutWeight(1)
+                .height(40)
+                .fontSize(ThemeConfig.fontSizeS)
+                .backgroundColor(ColorResource.backgroundSecondary)
+                .fontColor(ColorResource.textPrimary)
+                .borderRadius(10)
+                .onClick(() => {
+                  this.showProjectSettingsDialog = false;
+                });
+
+              Button('保存')
+                .layoutWeight(1)
+                .height(40)
+                .fontSize(ThemeConfig.fontSizeS)
+                .backgroundColor(ColorResource.primaryColor)
+                .fontColor(Color.White)
+                .borderRadius(10)
+                .onClick(() => {
+                  this.saveProjectSettings();
+                });
+            }
+            .width('100%');
+          }
+          .width('100%')
+          .padding(14)
+          .backgroundColor(ColorResource.backgroundPage)
+          .borderRadius(12)
+          .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 12 });
+        }
 
         // 项目标题区域
         Column({ space: 12 }) {

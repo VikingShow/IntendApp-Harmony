@@ -145,6 +145,34 @@ export class NodeSchemaService {
     return Array.from(this.draftSchemas.values());
   }
 
+  public getDefaultSchemaId(): string {
+    // 优先选 isDefault 标记的 schema（草稿优先于已发布）
+    const drafts = Array.from(this.draftSchemas.values());
+    for (const s of drafts) {
+      if (s.isDefault) {
+        return s.id;
+      }
+    }
+    const published = Array.from(this.publishedSchemas.values());
+    for (const s of published) {
+      if (s.isDefault) {
+        return s.id;
+      }
+    }
+
+    // 兜底：standard
+    if (this.publishedSchemas.has('standard') || this.draftSchemas.has('standard')) {
+      return 'standard';
+    }
+
+    // 最后兜底：任意一个 schema
+    const all = this.getAllSchemas();
+    if (all.length > 0) {
+      return all[0].id;
+    }
+    return 'standard';
+  }
+
   /**
    * 按 ID 获取节点类型（优先查草稿，再查已发布）
    * @param id 节点类型 ID

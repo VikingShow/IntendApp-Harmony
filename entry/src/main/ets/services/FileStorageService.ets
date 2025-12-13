@@ -33,6 +33,10 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { Project, TaskNode } from '../model/ProjectData';
 import util from '@ohos.util';
 
+interface TaskNodeWithSchemaForStorage extends TaskNode {
+  typeId?: string;
+}
+
 /**
  * 项目元数据接口
  * 用于项目列表显示和快速检索，包含项目的基本信息
@@ -59,6 +63,8 @@ interface StorableTaskNode extends Omit<TaskNode, 'startDate' | 'endDate'> {
   startDate: string;
   /** 结束日期（ISO字符串格式） */
   endDate: string;
+  /** 节点类型 ID（schema 扩展字段） */
+  typeId?: string;
 }
 
 /**
@@ -72,6 +78,8 @@ interface StorableProject extends Omit<Project, 'tasks' | 'addTask'> {
   category: string;
   /** 项目备注 */
   note?: string;
+  /** 本项目默认节点类型 ID（优先级高于全局默认） */
+  defaultNodeTypeId?: string;
   /** 画布X轴偏移量 */
   canvasOffsetX: number;
   /** 画布Y轴偏移量 */
@@ -526,6 +534,7 @@ export class FileStorageService {
         name: project.name,
         lastModified: project.lastModified,
         dependencies: project.dependencies,
+        defaultNodeTypeId: project.defaultNodeTypeId,
         tasks: project.tasks.map((task: TaskNode): StorableTaskNode => {
           return {
             id: task.id,
@@ -540,6 +549,7 @@ export class FileStorageService {
             isCritical: task.isCritical,
             startDate: task.startDate.toISOString(),
             endDate: task.endDate.toISOString(),
+            typeId: (task as TaskNodeWithSchemaForStorage).typeId,
           };
         }),
         category: project.category || '其他',
@@ -616,8 +626,9 @@ export class FileStorageService {
         const project = new Project(storableProject.id, storableProject.name);
         project.lastModified = storableProject.lastModified;
         project.dependencies = storableProject.dependencies;
+        project.defaultNodeTypeId = storableProject.defaultNodeTypeId;
         project.tasks = storableProject.tasks.map((task: StorableTaskNode): TaskNode => {
-          return {
+          const restored: TaskNodeWithSchemaForStorage = {
             id: task.id,
             name: task.name,
             checklist: task.checklist,
@@ -629,8 +640,12 @@ export class FileStorageService {
             lateFinish: task.lateFinish,
             isCritical: task.isCritical,
             startDate: new Date(task.startDate),
-            endDate: new Date(task.endDate),
+            endDate: new Date(task.endDate)
           };
+          if (task.typeId) {
+            restored.typeId = task.typeId;
+          }
+          return restored;
         });
         project.category = storableProject.category || '其他';
         project.note = storableProject.note;

@@ -49,6 +49,7 @@ import { AddDependencyCommand } from './commands/AddDependencyCommand';
 import { DeleteDependencyCommand } from './commands/DeleteDependencyCommand';
 import { UpdateTaskCommand } from './commands/UpdateTaskCommand';
 import { PerformanceService } from '../services/PerformanceService';
+import { NodeSchemaService } from '../services/NodeSchemaService';
 
 /**
  * 项目状态接口
@@ -354,6 +355,13 @@ export class ProjectManager {
       x: 50,
       y: 50
     };
+
+    // 设定 schema 默认类型：项目内默认 > 全局默认 > standard
+    const schemaService = NodeSchemaService.getInstance();
+    const projectDefault = this.appState.project.defaultNodeTypeId;
+    const globalDefault = schemaService.getDefaultSchemaId();
+    const finalTypeId = projectDefault && projectDefault.length > 0 ? projectDefault : globalDefault;
+    (newTask as TaskNodeWithSchema).typeId = finalTypeId;
 
     // 使用命令模式添加任务（支持撤销/重做）
     const command = new AddTaskCommand(this.appState.project, newTask);

@@ -120,6 +120,9 @@ export class Project {
   /** 项目备注 */
   note?: string;
 
+  /** 本项目默认节点类型 ID（优先级高于全局默认） */
+  defaultNodeTypeId?: string;
+
   /** 任务列表 */
   tasks: TaskNode[] = [];
   /** 依赖关系列表 */

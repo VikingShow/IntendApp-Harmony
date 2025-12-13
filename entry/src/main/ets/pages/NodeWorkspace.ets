@@ -1135,12 +1135,125 @@ struct VersionDiffDialog {
   }
 }
 
+// 独立的卡片预览组件 - 使用 @Prop 确保响应式刷新
+@Component
+struct HistoryCardPreview {
+  @Prop schema: NodeSchema;
+
+  private getComponentContent(comp: NodeComponentSchema): string {
+    const contentMap: Record<string, string> = {
+      'TITLE': '任务标题',
+      'DATE_RANGE': '📅 12/23 ~ 12/30',
+      'CHECKLIST_SUMMARY': '☑️ 3/5 完成',
+      'PRIORITY_BADGE': '🔥 高优先级',
+      'ASSIGNEE': '👤 张三',
+      'TAGS': '🏷️ 开发, 设计'
+    };
+    return contentMap[comp.type] || comp.type;
+  }
+
+  build() {
+    Column({ space: 3 }) {
+      if (this.schema.layout && this.schema.layout.length > 0) {
+        ForEach(this.schema.layout.slice(0, 5), (comp: NodeComponentSchema, index: number) => {
+          if (comp.type === 'TITLE') {
+            Text('任务标题')
+              .fontSize(9)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(ColorResource.textPrimary)
+              .width('100%');
+          } else if (comp.type === 'DATE_RANGE') {
+            Text('📅 12/23 ~ 12/30')
+              .fontSize(7)
+              .fontColor(ColorResource.textSecondary)
+              .width('100%');
+          } else if (comp.type === 'TIME_PROGRESS') {
+            Column({ space: 1 }) {
+              Text('时间: 50%')
+                .fontSize(6)
+                .fontColor(ColorResource.textSecondary);
+              Stack({ alignContent: Alignment.Start }) {
+                Row().width('100%').height(3).backgroundColor(ColorResource.backgroundSecondary).borderRadius(1);
+                Row().width('50%').height(3).backgroundColor(this.schema.style.fillColor).borderRadius(1);
+              }
+            }
+            .width('100%');
+          } else if (comp.type === 'TASK_PROGRESS') {
+            Column({ space: 1 }) {
+              Text('完成: 60%')
+                .fontSize(6)
+                .fontColor(ColorResource.textSecondary);
+              Stack({ alignContent: Alignment.Start }) {
+                Row().width('100%').height(3).backgroundColor(ColorResource.backgroundSecondary).borderRadius(1);
+                Row().width('60%').height(3).backgroundColor('#67C23A').borderRadius(1);
+              }
+            }
+            .width('100%');
+          } else if (comp.type === 'CHECKLIST_SUMMARY') {
+            Text('☑️ 3/5 完成')
+              .fontSize(7)
+              .fontColor(ColorResource.textSecondary)
+              .width('100%');
+          } else if (comp.type === 'PRIORITY_BADGE') {
+            Text('🔥 高优先级')
+              .fontSize(7)
+              .fontColor('#FF3B30')
+              .width('100%');
+          } else if (comp.type === 'ASSIGNEE') {
+            Text('👤 张三')
+              .fontSize(7)
+              .fontColor(ColorResource.textSecondary)
+              .width('100%');
+          } else if (comp.type === 'TAGS') {
+            Text('🏷️ 开发, 设计')
+              .fontSize(7)
+              .fontColor(ColorResource.textSecondary)
+              .width('100%');
+          } else if (comp.type === 'STATUS_DOT') {
+            Row({ space: 3 }) {
+              Circle().width(6).height(6).fill('#34C759');
+              Text('进行中').fontSize(7).fontColor(ColorResource.textSecondary);
+            }
+            .width('100%');
+          } else {
+            Text('自定义字段')
+              .fontSize(7)
+              .fontColor(ColorResource.textTertiary)
+              .width('100%');
+          }
+        }, (comp: NodeComponentSchema, index: number) => `${this.schema.version}_${index}_${comp.id}`)
+
+        if (this.schema.layout.length > 5) {
+          Text(`... 还有 ${this.schema.layout.length - 5} 个组件`)
+            .fontSize(6)
+            .fontColor(ColorResource.textTertiary);
+        }
+      } else {
+        Text('暂无组件')
+          .fontSize(8)
+          .fontColor(ColorResource.textTertiary);
+      }
+    }
+    .width(110)
+    .constraintSize({ minHeight: 60 })
+    .padding(8)
+    .backgroundColor(ColorResource.surface)
+    .borderRadius(this.schema.style.borderRadius !== undefined ? this.schema.style.borderRadius / 2 : 8)
+    .border({
+      width: 2,
+      color: this.schema.style.borderColor ? this.schema.style.borderColor : this.schema.style.fillColor
+    })
+    .shadow({ radius: 4, color: 'rgba(0,0,0,0.1)', offsetY: 1 });
+  }
+}
+
 @CustomDialog
 struct HistoryDialog {
   controller: CustomDialogController;
   schemaId: string = '';
   schemaName: string = '';
   @State history: NodeSchema[] = [];
+  @State selectedPreviewSchema: NodeSchema | null = null;
   onRestore: (version: number) => void = () => {
   };
   onCompare: (oldVersion: NodeSchema, newVersion: NodeSchema) => void = () => {
@@ -1179,71 +1292,136 @@ struct HistoryDialog {
         .height(120)
         .justifyContent(FlexAlign.Center);
       } else {
-        List() {
-          ForEach(this.history.slice().reverse(), (schema: NodeSchema) => {
-            ListItem() {
-              Row() {
-                Column({ space: 4 }) {
-                  Row({ space: 8 }) {
-                    Text(`v${schema.version}`)
-                      .fontSize(16)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(ColorResource.textPrimary);
+        // 左右布局：列表 + 预览
+        Row({ space: 16 }) {
+          // 左侧：版本列表
+          List() {
+            ForEach(this.history.slice().reverse(), (schema: NodeSchema) => {
+              ListItem() {
+                Row() {
+                  Column({ space: 4 }) {
+                    Row({ space: 8 }) {
+                      Text(`v${schema.version}`)
+                        .fontSize(14)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(this.selectedPreviewSchema?.version === schema.version
+                          ? ColorResource.primaryColor
+                          : ColorResource.textPrimary);
 
-                    if (schema.meta?.updatedAt) {
-                      Text(new Date(schema.meta.updatedAt).toLocaleString())
-                        .fontSize(12)
-                        .fontColor(ColorResource.textSecondary);
-                    }
-                  }
-                  .alignItems(VerticalAlign.Bottom);
-
-                  if (schema.description) {
-                    Text(schema.description)
-                      .fontSize(12)
-                      .fontColor(ColorResource.textTertiary)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis });
-                  }
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start);
-
-                Row({ space: 8 }) {
-                  Button('对比')
-                    .height(28)
-                    .fontSize(12)
-                    .backgroundColor(ColorResource.surface)
-                    .fontColor(ColorResource.primaryColor)
-                    .borderRadius(6)
-                    .onClick(() => {
-                      // Get the current version (latest) to compare with
-                      const currentVersion = NodeSchemaService.getInstance().getSchemaById(this.schemaId);
-                      if (currentVersion) {
-                        this.onCompare(schema, currentVersion);
+                      if (schema.meta?.updatedAt) {
+                        Text(new Date(schema.meta.updatedAt).toLocaleDateString())
+                          .fontSize(10)
+                          .fontColor(ColorResource.textSecondary);
                       }
-                    });
+                    }
+                    .alignItems(VerticalAlign.Bottom);
 
-                  Button('恢复')
-                    .height(28)
-                    .fontSize(12)
-                    .backgroundColor(ColorResource.surface)
-                    .fontColor(ColorResource.primaryColor)
-                    .borderRadius(6)
-                    .onClick(() => {
-                      this.onRestore(schema.version);
-                      this.controller.close();
-                    });
+                    // 组件数量信息
+                    Text(`${schema.layout?.length || 0} 个组件`)
+                      .fontSize(10)
+                      .fontColor(ColorResource.textTertiary);
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start);
+
+                  Row({ space: 6 }) {
+                    Button('对比')
+                      .height(24)
+                      .fontSize(10)
+                      .padding({ left: 8, right: 8 })
+                      .backgroundColor(ColorResource.surface)
+                      .fontColor(ColorResource.primaryColor)
+                      .borderRadius(4)
+                      .onClick(() => {
+                        const currentVersion = NodeSchemaService.getInstance().getSchemaById(this.schemaId);
+                        if (currentVersion) {
+                          this.onCompare(schema, currentVersion);
+                        }
+                      });
+
+                    Button('恢复')
+                      .height(24)
+                      .fontSize(10)
+                      .padding({ left: 8, right: 8 })
+                      .backgroundColor(ColorResource.surface)
+                      .fontColor(ColorResource.primaryColor)
+                      .borderRadius(4)
+                      .onClick(() => {
+                        this.onRestore(schema.version);
+                        this.controller.close();
+                      });
+                  }
                 }
+                .width('100%')
+                .padding({ top: 10, bottom: 10, left: 8, right: 8 })
+                .backgroundColor(this.selectedPreviewSchema?.version === schema.version
+                  ? ColorResource.primaryUltraLight
+                  : Color.Transparent)
+                .borderRadius(8)
+                .onClick(() => {
+                  this.selectedPreviewSchema = schema;
+                });
               }
-              .width('100%')
-              .padding({ top: 12, bottom: 12 });
+            })
+          }
+          .width('60%')
+          .height(280)
+          .edgeEffect(EdgeEffect.Spring);
+
+          // 右侧：卡片预览（使用 key 强制刷新）
+          Column({ space: 8 }) {
+            Text('卡片预览')
+              .fontSize(12)
+              .fontColor(ColorResource.textSecondary);
+
+            if (this.selectedPreviewSchema) {
+              // 使用独立 @Component 组件确保响应式刷新
+              HistoryCardPreview({ schema: this.selectedPreviewSchema });
+
+              // 样式信息
+              Column({ space: 4 }) {
+                Row({ space: 4 }) {
+                  Text('主题色')
+                    .fontSize(9)
+                    .fontColor(ColorResource.textTertiary);
+                  Circle()
+                    .width(10)
+                    .height(10)
+                    .fill(this.selectedPreviewSchema.style.fillColor);
+                }
+
+                if (this.selectedPreviewSchema.style.borderRadius !== undefined) {
+                  Text(`圆角: ${this.selectedPreviewSchema.style.borderRadius}px`)
+                    .fontSize(9)
+                    .fontColor(ColorResource.textTertiary);
+                }
+
+                // 组件数量
+                Text(`组件: ${this.selectedPreviewSchema.layout?.length || 0} 个`)
+                  .fontSize(9)
+                  .fontColor(ColorResource.textTertiary);
+              }
+              .margin({ top: 8 })
+              .key(`info_${this.selectedPreviewSchema.version}`);
+            } else {
+              Column() {
+                Text('点击左侧版本查看预览')
+                  .fontSize(11)
+                  .fontColor(ColorResource.textTertiary);
+              }
+              .width(100)
+              .height(70)
+              .justifyContent(FlexAlign.Center)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(8);
             }
-          })
+          }
+          .width('40%')
+          .height(280)
+          .justifyContent(FlexAlign.Start)
+          .alignItems(HorizontalAlign.Center);
         }
-        .width('100%')
-        .height(300)
-        .edgeEffect(EdgeEffect.Spring);
+        .width('100%');
       }
 
       Button('关闭')
@@ -1258,7 +1436,7 @@ struct HistoryDialog {
         });
     }
     .width('90%')
-    .constraintSize({ maxWidth: 400 })
+    .constraintSize({ maxWidth: 500 })
     .padding(16)
     .backgroundColor(ColorResource.backgroundPage)
     .borderRadius(14);

@@ -3,18 +3,41 @@
 <div align="center">
   <img src="AppScope/resources/base/media/app_foreground.png" alt="EasyFlow Logo" width="120" height="120">
   
-  **专业的HarmonyOS项目管理应用 · 融合关键路径法与可视化网络图**
+  **三思而后行，一思则不漏**
+  
+  *专业的HarmonyOS项目管理应用 · 融合关键路径法与可视化网络图*
   
   [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-5.0+-blue.svg)](https://developer.harmonyos.com/)
   [![ArkTS](https://img.shields.io/badge/ArkTS-Latest-green.svg)](https://developer.harmonyos.com/cn/develop/arkts/)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/Version-1.1.2-orange.svg)](https://github.com/your-username/EasyFlow/releases)
+  [![Version](https://img.shields.io/badge/Version-1.2.0-orange.svg)](https://github.com/your-username/EasyFlow/releases)
   [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/your-username/EasyFlow/actions)
 </div>
 
+---
+
+## 💡 软件理念
+
+> **三思而后行，一思则不漏**
+
+在项目管理的世界里，**思考**是成功的基石。EasyFlow的名字与理念源于这样的信念：
+
+- **三思而后行**：做任何事情之前，都应当深思熟虑、周密计划。项目管理不是盲目执行，而是科学规划。通过关键路径法（CPM）算法，EasyFlow帮助您看清每一个任务的依赖关系，识别影响全局的关键路径，让您在行动前就能洞察全局。
+
+- **一思则不漏**：当您使用EasyFlow完整思考一遍项目流程，所有任务、依赖、时间节点都将清晰呈现，不会遗漏任何关键环节。从任务分解到检查清单，从AI智能生成到日历提醒，EasyFlow确保您的每一个想法都能落地执行。
+
+EasyFlow不仅仅是一个工具，更是一种**以终为始**的项目思维方式。无论是开发软件、策划活动，还是管理个人目标，EasyFlow都能帮助您：
+
+🎯 **看清全局** — 可视化网络图让复杂项目一目了然  
+⏱️ **把控节奏** — 关键路径分析精准识别时间瓶颈  
+✅ **不漏细节** — 任务清单与提醒确保万无一失  
+🤖 **智能高效** — AI助手让项目规划事半功倍  
+
+---
+
 ## 📋 项目简介
 
-**EasyFlow（一思不漏）** 是一款专为HarmonyOS平台开发的专业项目管理应用，采用关键路径法（CPM）算法实现科学的项目进度管理。应用提供交互式Canvas可视化网络图、智能关键路径分析、**AI智能生成项目**、**系统日历集成**、**新手引导系统**、多格式数据导入导出、项目模板系统等专业功能，通过现代化的移动端UI设计和流畅的交互体验，让复杂的项目管理变得简单高效。
+**EasyFlow（一思不漏）** 是一款专为HarmonyOS平台开发的专业项目管理应用，采用关键路径法（CPM）算法实现科学的项目进度管理。应用提供交互式Canvas可视化网络图、智能关键路径分析、**AI智能生成项目**、**系统日历集成**、**新手引导系统**、**节点工作台（自定义节点类型）**、**规则引擎**、多格式数据导入导出、项目模板系统等专业功能，通过现代化的移动端UI设计和流畅的交互体验，让复杂的项目管理变得简单高效。
 
 ### 🎯 核心价值
 
@@ -26,6 +49,8 @@
 - **✅ 任务清单**：每个任务支持子任务检查清单，细化任务分解，精准跟踪进度
 - **🎓 新手引导**：内置分步引导系统，帮助新用户快速上手，零学习成本
 - **💾 数据管理**：支持JSON/PNG/CSV多格式导入导出，完善的数据迁移和备份机制，确保数据安全
+- **🔧 节点工作台**：可视化设计自定义节点类型，配置字段、样式和布局，支持版本管理和导入导出
+- **⚙️ 规则引擎**：事件驱动的规则系统，支持字段联动、条件校验、动态显隐等高级功能
 - **📱 响应式设计**：完美适配手机、平板、折叠屏等多种设备，提供一致的用户体验
 
 ---
@@ -213,12 +238,10 @@
   - 首页引导：介绍项目创建、列表管理、导入导出
   - 编辑页引导：介绍画布操作、任务管理、关键路径
   - 高亮目标组件，分步详细讲解
-  - 支持跳过、上一步、下一步操作
-  
 - **智能管理**：
   - 自动检测首次启动
   - 记录引导完成状态
-  - 支持“不再提醒”设置
+  - 支持"不再提醒"设置
   - 可随时手动重启引导
   
 - **用户友好**：
@@ -226,7 +249,56 @@
   - 清晰的步骤指示
   - 零学习成本，快速上手
 
-### 11. ⚡ 性能优化与错误处理
+### 11. 🔧 节点工作台（Node Workspace）
+**可视化设计自定义节点类型，打造专属项目管理体验**
+
+- **节点Schema管理**（NodeSchemaService）：
+  - 自定义节点类型的名称、说明、图标
+  - 配置填充色、边框色、文字色等样式属性
+  - 支持系统内置节点类型（标准任务）
+  - 用户自定义节点类型无限扩展
+  
+- **字段配置**：
+  - 支持多种字段类型：文本、数字、日期、选择器、开关等
+  - 自定义字段验证规则（必填、范围、格式等）
+  - 字段默认值和占位符设置
+  - 字段排序和分组管理
+  
+- **可视化布局设计**：
+  - 拖拽式组件排布
+  - 实时预览节点效果
+  - 支持行列布局配置
+  
+- **版本管理**：
+  - 草稿/已发布双版本机制
+  - 历史版本记录和回滚
+  - 版本差异对比查看
+  
+- **导入导出**：
+  - 导出节点Schema为JSON
+  - 从JSON导入节点类型
+  - 便于团队共享和复用
+
+### 12. ⚙️ 规则引擎（Rule Engine）
+**事件驱动的智能规则系统，实现表单联动和数据验证**
+
+- **规则配置**（RuleEngineService）：
+  - 基于事件触发：节点加载、字段变化、表单提交等
+  - 条件判断：支持等于、不等于、包含、大于、小于等操作符
+  - 多条件组合：AND/OR逻辑组合
+  
+- **动作执行**：
+  - **setVisible**：动态显示/隐藏字段
+  - **setEnabled**：动态启用/禁用字段
+  - **setValue**：自动设置字段值
+  - **validate**：触发字段验证
+  
+- **安全保护**：
+  - 最大迭代次数限制（防止无限循环）
+  - 规则执行日志记录
+  - 错误捕获和友好提示
+
+### 13. ⚡ 性能优化与错误处理
 **确保应用流畅运行，提供稳定可靠的用户体验**
 
 - **性能优化**（PerformanceService）：
@@ -345,7 +417,13 @@ EasyFlow/
 │   │   │   │   ├── DashboardView.ets       # 项目仪表板（统计数据展示）
 │   │   │   │   ├── Sidebar.ets             # 侧边栏（项目管理、任务列表）
 │   │   │   │   ├── TaskEditor.ets          # 任务编辑器
-│   │   │   │   └── WelcomeView.ets         # 欢迎页面
+│   │   │   │   ├── WelcomeView.ets         # 欢迎页面
+│   │   │   │   ├── TutorialGuide.ets       # 新手引导组件
+│   │   │   │   ├── ColorPicker.ets         # 颜色选择器
+│   │   │   │   ├── ComponentLibrary.ets    # 组件库（节点工作台）
+│   │   │   │   ├── ComponentPropertyPanel.ets # 组件属性面板
+│   │   │   │   ├── NodeVisualCanvas.ets    # 节点可视化画布
+│   │   │   │   └── ProjectPreviewDialog.ets # 项目预览对话框
 │   │   │   │
 │   │   │   ├── core/               # 核心业务逻辑层
 │   │   │   │   ├── AppState.ets            # 全局应用状态管理
@@ -367,23 +445,31 @@ EasyFlow/
 │   │   │   │       └── DeleteDependencyCommand.ets # 删除依赖命令
 │   │   │   │
 │   │   │   ├── model/              # 数据模型层
-│   │   │   │   └── ProjectData.ets         # 项目数据模型（Task、Project等）
+│   │   │   │   ├── ProjectData.ets         # 项目数据模型（Task、Project等）
+│   │   │   │   └── NodeSchema.ets          # 节点Schema数据模型（字段、样式、规则等）
 │   │   │   │
 │   │   │   ├── pages/              # 页面层
 │   │   │   │   ├── Home.ets                # 首页（项目列表）
-│   │   │   │   └── Index.ets               # 编辑页（可视化编辑器）
+│   │   │   │   ├── Index.ets               # 编辑页（可视化编辑器）
+│   │   │   │   └── NodeWorkspace.ets       # 节点工作台（自定义节点类型设计）
 │   │   │   │
 │   │   │   ├── services/           # 业务服务层
+│   │   │   │   ├── AIService.ets           # AI智能生成服务
+│   │   │   │   ├── CalendarService.ets     # 系统日历集成服务
 │   │   │   │   ├── CriticalPathService.ets # CPM算法服务
+│   │   │   │   ├── CustomComponentService.ets # 自定义组件服务
 │   │   │   │   ├── DataMigrationService.ets # 数据迁移服务
 │   │   │   │   ├── ExportService.ets       # 导出服务（JSON/PNG/CSV）
 │   │   │   │   ├── FileStorageService.ets  # 文件存储服务
 │   │   │   │   ├── ImportService.ets       # 导入服务
 │   │   │   │   ├── LoadingService.ets      # 加载状态管理
+│   │   │   │   ├── NodeSchemaService.ets   # 节点Schema管理服务
 │   │   │   │   ├── PerformanceService.ets  # 性能监控服务
 │   │   │   │   ├── PermissionService.ets   # 权限管理服务
+│   │   │   │   ├── RuleEngineService.ets   # 规则引擎服务
 │   │   │   │   ├── StorageService.ets      # 数据持久化服务
-│   │   │   │   └── TemplateService.ets     # 项目模板服务
+│   │   │   │   ├── TemplateService.ets     # 项目模板服务
+│   │   │   │   └── TutorialService.ets     # 新手引导服务
 │   │   │   │
 │   │   │   ├── utils/              # 工具类层
 │   │   │   │   ├── BreakpointSystem.ets    # 响应式断点系统
@@ -1320,34 +1406,42 @@ hilog.info(0x0000, 'Performance', 'Operation took %{public}d ms', duration)
 
 ---
 
-## 🚀 未来路线图
+## 🚀 版本历史与未来路线图
 
-### v1.2（规划中）
-**预计发布时间：2025年Q2**
+### v1.2.0（当前版本）
+**发布时间：2025年Q2**
 
-- [ ] **甘特图视图**：添加时间轴甘特图，直观显示任务时间安排
-- [ ] **资源管理**：支持团队成员、设备等资源的分配和管理
-- [ ] **成本管理**：添加预算、成本跟踪功能
-- [ ] **任务复制/粘贴**：快速复制任务和依赖关系
-- [ ] **批量编辑**：选中多个任务进行批量修改
-- [ ] **搜索功能**：全局搜索任务、项目
-- [ ] **标签系统**：为任务添加自定义标签
+- [x] **AI智能生成**：接入DeepSeek等大模型，自然语言生成项目结构
+- [x] **系统日历集成**：与HarmonyOS日历无缝同步任务提醒
+- [x] **新手引导系统**：分步骤引导新用户快速上手
+- [x] **节点工作台**：可视化设计自定义节点类型
+- [x] **规则引擎**：事件驱动的字段联动和验证系统
+- [x] **检查清单**：每个任务支持子任务检查项
+- [x] **自定义字段**：通过节点Schema扩展任务属性
 
 ### v1.3（规划中）
 **预计发布时间：2025年Q3**
 
+- [ ] **甘特图视图**：添加时间轴甘特图，直观显示任务时间安排
+- [ ] **任务复制/粘贴**：快速复制任务和依赖关系
+- [ ] **批量编辑**：选中多个任务进行批量修改
+- [ ] **搜索功能**：全局搜索任务、项目
+- [ ] **标签系统**：为任务添加自定义标签
+- [ ] **资源管理**：支持团队成员、设备等资源的分配和管理
+
+### v1.4（规划中）
+**预计发布时间：2025年Q4**
+
 - [ ] **云同步**：支持云端存储和多设备自动同步
 - [ ] **团队协作**：多人实时协作编辑项目
-- [ ] **权限管理**：细粒度的成员权限控制
 - [ ] **评论功能**：任务评论和讨论
-- [ ] **通知提醒**：到期提醒、变更通知
 - [ ] **版本历史**：项目变更历史记录和回滚
 - [ ] **附件支持**：为任务添加文档、图片等附件
 
 ### v2.0（概念阶段）
-**预计发布时间：2025年Q4**
+**预计发布时间：2026年**
 
-- [ ] **AI智能助手**：
+- [ ] **AI增强**：
   - 智能工期预测
   - 风险识别和预警
   - 资源优化建议
@@ -1358,12 +1452,6 @@ hilog.info(0x0000, 'Performance', 'Operation took %{public}d ms', duration)
   - 蒙特卡洛模拟
   - 风险矩阵分析
   - 多项目组合管理
-
-- [ ] **集成生态**：
-  - 日历集成（HarmonyOS日历）
-  - 邮件集成
-  - 第三方应用集成API
-  - Webhook支持
 
 - [ ] **多端支持**：
   - Web端
@@ -1380,7 +1468,7 @@ hilog.info(0x0000, 'Performance', 'Operation took %{public}d ms', duration)
 - 看板视图（Kanban Board）
 - 工时记录功能
 - 项目对比分析
-- 自定义字段
+- 成本管理与预算跟踪
 
 ---
 

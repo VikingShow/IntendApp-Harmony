@@ -2118,21 +2118,14 @@ struct HomePage {
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(ColorResource.surface)
-          .fontColor(this.isPhone ? ColorResource.textTertiary : ColorResource.primaryColor)
+          .fontColor(ColorResource.primaryColor)
           .borderRadius(18)
           .shadow(ThemeConfig.shadowSmall)
           .onClick(() => {
-            if (this.isPhone) {
-              // 手机端显示提示
-              this.promptAction.showToast({
-                message: '请在平板上使用节点工作台',
-                duration: 2000
-              });
-            } else {
-              this.uiContext.getRouter().pushUrl({
-                url: 'pages/NodeWorkspace'
-              });
-            }
+            // 手机端和平板端都可以进入节点工作台
+            this.uiContext.getRouter().pushUrl({
+              url: 'pages/NodeWorkspace'
+            });
           })
 
         // 新建项目按钮 - 现代化设计，增强视觉吸引力
@@ -2973,20 +2966,19 @@ struct HomePage {
           .fontColor(ColorResource.surfaceDeep)
           .layoutWeight(1)
         
-        // 节点工作台按钮（手机端点击提示）
+        // 节点工作台按钮
         Button('节点工作台')
           .height(32)
           .padding({ left: 10, right: 10 })
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
           .backgroundColor(ColorResource.surface)
-          .fontColor(ColorResource.textTertiary)
+          .fontColor(ColorResource.primaryColor)
           .borderRadius(16)
           .shadow(ThemeConfig.shadowSmall)
           .onClick(() => {
-            this.promptAction.showToast({
-              message: '请在平板上使用节点工作台',
-              duration: 2000
+            this.uiContext.getRouter().pushUrl({
+              url: 'pages/NodeWorkspace'
             });
           })
         

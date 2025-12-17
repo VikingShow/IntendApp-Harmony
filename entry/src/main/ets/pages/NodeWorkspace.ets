@@ -1536,6 +1536,10 @@ struct NodeWorkspacePage {
   @State componentRefreshKey: number = 0;
   @State currentViewMode: 'visual' | 'classic' = 'visual';
   @State draggedLibraryType: NodeComponentType | null = null;
+  // 手机端适配状态
+  @State isPhoneLayout: boolean = false;
+  @State mobileTabIndex: number = 0; // 0: 节点类型库, 1: 组件库, 2: 属性编辑器
+  private readonly PHONE_WIDTH_THRESHOLD: number = 600; // 手机宽度阈值
   // 布局管理状态
   @State panelWidths: number[] = [20, 25, 30, 25]; // 默认宽度百分比
   @State panelCollapsed: boolean[] = [false, false, false, false]; // 折叠状态
@@ -4818,103 +4822,622 @@ struct NodeWorkspacePage {
     .alignItems(HorizontalAlign.Start);
   }
 
-  build() {
+  // ==================== 手机端布局 Builders ====================
+
+  // 手机端顶部导航栏
+  @Builder
+  private MobileHeader() {
+    Row({ space: 6 }) {
+      // 返回按钮
+      Text('←')
+        .fontSize(20)
+        .fontColor(ColorResource.primaryColor)
+        .padding({ left: 4, right: 8, top: 6, bottom: 6 })
+        .onClick(() => {
+          router.back();
+        });
+
+      Text('节点工作台')
+        .fontSize(ThemeConfig.fontSizeM)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(ColorResource.textPrimary)
+        .layoutWeight(1);
+
+      // 导入按钮
+      Text('导入')
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(ColorResource.primaryColor)
+        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+        .backgroundColor(ColorResource.backgroundSecondary)
+        .borderRadius(6)
+        .onClick(() => {
+          this.showImportDialog();
+        });
+
+      // 导出按钮
+      Text('导出')
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(ColorResource.primaryColor)
+        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+        .backgroundColor(ColorResource.backgroundSecondary)
+        .borderRadius(6)
+        .onClick(() => {
+          this.showExportDialog();
+        });
+
+      // 保存按钮
+      Text('保存')
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(Color.White)
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor(ColorResource.primaryColor)
+        .borderRadius(6)
+        .onClick(() => {
+          this.schemaService.saveToStorage();
+          this.promptAction.showToast({ message: '已保存', duration: 2000 });
+        });
+    }
+    .width('100%')
+    .height(48)
+    .padding({ left: 12, right: 12 })
+    .backgroundColor(ColorResource.backgroundPage);
+  }
+
+  // 手机端上部预览区域（40%高度）
+  @Builder
+  private MobilePreviewArea() {
     Column({ space: 0 }) {
-      Column() {
-        Row({ space: 12 }) {
-          Row({ space: 6 }) {
-            Text('←')
-              .fontSize(20)
-              .fontColor(ColorResource.primaryColor);
-            Text('返回')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(ColorResource.primaryColor);
-          }
-          .padding({
-            left: 8,
-            right: 12,
-            top: 8,
-            bottom: 8
-          })
-          .borderRadius(8)
-          .onClick(() => {
-            router.back();
-          });
+      // 预览标题栏
+      Row({ space: 8 }) {
+        Text('节点预览')
+          .fontSize(ThemeConfig.fontSizeS)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorResource.textPrimary);
 
-          Text('节点工作台')
-            .fontSize(ThemeConfig.fontSizeL)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ColorResource.textPrimary)
-            .layoutWeight(1);
-
-          Row({ space: 8 }) {
-            Stack({ alignContent: Alignment.TopEnd }) {
-              Button('自定义组件')
-                .fontSize(ThemeConfig.fontSizeS)
-                .height(36)
-                .backgroundColor(ColorResource.backgroundSecondary)
-                .fontColor(ColorResource.textTertiary)
-                .borderRadius(8)
-                .enabled(false);
-
-              Text('即将推出')
-                .fontSize(10)
-                .fontColor(ColorResource.textTertiary)
-                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                .backgroundColor(Color.White)
-                .borderRadius(10)
-                .border({ width: 1, color: ColorResource.surfaceEmphasized })
-                .shadow({ radius: 6, color: '#22000000', offsetX: 0, offsetY: 2 })
-                .opacity(0.95)
-                .margin({ top: -10, right: -8 });
-            }
-
-            Button('保存')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.surface)
-              .fontColor(ColorResource.primaryColor)
-              .borderRadius(8)
-              .onClick(() => {
-                this.schemaService.saveToStorage();
-                this.promptAction.showToast({ message: '已保存', duration: 2000 });
-              });
-
-            Button('导入JSON')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.backgroundSecondary)
-              .fontColor(ColorResource.primaryColor)
-              .borderRadius(8)
-              .onClick(() => {
-                this.showImportDialog();
-              });
-
-            Button('导出JSON')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.primaryColor)
-              .fontColor(Color.White)
-              .borderRadius(8)
-              .onClick(() => {
-                this.showExportDialog();
-              });
-          }
+        if (this.selectedSchemaObject) {
+          Text(this.selectedSchemaObject.name)
+            .fontSize(ThemeConfig.fontSizeXS)
+            .fontColor(ColorResource.primaryColor)
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor('rgba(0, 122, 255, 0.1)')
+            .borderRadius(4);
         }
-        .width('100%')
-        .height(56)
-        .padding({ left: 16, right: 16 })
-        .backgroundColor(ColorResource.backgroundPage);
+
+        Blank().layoutWeight(1);
+
+        if (this.selectedSchemaObject) {
+          Text(this.selectedSchemaObject.isDraft ? '草稿' : '已发布')
+            .fontSize(ThemeConfig.fontSizeXS)
+            .fontColor(this.selectedSchemaObject.isDraft ? '#FF9500' : '#34C759')
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor(this.selectedSchemaObject.isDraft ? 'rgba(255, 149, 0, 0.1)' : 'rgba(52, 199, 89, 0.1)')
+            .borderRadius(4);
+        }
       }
       .width('100%')
-      .padding({ top: 20 });
+      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .backgroundColor(ColorResource.surface);
+
+      // 可视化画布预览
+      Column({ space: 0 }) {
+        NodeVisualCanvas({
+          schema: this.selectedSchemaObject,
+          selectedComponentId: this.selectedComponentId,
+          draggedLibraryType: this.draggedLibraryType,
+          onComponentSelect: (componentId: string) => {
+            this.handleComponentSelect(componentId);
+            // 手机端选中组件后自动切换到属性编辑器
+            this.mobileTabIndex = 2;
+          },
+          onComponentDelete: (componentId: string) => {
+            this.handleComponentDelete(componentId);
+          },
+          onComponentAdd: (type: NodeComponentType, index: number) => {
+            this.addComponentToSelectedSchema(type, index);
+          },
+          onComponentReorder: (fromIndex: number, toIndex: number) => {
+            this.handleComponentReorder(fromIndex, toIndex);
+          }
+        });
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .backgroundColor(ColorResource.backgroundSecondary);
+    }
+    .width('100%')
+    .layoutWeight(4); // 上部占40%
+  }
+
+  // 手机端底部Tab栏
+  @Builder
+  private MobileTabBar() {
+    Row({ space: 0 }) {
+      this.MobileTabItem('📋', '节点类型', 0)
+      this.MobileTabItem('🧩', '组件库', 1)
+      this.MobileTabItem('⚙️', '属性', 2)
+    }
+    .width('100%')
+    .height(56)
+    .backgroundColor(ColorResource.surface)
+    .border({ width: { top: 0.5 }, color: ColorResource.surfaceEmphasized });
+  }
+
+  // 手机端Tab项
+  @Builder
+  private MobileTabItem(icon: string, label: string, index: number) {
+    Column({ space: 4 }) {
+      Text(icon)
+        .fontSize(18);
+      Text(label)
+        .fontSize(ThemeConfig.fontSizeXS)
+        .fontColor(this.mobileTabIndex === index ? ColorResource.primaryColor : ColorResource.textTertiary)
+        .fontWeight(this.mobileTabIndex === index ? FontWeight.Medium : FontWeight.Normal);
+    }
+    .layoutWeight(1)
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(this.mobileTabIndex === index ? 'rgba(0, 122, 255, 0.08)' : Color.Transparent)
+    .onClick(() => {
+      this.mobileTabIndex = index;
+    });
+  }
+
+  // 手机端筛选标签
+  @Builder
+  private MobileFilterTag(label: string, mode: 'all' | 'published' | 'draft') {
+    Text(label)
+      .fontSize(ThemeConfig.fontSizeXS)
+      .fontColor(this.filterMode === mode ? Color.White : ColorResource.textSecondary)
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .backgroundColor(this.filterMode === mode ? ColorResource.primaryColor : ColorResource.backgroundSecondary)
+      .borderRadius(14)
+      .onClick(() => {
+        this.filterMode = mode;
+      });
+  }
+
+  // 手机端Tab内容区域
+  @Builder
+  private MobileTabContent() {
+    Column({ space: 0 }) {
+      if (this.mobileTabIndex === 0) {
+        // 节点类型库
+        this.MobileSchemaList();
+      } else if (this.mobileTabIndex === 1) {
+        // 组件库
+        ComponentLibrary({
+          onComponentClick: (type: NodeComponentType) => {
+            this.handleComponentLibraryClick(type);
+          },
+          onComponentDragStart: (type: NodeComponentType) => {
+            this.handleComponentDragStart(type);
+          },
+          onComponentDragEnd: () => {
+            this.handleComponentDragEnd();
+          }
+        });
+      } else {
+        // 属性编辑器
+        this.MobilePropertyEditor();
+      }
+    }
+    .width('100%')
+    .layoutWeight(1);
+  }
+
+  // 手机端节点类型列表
+  @Builder
+  private MobileSchemaList() {
+    Column({ space: 0 }) {
+      // 搜索和筛选栏
+      Row({ space: 8 }) {
+        TextInput({ placeholder: '搜索节点类型...' })
+          .layoutWeight(1)
+          .height(36)
+          .fontSize(ThemeConfig.fontSizeS)
+          .backgroundColor(ColorResource.backgroundInput)
+          .borderRadius(8)
+          .padding({ left: 12, right: 12 })
+          .onChange((value: string) => {
+            this.searchKeyword = value;
+          });
+
+        Button('+ 新建')
+          .height(36)
+          .fontSize(ThemeConfig.fontSizeXS)
+          .backgroundColor(ColorResource.primaryColor)
+          .fontColor(Color.White)
+          .borderRadius(8)
+          .onClick(() => {
+            this.createNewSchema();
+          });
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 12, bottom: 8 });
+
+      // 筛选标签
+      Row({ space: 8 }) {
+        this.MobileFilterTag('全部', 'all')
+        this.MobileFilterTag('已发布', 'published')
+        this.MobileFilterTag('草稿', 'draft')
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, bottom: 8 });
+
+      // 节点类型列表
+      Scroll() {
+        Column({ space: 8 }) {
+          ForEach(this.getFilteredSchemas(), (schema: NodeSchema) => {
+            Row({ space: 10 }) {
+              // 颜色标识
+              Circle()
+                .width(12)
+                .height(12)
+                .fill(schema.style.fillColor);
+
+              // 名称和状态
+              Column({ space: 2 }) {
+                Text(schema.name)
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.textPrimary)
+                  .fontWeight(this.selectedSchemaId === schema.id ? FontWeight.Medium : FontWeight.Normal)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis });
+
+                Row({ space: 4 }) {
+                  if (schema.isSystem) {
+                    Text('系统')
+                      .fontSize(10)
+                      .fontColor(ColorResource.textTertiary)
+                      .padding({ left: 4, right: 4, top: 1, bottom: 1 })
+                      .backgroundColor(ColorResource.backgroundSecondary)
+                      .borderRadius(3);
+                  }
+                  if (schema.isDraft) {
+                    Text('草稿')
+                      .fontSize(10)
+                      .fontColor('#FF9500')
+                      .padding({ left: 4, right: 4, top: 1, bottom: 1 })
+                      .backgroundColor('rgba(255, 149, 0, 0.1)')
+                      .borderRadius(3);
+                  }
+                }
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start);
+
+              // 选中指示器
+              if (this.selectedSchemaId === schema.id) {
+                Text('✓')
+                  .fontSize(14)
+                  .fontColor(ColorResource.primaryColor)
+                  .margin({ right: 4 });
+              }
+
+              // 三点菜单按钮（与桌面端保持一致使用bindMenu）
+              Row() {
+                Text('⋮')
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorResource.textSecondary)
+                  .textAlign(TextAlign.Center)
+                  .width(24)
+                  .height(24);
+              }
+              .margin({ left: 4 })
+              .borderRadius(4)
+              .backgroundColor(Color.Transparent)
+              .bindMenu([
+                {
+                  value: '编辑名称',
+                  enabled: !schema.isSystem,
+                  action: () => {
+                    this.showRenameDialog(schema);
+                  }
+                },
+                {
+                  value: schema.isDefault ? '已设为默认' : '设为默认',
+                  enabled: !schema.isDefault,
+                  action: () => {
+                    this.schemaService.setDefaultSchema(schema.id);
+                    this.reloadSchemas();
+                  }
+                },
+                {
+                  value: '版本历史',
+                  enabled: true,
+                  action: () => {
+                    this.showHistoryDialog(schema);
+                  }
+                },
+                {
+                  value: '当前版本: ' + (schema.isDraft ? `草稿(v${schema.version})` : `v${schema.version}`),
+                  enabled: false,
+                  action: () => {
+                  }
+                }
+              ]);
+            }
+            .width('100%')
+            .padding(12)
+            .backgroundColor(this.selectedSchemaId === schema.id ? 'rgba(0, 122, 255, 0.08)' : ColorResource.surface)
+            .borderRadius(10)
+            .border({
+              width: this.selectedSchemaId === schema.id ? 1.5 : 0,
+              color: this.selectedSchemaId === schema.id ? ColorResource.primaryColor : Color.Transparent
+            })
+            .onClick(() => {
+              this.selectedSchemaId = schema.id;
+              this.updateSelectedSchemaObject();
+              this.selectedComponentId = null;
+              this.selectedComponentObject = null;
+            });
+          }, (schema: NodeSchema) => schema.id);
+        }
+        .width('100%')
+        .padding({ left: 12, right: 12, bottom: 12 });
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto);
+
+      // 底部操作按钮区域（一行四个按钮）
+      if (this.selectedSchemaObject) {
+        Column({ space: 0 }) {
+          Divider()
+            .strokeWidth(0.5)
+            .color(ColorResource.surfaceEmphasized)
+            .opacity(0.3);
+
+          Row({ space: 6 }) {
+            Button('发布')
+              .layoutWeight(1)
+              .height(32)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .backgroundColor('#34C759')
+              .fontColor(Color.White)
+              .borderRadius(6)
+              .enabled(this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem)
+              .opacity((this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem) ? 1 : 0.4)
+              .onClick(() => {
+                this.publishSelectedDraft();
+              });
+
+            Button('草稿')
+              .layoutWeight(1)
+              .height(32)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .backgroundColor(ColorResource.surface)
+              .fontColor(ColorResource.textPrimary)
+              .borderRadius(6)
+              .enabled(!this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem)
+              .opacity((!this.selectedSchemaObject.isDraft && !this.selectedSchemaObject.isSystem) ? 1 : 0.4)
+              .onClick(() => {
+                this.createDraftFromSelectedPublished();
+              });
+
+            Button('复制')
+              .layoutWeight(1)
+              .height(32)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .backgroundColor(ColorResource.surface)
+              .fontColor(ColorResource.textPrimary)
+              .borderRadius(6)
+              .onClick(() => {
+                this.duplicateSelectedSchema();
+              });
+
+            Button('删除')
+              .layoutWeight(1)
+              .height(32)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .backgroundColor(ColorResource.surfaceSubtle)
+              .fontColor('#FF3B30')
+              .borderRadius(6)
+              .enabled(!this.selectedSchemaObject.isSystem)
+              .opacity(this.selectedSchemaObject.isSystem ? 0.4 : 1)
+              .onClick(() => {
+                this.showDeleteSchemaDialog();
+              });
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 8, bottom: 10 });
+        }
+        .width('100%')
+        .backgroundColor(ColorResource.backgroundPage);
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorResource.backgroundPage);
+  }
+
+  // 手机端属性编辑器
+  @Builder
+  private MobilePropertyEditor() {
+    Column({ space: 0 }) {
+      ComponentPropertyPanel({
+        selectedComponent: this.selectedComponentObject,
+        availableFields: this.selectedSchemaObject?.fields || [],
+        schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
+        refreshKey: this.componentRefreshKey,
+        onFillColorChange: (color: string) => {
+          this.updateSelectedSchemaColor(color);
+        },
+        onCriticalColorChange: (color: string) => {
+          this.updateSelectedSchemaCriticalColor(color);
+        },
+        onPickFillColor: () => {
+          this.showColorPickerDialog('fill');
+        },
+        onPickCriticalColor: () => {
+          this.showColorPickerDialog('critical');
+        },
+        onBorderColorChange: (color: string) => {
+          this.updateSelectedSchemaBorderColor(color);
+        },
+        onBorderRadiusChange: (radius: number) => {
+          this.updateSelectedSchemaBorderRadius(radius);
+        },
+        onPropertyChange: (component: NodeComponentSchema) => {
+          this.handleComponentPropertyChange(component);
+        },
+        onFieldChange: (field: FieldSchema) => {
+          this.updateFieldInSelectedSchema(field.id, field);
+        }
+      });
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  // 手机端完整布局
+  @Builder
+  private MobileLayout() {
+    Column({ space: 0 }) {
+      // 状态栏安全区域
+      Row()
+        .width('100%')
+        .height(44) // iOS状态栏高度，Android一般为24-48
+        .backgroundColor(ColorResource.backgroundPage);
+
+      // 顶部导航
+      this.MobileHeader();
 
       Divider()
         .strokeWidth(0.5)
         .color(ColorResource.surfaceEmphasized)
         .opacity(0.2);
 
-      Stack() {
+      // 上部预览区域 (40%)
+      this.MobilePreviewArea();
+
+      Divider()
+        .strokeWidth(0.5)
+        .color(ColorResource.surfaceEmphasized)
+        .opacity(0.3);
+
+      // 下部Tab内容区域 (60%)
+      Column({ space: 0 }) {
+        this.MobileTabContent();
+        this.MobileTabBar();
+      }
+      .layoutWeight(6); // 下部占60%
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorResource.backgroundPage);
+  }
+
+  // ==================== 桌面端布局 ====================
+
+  // 桌面端顶部导航栏
+  @Builder
+  private DesktopHeader() {
+    Column() {
+      Row({ space: 12 }) {
+        Row({ space: 6 }) {
+          Text('←')
+            .fontSize(20)
+            .fontColor(ColorResource.primaryColor);
+          Text('返回')
+            .fontSize(ThemeConfig.fontSizeM)
+            .fontColor(ColorResource.primaryColor);
+        }
+        .padding({
+          left: 8,
+          right: 12,
+          top: 8,
+          bottom: 8
+        })
+        .borderRadius(8)
+        .onClick(() => {
+          router.back();
+        });
+
+        Text('节点工作台')
+          .fontSize(ThemeConfig.fontSizeL)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorResource.textPrimary)
+          .layoutWeight(1);
+
+        Row({ space: 8 }) {
+          Stack({ alignContent: Alignment.TopEnd }) {
+            Button('自定义组件')
+              .fontSize(ThemeConfig.fontSizeS)
+              .height(36)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .fontColor(ColorResource.textTertiary)
+              .borderRadius(8)
+              .enabled(false);
+
+            Text('即将推出')
+              .fontSize(10)
+              .fontColor(ColorResource.textTertiary)
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .backgroundColor(Color.White)
+              .borderRadius(10)
+              .border({ width: 1, color: ColorResource.surfaceEmphasized })
+              .shadow({ radius: 6, color: '#22000000', offsetX: 0, offsetY: 2 })
+              .opacity(0.95)
+              .margin({ top: -10, right: -8 });
+          }
+
+          Button('保存')
+            .fontSize(ThemeConfig.fontSizeS)
+            .height(36)
+            .backgroundColor(ColorResource.surface)
+            .fontColor(ColorResource.primaryColor)
+            .borderRadius(8)
+            .onClick(() => {
+              this.schemaService.saveToStorage();
+              this.promptAction.showToast({ message: '已保存', duration: 2000 });
+            });
+
+          Button('导入JSON')
+            .fontSize(ThemeConfig.fontSizeS)
+            .height(36)
+            .backgroundColor(ColorResource.backgroundSecondary)
+            .fontColor(ColorResource.primaryColor)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showImportDialog();
+            });
+
+          Button('导出JSON')
+            .fontSize(ThemeConfig.fontSizeS)
+            .height(36)
+            .backgroundColor(ColorResource.primaryColor)
+            .fontColor(Color.White)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showExportDialog();
+            });
+        }
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(ColorResource.backgroundPage);
+    }
+    .width('100%')
+    .padding({ top: 20 });
+  }
+
+  build() {
+    Column({ space: 0 }) {
+      // 根据设备宽度选择布局
+      if (this.isPhoneLayout) {
+        this.MobileLayout();
+      } else {
+        // 桌面端布局
+        this.DesktopHeader();
+
+        Divider()
+          .strokeWidth(0.5)
+          .color(ColorResource.surfaceEmphasized)
+          .opacity(0.2);
+
+        Stack() {
         // 主布局
         Row({ space: 0 }) {
           // 左侧: 节点类型列表
@@ -5134,9 +5657,19 @@ struct NodeWorkspacePage {
       }
       .width('100%')
       .layoutWeight(1);
+      } // end of else (desktop layout)
     }
     .width('100%')
     .height('100%')
     .backgroundColor(ColorResource.backgroundPage)
+    .onAreaChange((oldValue: Area, newValue: Area) => {
+      // 检测设备宽度，判断是否为手机布局
+      const width = newValue.width as number;
+      const newIsPhoneLayout = width < this.PHONE_WIDTH_THRESHOLD;
+      if (this.isPhoneLayout !== newIsPhoneLayout) {
+        this.isPhoneLayout = newIsPhoneLayout;
+        console.log(`[NodeWorkspace] Layout changed: ${newIsPhoneLayout ? 'Mobile' : 'Desktop'}, width: ${width}`);
+      }
+    });
   }
 }

@@ -2695,11 +2695,27 @@ struct HomePage {
       // 保存到存储
       await this.storageService.saveProject(project);
 
-      // 更新本地项目列表
+      // 更新本地项目列表 - 创建新数组引用以触发响应式更新
       const projectIndex = this.projectList.findIndex(p => p.id === projectId);
       if (projectIndex !== -1) {
-        this.projectList[projectIndex].name = newName;
-        this.projectList[projectIndex].lastModified = Date.now();
+        const oldMeta = this.projectList[projectIndex];
+        const updatedMeta: ProjectMeta = {
+          id: oldMeta.id,
+          name: newName,
+          category: oldMeta.category,
+          note: oldMeta.note,
+          lastModified: Date.now()
+        };
+
+        const newList: ProjectMeta[] = [];
+        for (let i = 0; i < this.projectList.length; i++) {
+          if (i === projectIndex) {
+            newList.push(updatedMeta);
+          } else {
+            newList.push(this.projectList[i]);
+          }
+        }
+        this.projectList = newList;
       }
 
       // 如果是当前选中的项目，也更新详情数据

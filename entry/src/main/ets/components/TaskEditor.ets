@@ -1772,9 +1772,6 @@ export struct TaskEditor {
                   radius: ThemeConfig.radiusMedium 
                 })
                   .enterKeyType(EnterKeyType.Go)
-                  .onSubmit(() => {
-                    this.submitNewChecklistItem();
-                  })
                   .onFocus(() => {
                     console.log('[TaskEditor] Checklist input focused');
                   })

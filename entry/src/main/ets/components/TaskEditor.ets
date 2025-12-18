@@ -108,6 +108,9 @@ export struct TaskEditor {
   @State private isTransitioning: boolean = false; // 是否正在切换任务
   private lastTaskId: string | null = null; // 跟踪上次的任务ID
   private lastTaskDataHash: string = ''; // 跟踪任务数据的内容哈希，用于检测数据变化
+  // 防重复提交子任务的节流信息
+  private lastAddedChecklistText: string = '';
+  private lastAddedChecklistTime: number = 0;
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   @State private showNodeTypeDropdown: boolean = false;
@@ -1406,41 +1409,61 @@ export struct TaskEditor {
 
   // 封装一个统一的添加函数
   private submitNewChecklistItem() {
-    const task = this.task || this.localTask;
-    if (task && this.newChecklistItemText.trim() !== '') {
-      // 验证清单项
-      const validation = ValidationUtils.validateChecklistItem(this.newChecklistItemText);
-      if (!validation.isValid) {
-        this.promptAction.showToast({ message: validation.message });
-        return;
-      }
+    // 优先使用本地副本，确保不会直接修改 @Prop task
+    const baseTask = this.localTask || this.task;
+    const rawText = this.newChecklistItemText;
+    const text = rawText.trim();
 
-      console.log(`[TaskEditor] Adding new checklist item: ${this.newChecklistItemText}`);
-      
-      // 创建新的清单项
-      const newItem: ChecklistItem = {
-        id: `item_${Date.now()}`,
-        text: this.newChecklistItemText,
-        isCompleted: false
-      };
-      
-      // 只更新 localTask 用于本地显示（不修改 @Prop task）
-      if (this.localTask) {
-        this.localTask.checklist = (this.localTask.checklist || []).concat([newItem]);
-      }
-      
-      // 更新显示清单
-      this.displayChecklist = [...this.displayChecklist, newItem];
-      
-      // 更新数据哈希
-      this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-      
-      this.forceUpdateKey++;
-      this.newChecklistItemText = '';
-      
-      // 立即通知父组件更新数据（让数据从父组件流回来）
-      this.onAddChecklistItem(task.id, newItem.text);
+    if (!baseTask || text === '') {
+      return;
     }
+
+    // 验证清单项
+    const validation = ValidationUtils.validateChecklistItem(text);
+    if (!validation.isValid) {
+      this.promptAction.showToast({ message: validation.message });
+      return;
+    }
+
+    // 防止极短时间内重复提交相同文本导致的双重新增
+    const now = Date.now();
+    if (text === this.lastAddedChecklistText && now - this.lastAddedChecklistTime < 500) {
+      console.log('[TaskEditor] Duplicate checklist submit ignored:', text);
+      return;
+    }
+    this.lastAddedChecklistText = text;
+    this.lastAddedChecklistTime = now;
+
+    console.log(`[TaskEditor] Adding new checklist item: ${text}`);
+
+    // 确保 localTask 存在并作为可变副本使用
+    if (!this.localTask && this.task) {
+      this.localTask = this.task;
+    }
+    const targetTask = this.localTask || baseTask;
+
+    // 创建新的清单项
+    const newItem: ChecklistItem = {
+      id: `item_${Date.now()}`,
+      text: text,
+      isCompleted: false
+    };
+
+    // 更新本地任务与显示清单
+    const currentChecklist = targetTask.checklist || [];
+    const newChecklist: ChecklistItem[] = currentChecklist.concat([newItem]);
+    targetTask.checklist = newChecklist;
+    this.displayChecklist = [...newChecklist];
+
+    // 更新数据哈希与刷新 key
+    this.lastTaskDataHash = this.computeTaskDataHash(targetTask);
+    this.forceUpdateKey++;
+
+    // 清空输入框
+    this.newChecklistItemText = '';
+
+    // 通知父组件使用完整 checklist 进行更新（单一路径，避免重复）
+    this.onUpdateChecklist(targetTask.id, newChecklist);
   }
 
   // 删除子任务

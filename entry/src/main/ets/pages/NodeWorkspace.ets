@@ -5361,27 +5361,6 @@ struct NodeWorkspacePage {
           .layoutWeight(1);
 
         Row({ space: 8 }) {
-          Stack({ alignContent: Alignment.TopEnd }) {
-            Button('自定义组件')
-              .fontSize(ThemeConfig.fontSizeS)
-              .height(36)
-              .backgroundColor(ColorResource.backgroundSecondary)
-              .fontColor(ColorResource.textTertiary)
-              .borderRadius(8)
-              .enabled(false);
-
-            Text('即将推出')
-              .fontSize(10)
-              .fontColor(ColorResource.textTertiary)
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .backgroundColor(Color.White)
-              .borderRadius(10)
-              .border({ width: 1, color: ColorResource.surfaceEmphasized })
-              .shadow({ radius: 6, color: '#22000000', offsetX: 0, offsetY: 2 })
-              .opacity(0.95)
-              .margin({ top: -10, right: -8 });
-          }
-
           Button('保存')
             .fontSize(ThemeConfig.fontSizeS)
             .height(36)

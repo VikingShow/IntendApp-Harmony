@@ -51,7 +51,7 @@ import { AppState } from '../core/AppState';
 import { Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { BreakpointSystem } from '../utils/BreakpointSystem';
 import { PerformanceService } from '../services/PerformanceService';
-import { CalendarService } from '../services/CalendarService';
+import { CalendarService, CalendarErrorType } from '../services/CalendarService';
 import { TutorialService, TutorialStep, TutorialPage } from '../services/TutorialService';
 import { TutorialGuide } from '../components/TutorialGuide';
 
@@ -2265,8 +2265,18 @@ struct Index {
                 duration: 2000
               });
             } else {
+              const errorType = this.calendarService.getLastErrorType();
+              let message = '创建日程失败，请稍后重试';
+              if (errorType === CalendarErrorType.MANAGER_NOT_READY) {
+                message = '当前设备暂不支持系统日历，或应用未获得日历权限';
+              } else if (errorType === CalendarErrorType.CALENDAR_CREATE_FAILED ||
+                         errorType === CalendarErrorType.NO_AVAILABLE_CALENDAR) {
+                message = '无法访问系统日历，请检查手机是否安装并启用了日历应用';
+              } else if (errorType === CalendarErrorType.ADD_EVENT_FAILED) {
+                message = '日历可用，但创建日程失败，请检查任务开始/结束时间是否有效';
+              }
               this.promptAction.showToast({
-                message: '创建日程失败，请检查设备是否支持日历服务',
+                message: message,
                 duration: 3000
               });
             }

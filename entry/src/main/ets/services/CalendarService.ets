@@ -1,27 +1,29 @@
 // File: entry/src/main/ets/services/CalendarService.ets
-/**
- * 日历日程服务模块
- *
- * 使用 HarmonyOS Calendar Kit 提供的 calendarManager 能力，
- * 在系统日历中为任务创建对应的日程（带提醒）。
- */
 
 import { TaskNode } from '../model/ProjectData';
 import { calendarManager } from '@kit.CalendarKit';
 import { calendarMgr } from '../entryability/EntryAbility';
 import { BusinessError } from '@kit.BasicServicesKit';
 
-/**
- * 日历服务
- */
+export enum CalendarErrorType {
+  NONE = 'NONE',
+  MANAGER_NOT_READY = 'MANAGER_NOT_READY',
+  CALENDAR_CREATE_FAILED = 'CALENDAR_CREATE_FAILED',
+  NO_AVAILABLE_CALENDAR = 'NO_AVAILABLE_CALENDAR',
+  ADD_EVENT_FAILED = 'ADD_EVENT_FAILED'
+}
+
+// 扩展 CalendarManager，补充可能存在的获取日历列表方法
+interface CalendarManagerWithList extends calendarManager.CalendarManager {
+  getCalendars?(): Promise<Array<calendarManager.Calendar>>;
+}
+
 export class CalendarService {
   private static instance: CalendarService;
   private calendar: calendarManager.Calendar | null = null;
   private calendarInitialized: boolean = false;
+  private lastErrorType: CalendarErrorType = CalendarErrorType.NONE;
 
-  /**
-   * 获取单例实例
-   */
   public static getInstance(): CalendarService {
     if (!CalendarService.instance) {
       CalendarService.instance = new CalendarService();
@@ -29,12 +31,16 @@ export class CalendarService {
     return CalendarService.instance;
   }
 
-  // 私有构造函数，确保单例
   private constructor() {}
 
-  /**
-   * 确保日历账户已创建并返回对应 Calendar 对象
-   */
+  public getLastErrorType(): CalendarErrorType {
+    return this.lastErrorType;
+  }
+
+  private resetError() {
+    this.lastErrorType = CalendarErrorType.NONE;
+  }
+
   private async ensureCalendar(): Promise<calendarManager.Calendar | null> {
     if (this.calendarInitialized && this.calendar) {
       return this.calendar;
@@ -42,17 +48,16 @@ export class CalendarService {
 
     if (!calendarMgr) {
       console.error('[CalendarService] calendarMgr not ready.');
+      this.lastErrorType = CalendarErrorType.MANAGER_NOT_READY;
       return null;
     }
 
-    // 指定日历账户信息
     const calendarAccount: calendarManager.CalendarAccount = {
       name: 'EasyFlowCalendar',
       type: calendarManager.CalendarType.LOCAL,
       displayName: 'EasyFlow'
     };
 
-    // 日历配置信息：开启提醒并设置颜色
     const config: calendarManager.CalendarConfig = {
       enableReminder: true,
       color: '#4A90E2'
@@ -67,24 +72,55 @@ export class CalendarService {
 
       this.calendar = calendar;
       this.calendarInitialized = true;
+      this.resetError();
       return this.calendar;
     } catch (error) {
       const err = error as BusinessError;
       console.error(`[CalendarService] Failed to create calendar. Code: ${err.code}, message: ${err.message}`);
       this.calendar = null;
       this.calendarInitialized = false;
+      this.lastErrorType = CalendarErrorType.CALENDAR_CREATE_FAILED;
+    }
+
+    try {
+      const manager: CalendarManagerWithList = calendarMgr as CalendarManagerWithList;
+      let calendars: Array<calendarManager.Calendar> | null = null;
+
+      if (manager.getCalendars) {
+        calendars = await manager.getCalendars();
+      } else if (manager.getAllCalendars) {
+        calendars = await manager.getAllCalendars();
+      } else {
+        calendars = [];
+      }
+
+      if (calendars && calendars.length > 0) {
+        const fallbackCalendar = calendars[0];
+        console.info('[CalendarService] Fallback to existing calendar');
+        this.calendar = fallbackCalendar;
+        this.calendarInitialized = true;
+        this.resetError();
+        return this.calendar;
+      } else {
+        console.error('[CalendarService] No existing calendars available.');
+        this.calendar = null;
+        this.calendarInitialized = false;
+        this.lastErrorType = CalendarErrorType.NO_AVAILABLE_CALENDAR;
+        return null;
+      }
+    } catch (error) {
+      const err = error as BusinessError;
+      console.error(`[CalendarService] Failed to obtain existing calendars. Code: ${err.code}, message: ${err.message}`);
+      this.calendar = null;
+      this.calendarInitialized = false;
+      // 保持之前设置的错误类型（CALENDAR_CREATE_FAILED 或 NO_AVAILABLE_CALENDAR）
       return null;
     }
   }
 
-  /**
-   * 为指定任务创建系统日历日程（带提醒）
-   *
-   * @param task 任务对象（至少包含名称和开始/结束时间）
-   * @returns 日程 ID，失败时返回 null
-   */
   public async addTaskReminder(task: TaskNode): Promise<number | null> {
     try {
+      this.resetError();
       const calendar = await this.ensureCalendar();
       if (!calendar) {
         console.error('[CalendarService] Calendar not available.');
@@ -95,23 +131,21 @@ export class CalendarService {
       const endTime = task.endDate.getTime();
 
       const event: calendarManager.Event = {
-        // 日程标题
         title: task.name,
-        // 日程类型
         type: calendarManager.EventType.NORMAL,
-        // 日程开始/结束时间
         startTime: startTime,
         endTime: endTime,
-        // 距离开始时间提前 10 分钟提醒
         reminderTime: [10]
       };
 
       const eventId: number = await calendar.addEvent(event);
       console.info(`[CalendarService] Succeeded in adding event, id = ${eventId}`);
+      this.resetError();
       return eventId;
     } catch (error) {
       const err = error as BusinessError;
       console.error(`[CalendarService] Failed to add event. Code: ${err.code}, message: ${err.message}`);
+      this.lastErrorType = CalendarErrorType.ADD_EVENT_FAILED;
       return null;
     }
   }

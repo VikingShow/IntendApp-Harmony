@@ -40,7 +40,7 @@ import vibrator from '@ohos.vibrator';
 import { BreakpointSystem, BreakpointConfig } from '../utils/BreakpointSystem';
 import { CanvasRenderer, RenderMode } from '../core/canvas/CanvasRenderer';
 import { StorageService } from '../services/StorageService';
-import { CalendarService } from '../services/CalendarService';
+import { CalendarService, CalendarErrorType } from '../services/CalendarService';
 import { PromptAction } from '@kit.ArkUI';
 import common from '@ohos.app.ability.common';
 import { ProjectPreviewDialog, CardType } from './ProjectPreviewDialog';
@@ -733,11 +733,21 @@ export struct DashboardView {
       if (eventId !== null) {
         this.promptAction.showToast({ message: '已在日历中创建日程提醒', duration: 2000 });
       } else {
-        this.promptAction.showToast({ message: '创建日程失败', duration: 2000 });
+        const errorType = this.calendarService.getLastErrorType();
+        let message = '创建日程失败，请稍后重试';
+        if (errorType === CalendarErrorType.MANAGER_NOT_READY) {
+          message = '当前设备暂不支持系统日历，或应用未获得日历权限';
+        } else if (errorType === CalendarErrorType.CALENDAR_CREATE_FAILED ||
+                   errorType === CalendarErrorType.NO_AVAILABLE_CALENDAR) {
+          message = '无法访问系统日历，请检查手机是否安装并启用了日历应用';
+        } else if (errorType === CalendarErrorType.ADD_EVENT_FAILED) {
+          message = '日历可用，但创建日程失败，请检查任务开始/结束时间是否有效';
+        }
+        this.promptAction.showToast({ message: message, duration: 2000 });
       }
     } catch (error) {
       console.error('[DashboardView] handleAddTaskReminder error:', error);
-      this.promptAction.showToast({ message: '创建日程失败', duration: 2000 });
+      this.promptAction.showToast({ message: '创建日程失败，请稍后重试', duration: 2000 });
     }
   }
 

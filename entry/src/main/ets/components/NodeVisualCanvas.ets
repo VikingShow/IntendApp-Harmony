@@ -54,11 +54,11 @@ export struct NodeVisualCanvas {
             .fontSize(14)
             .fontWeight(FontWeight.Bold)
             .fontColor(ColorResource.textSecondary)
-            .width(24)
-            .height(24)
+            .width(32)
+            .height(32)
             .textAlign(TextAlign.Center)
             .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(12)
+            .borderRadius(16)
             .onClick(() => {
               AlertDialog.show({
                 title: '可视化画布使用提示',

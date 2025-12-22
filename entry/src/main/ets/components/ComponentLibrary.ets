@@ -74,11 +74,11 @@ export struct ComponentLibrary {
             .fontSize(14)
             .fontWeight(FontWeight.Bold)
             .fontColor(ColorResource.textSecondary)
-            .width(24)
-            .height(24)
+            .width(32)
+            .height(32)
             .textAlign(TextAlign.Center)
             .backgroundColor(ColorResource.backgroundSecondary)
-            .borderRadius(12)
+            .borderRadius(16)
             .onClick(() => {
               AlertDialog.show({
                 title: '组件库使用提示',
@@ -171,7 +171,7 @@ export struct ComponentLibrary {
               
               // 描述信息
               Text(component.description)
-                .fontSize(ThemeConfig.fontSizeXS - 1)
+                .fontSize(ThemeConfig.fontSizeXS)
                 .fontColor(ColorResource.textTertiary)
                 .opacity(0.7)
                 .padding({ left: 12, right: 12, top: 4, bottom: 8 });

@@ -115,7 +115,7 @@ export struct NodeComponentPreview {
         this.renderComponentContent();
       }
       .width('100%')
-      .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+      .padding({ left: 4, right: 4, top: 8, bottom: 8 })
       .backgroundColor(this.isSelected ? 'rgba(0, 122, 255, 0.08)' : Color.Transparent)
       .borderRadius(4)
       .border({
@@ -146,12 +146,12 @@ export struct NodeComponentPreview {
             .fontSize(14)
             .fontColor(Color.White);
         }
-        .width(18)
-        .height(18)
+        .width(32)
+        .height(32)
         .padding(0)
         .backgroundColor('#FF3B30')
-        .borderRadius(9)
-        .margin({ top: -6, right: -6 })
+        .borderRadius(16)
+        .margin({ top: -8, right: -8 })
         .onClick(() => {
           if (this.handleDelete) {
             this.handleDelete();

@@ -98,11 +98,11 @@ export struct ComponentPropertyPanel {
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor(ColorResource.textSecondary)
-          .width(24)
-          .height(24)
+          .width(32)
+          .height(32)
           .textAlign(TextAlign.Center)
           .backgroundColor(ColorResource.backgroundSecondary)
-          .borderRadius(12)
+          .borderRadius(16)
           .onClick(() => {
             AlertDialog.show({
               title: '属性编辑器使用提示',
@@ -139,10 +139,10 @@ export struct ComponentPropertyPanel {
                 .fontSize(ThemeConfig.fontSizeXS)
                 .fontColor(ColorResource.textTertiary);
               Row()
-                .width(24)
-                .height(24)
+                .width(32)
+                .height(32)
                 .backgroundColor(this.schemaStyle.fillColor || '#409EFF')
-                .borderRadius(4)
+                .borderRadius(8)
                 .onClick(() => {
                   if (this.onPickFillColor) {
                     this.onPickFillColor();
@@ -168,10 +168,10 @@ export struct ComponentPropertyPanel {
                 .fontSize(ThemeConfig.fontSizeXS)
                 .fontColor(ColorResource.textTertiary);
               Row()
-                .width(24)
-                .height(24)
+                .width(32)
+                .height(32)
                 .backgroundColor(this.schemaStyle.criticalColor || '#D0021B')
-                .borderRadius(4)
+                .borderRadius(8)
                 .onClick(() => {
                   if (this.onPickCriticalColor) {
                     this.onPickCriticalColor();

@@ -1543,7 +1543,7 @@ struct NodeWorkspacePage {
   // 布局管理状态
   @State panelWidths: number[] = [20, 25, 30, 25]; // 默认宽度百分比
   @State panelCollapsed: boolean[] = [false, false, false, false]; // 折叠状态
-  private readonly DEFAULT_WIDTHS = [20, 25, 30, 25];
+  private readonly DEFAULT_WIDTHS = [18, 24, 28, 30];
   private deleteDialogController: CustomDialogController | null = null;
   private importConflictDialogController: CustomDialogController | null = null;
   private colorPickerDialogController: CustomDialogController | null = null;
@@ -3085,13 +3085,13 @@ struct NodeWorkspacePage {
                     Row({ space: 6 }) {
                       if (schema.isSystem) {
                         Text('系统')
-                          .fontSize(ThemeConfig.fontSizeXS - 2)
+                          .fontSize(ThemeConfig.fontSizeXS)
                           .fontColor(ColorResource.textTertiary)
                           .opacity(0.7);
                       }
                       if (schema.version > 1) {
                         Text(`v${schema.version}`)
-                          .fontSize(ThemeConfig.fontSizeXS - 2)
+                          .fontSize(ThemeConfig.fontSizeXS)
                           .fontColor(ColorResource.textTertiary)
                           .opacity(0.7);
                       }
@@ -3108,12 +3108,14 @@ struct NodeWorkspacePage {
                     .fontWeight(FontWeight.Bold)
                     .fontColor(ColorResource.textSecondary)
                     .textAlign(TextAlign.Center)
-                    .width(24)
-                    .height(24);
+                    .width(32)
+                    .height(32);
                 }
                 .margin({ left: 4 })
-                .borderRadius(4)
+                .borderRadius(8)
                 .backgroundColor(Color.Transparent)
+                .width(40)
+                .height(40)
                 .bindMenu([
                   {
                     value: '编辑名称',

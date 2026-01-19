@@ -792,7 +792,7 @@ export struct DashboardView {
     this.canvasRenderer.render(this.project, {
       canvasOffsetX: this.project.canvasOffsetX || 0,
       canvasOffsetY: this.project.canvasOffsetY || 0,
-      zoomScale: this.project.zoomScale || 1.0, // ✅ 使用相同的缩放比例（不再缩小50%）
+      zoomScale: this.project.zoomScale || 1.0, // 使用相同的缩放比例（不再缩小50%）
       isConnecting: false,
       connectingFromTaskId: null,
       selectedTaskId: null,
@@ -1908,37 +1908,49 @@ export struct DashboardView {
       // 右侧小图标操作区
       Row({ space: ThemeConfig.spacingXS }) {
         // 标记完成
-        Text('✓')
-          .fontSize(ThemeConfig.fontSizeM)
-          .fontColor(ColorResource.surfaceDeep)
-          .padding({ left: 6, right: 6, top: 4, bottom: 4 })
-          .backgroundColor(ColorResource.surfaceSubtle)
-          .borderRadius(ThemeConfig.radiusSmall)
-          .onClick(() => {
-            this.handleMarkTaskCompleted(task);
-          })
+        Button() {
+          Image($r('app.media.ic_select'))
+            .width(16)
+            .height(16)
+            .fillColor(ColorResource.surfaceDeep)
+        }
+        .width(28)
+        .height(28)
+        .backgroundColor(ColorResource.surfaceSubtle)
+        .borderRadius(ThemeConfig.radiusSmall)
+        .onClick(() => {
+          this.handleMarkTaskCompleted(task);
+        })
 
         // 添加日程
-        Text('⏰')
-          .fontSize(ThemeConfig.fontSizeM)
-          .fontColor(ColorResource.surfaceDeep)
-          .padding({ left: 6, right: 6, top: 4, bottom: 4 })
-          .backgroundColor(ColorResource.surfaceSubtle)
-          .borderRadius(ThemeConfig.radiusSmall)
-          .onClick(() => {
-            this.handleAddTaskReminder(task);
-          })
+        Button() {
+          Image($r('app.media.ic_alarm'))
+            .width(16)
+            .height(16)
+            .fillColor(ColorResource.surfaceDeep)
+        }
+        .width(28)
+        .height(28)
+        .backgroundColor(ColorResource.surfaceSubtle)
+        .borderRadius(ThemeConfig.radiusSmall)
+        .onClick(() => {
+          this.handleAddTaskReminder(task);
+        })
 
         // 打开编辑页
-        Text('↗')
-          .fontSize(ThemeConfig.fontSizeM)
-          .fontColor(ColorResource.primaryColor)
-          .padding({ left: 6, right: 6, top: 4, bottom: 4 })
-          .backgroundColor(ColorResource.primaryLight)
-          .borderRadius(ThemeConfig.radiusSmall)
-          .onClick(() => {
-            this.handleOpenTaskInEditor(task);
-          })
+        Button() {
+          Image($r('app.media.ic_open'))
+            .width(16)
+            .height(16)
+            .fillColor(ColorResource.primaryColor)
+        }
+        .width(28)
+        .height(28)
+        .backgroundColor(ColorResource.primaryLight)
+        .borderRadius(ThemeConfig.radiusSmall)
+        .onClick(() => {
+          this.handleOpenTaskInEditor(task);
+        })
       }
     }
     .width('100%')
@@ -2000,12 +2012,16 @@ export struct DashboardView {
       .layoutWeight(1)
 
       // 与今日/本周重点一致的“打开编辑”箭头
-      Text('↗')
-        .fontSize(ThemeConfig.fontSizeM)
-        .fontColor(ColorResource.primaryColor)
-        .padding({ left: 6, right: 6, top: 4, bottom: 4 })
-        .backgroundColor(ColorResource.primaryLight)
-        .borderRadius(ThemeConfig.radiusSmall)
+      Button() {
+        Image($r('app.media.ic_open'))
+          .width(16)
+          .height(16)
+          .fillColor(ColorResource.primaryColor)
+      }
+      .width(28)
+      .height(28)
+      .backgroundColor(ColorResource.primaryLight)
+      .borderRadius(ThemeConfig.radiusSmall)
     }
     .width('100%')
     .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))
@@ -2049,12 +2065,16 @@ export struct DashboardView {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Text('↗')
-        .fontSize(ThemeConfig.fontSizeM)
-        .fontColor(ColorResource.primaryColor)
-        .padding({ left: 6, right: 6, top: 4, bottom: 4 })
-        .backgroundColor(ColorResource.primaryLight)
-        .borderRadius(ThemeConfig.radiusSmall)
+      Button() {
+        Image($r('app.media.ic_open'))
+          .width(16)
+          .height(16)
+          .fillColor(ColorResource.primaryColor)
+      }
+      .width(28)
+      .height(28)
+      .backgroundColor(ColorResource.primaryLight)
+      .borderRadius(ThemeConfig.radiusSmall)
     }
     .width('100%')
     .padding(this.isFloatingCard ? 10 : BreakpointSystem.getResponsiveSpacing(ThemeConfig.spacingM, this.screenWidth))

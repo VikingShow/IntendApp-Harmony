@@ -73,7 +73,7 @@ private StyleTab() {
 private RulesTab() {
   Column({ space: 16 }) {
     Row({ space: 8 }) {
-      Text('⚙️ 规则引擎')
+      Text('规则引擎')
         .fontSize(ThemeConfig.fontSizeM)
         .fontWeight(FontWeight.Medium);
       
@@ -104,7 +104,7 @@ private RulesTab() {
           .fontSize(ThemeConfig.fontSizeS)
           .fontColor(ColorResource.textTertiary);
         
-        Text('💡 示例规则：当"优先级"字段为"高"时，自动设置"颜色"字段为红色')
+        Text('示例规则：当"优先级"字段为"高"时，自动设置"颜色"字段为红色')
           .fontSize(ThemeConfig.fontSizeXS)
           .fontColor(ColorResource.textTertiary)
           .lineHeight(16);
@@ -124,7 +124,7 @@ private RulesTab() {
                 .fontWeight(FontWeight.Medium)
                 .layoutWeight(1);
               
-              Text(rule.enabled === false ? '❌ 禁用' : '✅ 启用')
+              Text(rule.enabled === false ? '禁用' : '启用')
                 .fontSize(ThemeConfig.fontSizeXS)
                 .fontColor(rule.enabled === false ? ColorResource.textTertiary : '#34C759');
             }

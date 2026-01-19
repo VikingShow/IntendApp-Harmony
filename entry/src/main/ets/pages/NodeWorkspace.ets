@@ -1143,11 +1143,11 @@ struct HistoryCardPreview {
   private getComponentContent(comp: NodeComponentSchema): string {
     const contentMap: Record<string, string> = {
       'TITLE': '任务标题',
-      'DATE_RANGE': '📅 12/23 ~ 12/30',
-      'CHECKLIST_SUMMARY': '☑️ 3/5 完成',
-      'PRIORITY_BADGE': '🔥 高优先级',
-      'ASSIGNEE': '👤 张三',
-      'TAGS': '🏷️ 开发, 设计'
+      'DATE_RANGE': '12/23 ~ 12/30',
+      'CHECKLIST_SUMMARY': '3/5 完成',
+      'PRIORITY_BADGE': '高优先级',
+      'ASSIGNEE': '张三',
+      'TAGS': '开发, 设计'
     };
     return contentMap[comp.type] || comp.type;
   }
@@ -1163,10 +1163,16 @@ struct HistoryCardPreview {
               .fontColor(ColorResource.textPrimary)
               .width('100%');
           } else if (comp.type === 'DATE_RANGE') {
-            Text('📅 12/23 ~ 12/30')
-              .fontSize(7)
-              .fontColor(ColorResource.textSecondary)
-              .width('100%');
+            Row({ space: 3 }) {
+              Image($r('app.media.ic_calendar'))
+                .width(8)
+                .height(8)
+                .fillColor(ColorResource.textSecondary)
+              Text('12/23 ~ 12/30')
+                .fontSize(7)
+                .fontColor(ColorResource.textSecondary)
+            }
+            .width('100%');
           } else if (comp.type === 'TIME_PROGRESS') {
             Column({ space: 1 }) {
               Text('时间: 50%')
@@ -1190,25 +1196,49 @@ struct HistoryCardPreview {
             }
             .width('100%');
           } else if (comp.type === 'CHECKLIST_SUMMARY') {
-            Text('☑️ 3/5 完成')
-              .fontSize(7)
-              .fontColor(ColorResource.textSecondary)
-              .width('100%');
+            Row({ space: 3 }) {
+              Image($r('app.media.ic_checklist'))
+                .width(8)
+                .height(8)
+                .fillColor(ColorResource.textSecondary)
+              Text('3/5 完成')
+                .fontSize(7)
+                .fontColor(ColorResource.textSecondary)
+            }
+            .width('100%');
           } else if (comp.type === 'PRIORITY_BADGE') {
-            Text('🔥 高优先级')
-              .fontSize(7)
-              .fontColor('#FF3B30')
-              .width('100%');
+            Row({ space: 3 }) {
+              Image($r('app.media.ic_priority'))
+                .width(8)
+                .height(8)
+                .fillColor('#FF3B30')
+              Text('高优先级')
+                .fontSize(7)
+                .fontColor('#FF3B30')
+            }
+            .width('100%');
           } else if (comp.type === 'ASSIGNEE') {
-            Text('👤 张三')
-              .fontSize(7)
-              .fontColor(ColorResource.textSecondary)
-              .width('100%');
+            Row({ space: 3 }) {
+              Image($r('app.media.ic_user'))
+                .width(8)
+                .height(8)
+                .fillColor(ColorResource.textSecondary)
+              Text('张三')
+                .fontSize(7)
+                .fontColor(ColorResource.textSecondary)
+            }
+            .width('100%');
           } else if (comp.type === 'TAGS') {
-            Text('🏷️ 开发, 设计')
-              .fontSize(7)
-              .fontColor(ColorResource.textSecondary)
-              .width('100%');
+            Row({ space: 3 }) {
+              Image($r('app.media.ic_tag'))
+                .width(8)
+                .height(8)
+                .fillColor(ColorResource.textSecondary)
+              Text('开发, 设计')
+                .fontSize(7)
+                .fontColor(ColorResource.textSecondary)
+            }
+            .width('100%');
           } else if (comp.type === 'STATUS_DOT') {
             Row({ space: 3 }) {
               Circle().width(6).height(6).fill('#34C759');
@@ -3875,10 +3905,10 @@ struct NodeWorkspacePage {
                       .opacity(this.isSelectedSchemaSystem() ? 0.6 : 1);
 
                     if ((this.getSelectedSchema() as NodeSchema).style.fillColor === color) {
-                      Text('✓')
-                        .fontSize(20)
-                        .fontColor(Color.White)
-                        .fontWeight(FontWeight.Bold);
+                      Image($r('app.media.ic_select'))
+                        .width(18)
+                        .height(18)
+                        .fillColor(Color.White)
                     }
                   }
                   .enabled(!this.isSelectedSchemaSystem())
@@ -3936,10 +3966,10 @@ struct NodeWorkspacePage {
                       .opacity(this.isSelectedSchemaSystem() ? 0.6 : 1);
 
                     if ((this.getSelectedSchema() as NodeSchema).style.criticalColor === color) {
-                      Text('✓')
-                        .fontSize(20)
-                        .fontColor(Color.White)
-                        .fontWeight(FontWeight.Bold);
+                      Image($r('app.media.ic_select'))
+                        .width(18)
+                        .height(18)
+                        .fillColor(Color.White)
                     }
                   }
                   .enabled(!this.isSelectedSchemaSystem())
@@ -4080,7 +4110,7 @@ struct NodeWorkspacePage {
               TextInput({
                 text: (this.getSelectedSchema() as NodeSchema).style.icon ?
                   (this.getSelectedSchema() as NodeSchema).style.icon as string : '',
-                placeholder: '如 ★ 或 📌'
+                placeholder: '如 符号 或 图标'
               })
                 .width('100%')
                 .height(40)
@@ -4954,9 +4984,9 @@ struct NodeWorkspacePage {
   @Builder
   private MobileTabBar() {
     Row({ space: 0 }) {
-      this.MobileTabItem('📋', '节点类型', 0)
-      this.MobileTabItem('🧩', '组件库', 1)
-      this.MobileTabItem('⚙️', '属性', 2)
+      this.MobileTabItem($r('app.media.ic_project_file'), '节点类型', 0)
+      this.MobileTabItem($r('app.media.ic_puzzle'), '组件库', 1)
+      this.MobileTabItem($r('app.media.ic_settings'), '属性', 2)
     }
     .width('100%')
     .height(56)
@@ -4966,10 +4996,12 @@ struct NodeWorkspacePage {
 
   // 手机端Tab项
   @Builder
-  private MobileTabItem(icon: string, label: string, index: number) {
+  private MobileTabItem(icon: Resource, label: string, index: number) {
     Column({ space: 4 }) {
-      Text(icon)
-        .fontSize(18);
+      Image(icon)
+        .width(20)
+        .height(20)
+        .fillColor(this.mobileTabIndex === index ? ColorResource.primaryColor : ColorResource.textTertiary)
       Text(label)
         .fontSize(ThemeConfig.fontSizeXS)
         .fontColor(this.mobileTabIndex === index ? ColorResource.primaryColor : ColorResource.textTertiary)
@@ -5110,10 +5142,11 @@ struct NodeWorkspacePage {
 
               // 选中指示器
               if (this.selectedSchemaId === schema.id) {
-                Text('✓')
-                  .fontSize(14)
-                  .fontColor(ColorResource.primaryColor)
-                  .margin({ right: 4 });
+                Image($r('app.media.ic_select'))
+                  .width(14)
+                  .height(14)
+                  .fillColor(ColorResource.primaryColor)
+                  .margin({ right: 4 })
               }
 
               // 三点菜单按钮（与桌面端保持一致使用bindMenu）

@@ -751,7 +751,7 @@ export class CanvasRenderer {
         const startD = task.startDate.getDate();
         const endM = task.endDate.getMonth() + 1;
         const endD = task.endDate.getDate();
-        const dateString = `📅 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
+        const dateString = `日期 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
         this.context.fillText(dateString, leftX, cursorY);
         cursorY += 18;
 
@@ -837,7 +837,7 @@ export class CanvasRenderer {
               const assigneeText = getCustomStr('_assignee') || '负责人';
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
               this.context.font = `20px HarmonyOS Sans`;
-              this.context.fillText(`👤 ${assigneeText}`, slotX, cursorY + 3);
+              this.context.fillText(`负责人 ${assigneeText}`, slotX, cursorY + 3);
             }
           });
 
@@ -869,7 +869,7 @@ export class CanvasRenderer {
             const startD = task.startDate.getDate();
             const endM = task.endDate.getMonth() + 1;
             const endD = task.endDate.getDate();
-            const dateString = `📅 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
+            const dateString = `日期 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
             this.context.fillText(dateString, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
@@ -881,7 +881,7 @@ export class CanvasRenderer {
               : 0;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`☑️ ${done}/${total} 项已完成`, leftX, cursorY);
+            this.context.fillText(`清单 ${done}/${total} 项已完成`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
           }
@@ -926,8 +926,7 @@ export class CanvasRenderer {
             this.context.font = `18px HarmonyOS Sans`;
             
             if (propStyle === 'icon') {
-              // 图标样式：🔥🔥🔥
-              this.context.fillText('🔥🔥🔥', leftX, cursorY);
+              this.context.fillText('高优先级', leftX, cursorY);
               cursorY += LINE_HEIGHT;
             } else if (propStyle === 'text') {
               // 文字样式
@@ -993,7 +992,7 @@ export class CanvasRenderer {
             const assigneeText = v && v.length > 0 ? v : '负责人';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`👤 ${assigneeText}`, leftX, cursorY+3);
+            this.context.fillText(`负责人 ${assigneeText}`, leftX, cursorY+3);
             cursorY += LINE_HEIGHT;
             return;
           }
@@ -1016,7 +1015,7 @@ export class CanvasRenderer {
             // 绘制标签图标
             this.context.font = `24px HarmonyOS Sans`;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.fillText(`🏷️`, leftX, cursorY);
+            this.context.fillText(`标签`, leftX, cursorY);
 
             // 切换到较小字体绘制标签文字
             this.context.font = `22px HarmonyOS Sans`;
@@ -1072,7 +1071,7 @@ export class CanvasRenderer {
             const displayText = v && v.length > 0 ? v : '未绑定字段';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`✏️ ${label}: ${displayText}`, leftX, cursorY);
+            this.context.fillText(`${label}: ${displayText}`, leftX, cursorY);
             cursorY += LINE_HEIGHT;
             return;
           }

@@ -81,16 +81,16 @@ export interface NodeStyleOverride {
  * 用于描述节点内部卡片上展示哪些信息
  */
 export type NodeComponentType =
-  | 'TITLE'              // 📌 任务标题
-  | 'DATE_RANGE'         // 📅 日期范围
+  | 'TITLE'              // 任务标题
+  | 'DATE_RANGE'         // 日期范围
   | 'TIME_PROGRESS'      // ⏱️ 时间进度条
-  | 'TASK_PROGRESS'      // ✅ 任务完成进度条
-  | 'CHECKLIST_SUMMARY'  // ☑️ 清单统计
-  | 'PRIORITY_BADGE'     // 🔥 优先级标签
-  | 'ASSIGNEE'           // 👤 负责人
-  | 'TAGS'               // 🏷️ 标签列表
-  | 'STATUS_DOT'         // 🔴 状态指示器
-  | 'CUSTOM_FIELD';      // ✏️ 自定义字段
+  | 'TASK_PROGRESS'      // 任务完成进度条
+  | 'CHECKLIST_SUMMARY'  // 清单统计
+  | 'PRIORITY_BADGE'     // 优先级标签
+  | 'ASSIGNEE'           // 负责人
+  | 'TAGS'               // 标签列表
+  | 'STATUS_DOT'         // 状态指示器
+  | 'CUSTOM_FIELD';      // 自定义字段
 
 /**
  * 节点内部组件 Schema

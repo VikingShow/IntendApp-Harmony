@@ -15,7 +15,7 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 export struct DraggableComponentItem {
   @Prop type: NodeComponentType;
   @Prop label: string;
-  @Prop icon: string;
+  @Prop icon: Resource;
   @Prop isDragging: boolean = false;
   handleDragStart?: (type: NodeComponentType) => void;
   handleDragEnd?: () => void;
@@ -24,8 +24,10 @@ export struct DraggableComponentItem {
     Column({ space: 6 }) {
       // 头部：图标、名称和拖拽手柄
       Row({ space: 8 }) {
-        Text(this.icon)
-          .fontSize(16);
+        Image(this.icon)
+          .width(16)
+          .height(16)
+          .fillColor(ColorResource.textSecondary)
 
         Text(this.label)
           .fontSize(ThemeConfig.fontSizeS)
@@ -201,8 +203,10 @@ export struct NodeComponentPreview {
   @Builder
   renderDateRange() {
     Row({ space: 4 }) {
-      Text('📅')
-        .fontSize(12);
+      Image($r('app.media.ic_calendar'))
+        .width(12)
+        .height(12)
+        .fillColor(ColorResource.textSecondary)
       Text('12/23 ~ 12/30 (8天)')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -275,8 +279,10 @@ export struct NodeComponentPreview {
   @Builder
   renderChecklistSummary() {
     Row({ space: 6 }) {
-      Text('☑️')
-        .fontSize(12);
+      Image($r('app.media.ic_checklist'))
+        .width(12)
+        .height(12)
+        .fillColor(ColorResource.textSecondary)
       Text('3/5 项已完成')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -295,9 +301,10 @@ export struct NodeComponentPreview {
         .width('100%');
     } else if (this.component.props?.style === 'icon') {
       // 图标样式
-      Text('🔥🔥🔥')
-        .fontSize(14)
-        .width('100%');
+      Image($r('app.media.ic_priority'))
+        .width(14)
+        .height(14)
+        .fillColor('#FF3B30')
     } else {
       // 默认徽章样式
       Row({ space: 6 }) {
@@ -319,8 +326,10 @@ export struct NodeComponentPreview {
   @Builder
   renderAssignee() {
     Row({ space: 6 }) {
-      Text('👤')
-        .fontSize(12);
+      Image($r('app.media.ic_user'))
+        .width(12)
+        .height(12)
+        .fillColor(ColorResource.textSecondary)
       Text('张三')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -339,8 +348,10 @@ export struct NodeComponentPreview {
     } else {
       // 默认标签样式
       Row({ space: 6 }) {
-        Text('🏷️')
-          .fontSize(12);
+        Image($r('app.media.ic_tag'))
+          .width(12)
+          .height(12)
+          .fillColor(ColorResource.textSecondary)
 
         Row({ space: 4 }) {
           Text('前端')
@@ -392,8 +403,10 @@ export struct NodeComponentPreview {
   @Builder
   renderCustomField() {
     Row({ space: 6 }) {
-      Text('✏️')
-        .fontSize(12);
+      Image($r('app.media.ic_edit'))
+        .width(12)
+        .height(12)
+        .fillColor(ColorResource.textSecondary)
       Text(this.component.fieldId || '未绑定字段')
         .fontSize(11)
         .fontColor(ColorResource.textTertiary);
@@ -424,8 +437,10 @@ export struct NodeComponentContent {
           .width('100%');
       } else if (this.component.type === 'DATE_RANGE') {
         Row({ space: 4 }) {
-          Text('📅')
-            .fontSize(12);
+          Image($r('app.media.ic_calendar'))
+            .width(12)
+            .height(12)
+            .fillColor(ColorResource.textSecondary)
           Text('12/23 ~ 12/30 (8天)')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
@@ -479,8 +494,10 @@ export struct NodeComponentContent {
         .width('100%');
       } else if (this.component.type === 'CHECKLIST_SUMMARY') {
         Row({ space: 6 }) {
-          Text('☑️')
-            .fontSize(12);
+          Image($r('app.media.ic_checklist'))
+            .width(12)
+            .height(12)
+            .fillColor(ColorResource.textSecondary)
           Text('3/5 项已完成')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
@@ -495,9 +512,10 @@ export struct NodeComponentContent {
             .fontWeight(FontWeight.Medium)
             .width('100%');
         } else if (this.component.props?.style === 'icon') {
-          Text('🔥🔥🔥')
-            .fontSize(14)
-            .width('100%');
+          Image($r('app.media.ic_priority'))
+            .width(14)
+            .height(14)
+            .fillColor('#FF3B30')
         } else {
           // 默认徽章样式
           Row({ space: 6 }) {
@@ -516,8 +534,10 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'ASSIGNEE') {
         Row({ space: 6 }) {
-          Text('👤')
-            .fontSize(12);
+          Image($r('app.media.ic_user'))
+            .width(12)
+            .height(12)
+            .fillColor(ColorResource.textSecondary)
           Text('张三')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
@@ -533,8 +553,10 @@ export struct NodeComponentContent {
         } else {
           // 默认标签样式
           Row({ space: 6 }) {
-            Text('🏷️')
-              .fontSize(12);
+            Image($r('app.media.ic_tag'))
+              .width(12)
+              .height(12)
+              .fillColor(ColorResource.textSecondary)
 
             Row({ space: 4 }) {
               Text('前端')
@@ -580,8 +602,10 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'CUSTOM_FIELD') {
         Row({ space: 6 }) {
-          Text('✏️')
-            .fontSize(12);
+          Image($r('app.media.ic_edit'))
+            .width(12)
+            .height(12)
+            .fillColor(ColorResource.textSecondary)
           Text(this.component.fieldId || '未绑定字段')
             .fontSize(11)
             .fontColor(ColorResource.textTertiary);

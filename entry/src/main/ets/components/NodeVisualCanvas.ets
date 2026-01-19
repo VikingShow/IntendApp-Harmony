@@ -142,7 +142,7 @@ export struct NodeVisualCanvas {
             if (this.schema !== null && this.schema.layout.length === 0) {
               // 空状态
               Column({ space: 12 }) {
-                Text('👈 从左侧拖入组件')
+                Text('从左侧拖入组件')
                   .fontSize(ThemeConfig.fontSizeM)
                   .fontColor(ColorResource.textTertiary);
 

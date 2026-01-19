@@ -42,20 +42,20 @@ export struct ComponentPropertyPanel {
     return typeMap[type] || type;
   }
 
-  private getComponentIcon(type: NodeComponentType): string {
-    const iconMap: Record<string, string> = {
-      'TITLE': '📌',
-      'DATE_RANGE': '📅',
-      'TIME_PROGRESS': '⏱️',
-      'TASK_PROGRESS': '✅',
-      'CHECKLIST_SUMMARY': '☑️',
-      'PRIORITY_BADGE': '🔥',
-      'ASSIGNEE': '👤',
-      'TAGS': '🏷️',
-      'STATUS_DOT': '🔴',
-      'CUSTOM_FIELD': '✏️'
+  private getComponentIcon(type: NodeComponentType): Resource {
+    const iconMap: Record<string, Resource> = {
+      'TITLE': $r('app.media.ic_pin'),
+      'DATE_RANGE': $r('app.media.ic_calendar'),
+      'TIME_PROGRESS': $r('app.media.ic_clock'),
+      'TASK_PROGRESS': $r('app.media.ic_select'),
+      'CHECKLIST_SUMMARY': $r('app.media.ic_checklist'),
+      'PRIORITY_BADGE': $r('app.media.ic_priority'),
+      'ASSIGNEE': $r('app.media.ic_user'),
+      'TAGS': $r('app.media.ic_tag'),
+      'STATUS_DOT': $r('app.media.ic_status'),
+      'CUSTOM_FIELD': $r('app.media.ic_edit')
     };
-    return iconMap[type] || '📦';
+    return iconMap[type] || $r('app.media.ic_project_file');
   }
   private getReservedFieldIdForType(type: NodeComponentType): string {
     if (type === 'PRIORITY_BADGE') return '_priority';
@@ -250,8 +250,10 @@ export struct ComponentPropertyPanel {
         } else {
           // 组件名称
           Row({ space: 6 }) {
-            Text(this.getComponentIcon(this.selectedComponent.type))
-              .fontSize(16);
+            Image(this.getComponentIcon(this.selectedComponent.type))
+              .width(16)
+              .height(16)
+              .fillColor(ColorResource.textSecondary)
 
             Text(this.getComponentTypeLabel(this.selectedComponent.type))
               .fontSize(ThemeConfig.fontSizeS)

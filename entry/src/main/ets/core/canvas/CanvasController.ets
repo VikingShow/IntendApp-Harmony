@@ -723,9 +723,9 @@ export class CanvasController {
         minY = Math.min(minY, canvasY);
         maxX = Math.max(maxX, canvasRight);
         maxY = Math.max(maxY, canvasBottom);
-        console.log(`  ✓ 可见，更新边界`);
+        console.log(`  可见，更新边界`);
       } else {
-        console.log(`  ✗ 不可见，跳过`);
+        console.log(`  不可见，跳过`);
       }
     });
 
@@ -754,12 +754,12 @@ export class CanvasController {
 
     // 最终检查
     if (minX >= maxX) {
-      console.warn(`[CanvasController] ⚠️ minX >= maxX (${minX} >= ${maxX})，使用整个Canvas`);
+      console.warn(`[CanvasController] minX >= maxX (${minX} >= ${maxX})，使用整个Canvas`);
       minX = 0;
       maxX = 3000;
     }
     if (minY >= maxY) {
-      console.warn(`[CanvasController] ⚠️ minY >= maxY (${minY} >= ${maxY})，使用整个Canvas`);
+      console.warn(`[CanvasController] minY >= maxY (${minY} >= ${maxY})，使用整个Canvas`);
       minY = 0;
       maxY = 3000;
     }
@@ -798,18 +798,18 @@ export class CanvasController {
 
       // 绘制水印（在获取 PixelMap 之前）
       this.renderer.drawWatermark(canvasWidth, canvasHeight);
-      console.log('[CanvasController] ✅ 已添加水印');
+      console.log('[CanvasController] 已添加水印');
 
       // 根据Canvas实际尺寸导出（避免黑色区域）
       const pixelMap = await context.getPixelMap(0, 0, canvasWidth, canvasHeight);
       
-      console.log('[CanvasController] ✅ 成功获取 Canvas PixelMap');
+      console.log('[CanvasController] 成功获取 Canvas PixelMap');
       
       // 重新渲染以清除水印（恢复正常显示）
       if (project) {
         const config = this.getRenderConfig(selectedTaskId || null);
         this.renderer.render(project, config);
-        console.log('[CanvasController] ✅ 已清除水印，恢复正常显示');
+        console.log('[CanvasController] 已清除水印，恢复正常显示');
       }
       
       return pixelMap;

@@ -11,7 +11,7 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 interface ComponentTypeInfo {
   type: NodeComponentType;
   label: string;
-  icon: string;
+  icon: Resource;
   description: string;
   category: 'basic' | 'data' | 'advanced';
 }
@@ -27,20 +27,20 @@ export struct ComponentLibrary {
 
   private componentTypes: ComponentTypeInfo[] = [
     // 基础组件
-    { type: 'TITLE', label: '标题', icon: '📌', description: '任务名称标题', category: 'basic' },
-    { type: 'DATE_RANGE', label: '日期范围', icon: '📅', description: '开始-结束日期', category: 'basic' },
-    { type: 'STATUS_DOT', label: '状态点', icon: '🔴', description: '状态指示器', category: 'basic' },
+    { type: 'TITLE', label: '标题', icon: $r('app.media.ic_pin'), description: '任务名称标题', category: 'basic' },
+    { type: 'DATE_RANGE', label: '日期范围', icon: $r('app.media.ic_calendar'), description: '开始-结束日期', category: 'basic' },
+    { type: 'STATUS_DOT', label: '状态点', icon: $r('app.media.ic_status'), description: '状态指示器', category: 'basic' },
     
     // 数据展示组件
-    { type: 'TIME_PROGRESS', label: '时间进度', icon: '⏱️', description: '时间进度条', category: 'data' },
-    { type: 'TASK_PROGRESS', label: '任务进度', icon: '✅', description: '完成度进度条', category: 'data' },
-    { type: 'CHECKLIST_SUMMARY', label: '清单统计', icon: '☑️', description: '清单完成情况', category: 'data' },
-    { type: 'PRIORITY_BADGE', label: '优先级', icon: '🔥', description: '优先级标签', category: 'data' },
+    { type: 'TIME_PROGRESS', label: '时间进度', icon: $r('app.media.ic_clock'), description: '时间进度条', category: 'data' },
+    { type: 'TASK_PROGRESS', label: '任务进度', icon: $r('app.media.ic_select'), description: '完成度进度条', category: 'data' },
+    { type: 'CHECKLIST_SUMMARY', label: '清单统计', icon: $r('app.media.ic_checklist'), description: '清单完成情况', category: 'data' },
+    { type: 'PRIORITY_BADGE', label: '优先级', icon: $r('app.media.ic_priority'), description: '优先级标签', category: 'data' },
     
     // 高级组件
-    { type: 'ASSIGNEE', label: '负责人', icon: '👤', description: '任务负责人', category: 'advanced' },
-    { type: 'TAGS', label: '标签', icon: '🏷️', description: '标签列表', category: 'advanced' },
-    { type: 'CUSTOM_FIELD', label: '自定义字段', icon: '✏️', description: '绑定自定义字段', category: 'advanced' }
+    { type: 'ASSIGNEE', label: '负责人', icon: $r('app.media.ic_user'), description: '任务负责人', category: 'advanced' },
+    { type: 'TAGS', label: '标签', icon: $r('app.media.ic_tag'), description: '标签列表', category: 'advanced' },
+    { type: 'CUSTOM_FIELD', label: '自定义字段', icon: $r('app.media.ic_edit'), description: '绑定自定义字段', category: 'advanced' }
   ];
 
   private getFilteredComponents(): ComponentTypeInfo[] {

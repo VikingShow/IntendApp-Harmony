@@ -997,10 +997,10 @@ export struct Sidebar {
         Row({space: 6}) {
           // 返回主页按钮 - 现代化设计
           Button() {
-            Text('←')
-              .fontSize(ThemeConfig.fontSizeXL)
-              .fontColor(ColorResource.surfaceBold)
-              .fontWeight(ThemeConfig.fontWeightBold)
+            Image($r('app.media.ic_back'))
+              .width(20)
+              .height(20)
+              .fillColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
@@ -1014,10 +1014,10 @@ export struct Sidebar {
           // 新建任务按钮（仅编辑页显示）- 现代化设计
           if (!this.isHomePage) {
             Button({ type: ButtonType.Circle }) {
-              Text('+')
-                .fontSize(ThemeConfig.fontSizeXL)
-                .fontColor(ColorResource.surfaceBold)
-                .fontWeight(ThemeConfig.fontWeightBold)
+              Image($r('app.media.ic_add'))
+                .width(20)
+                .height(20)
+                .fillColor(ColorResource.surfaceBold)
             }
             .width(44)
             .height(44)
@@ -1031,9 +1031,10 @@ export struct Sidebar {
 
           // 保存项目按钮 - 现代化设计
           Button({ type: ButtonType.Circle }) {
-            Text('💾')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(ColorResource.surfaceBold)
+            Image($r('app.media.ic_save'))
+              .width(20)
+              .height(20)
+              .fillColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
@@ -1046,9 +1047,10 @@ export struct Sidebar {
           
           // 导出按钮 - 使用 bindMenu 实现下拉菜单
           Button({ type: ButtonType.Circle }) {
-            Text('📤')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(ColorResource.surfaceBold)
+            Image($r('app.media.ic_export'))
+              .width(20)
+              .height(20)
+              .fillColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
@@ -1061,9 +1063,10 @@ export struct Sidebar {
 
           // 项目设置按钮（紧挨导出按钮）
           Button({ type: ButtonType.Circle }) {
-            Text('⚙️')
-              .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(ColorResource.surfaceBold)
+            Image($r('app.media.ic_settings'))
+              .width(20)
+              .height(20)
+              .fillColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)

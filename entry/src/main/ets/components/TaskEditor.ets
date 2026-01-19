@@ -1600,10 +1600,10 @@ export struct TaskEditor {
           Row({ space: 12 }) {
             // 返回列表按钮
             Button() {
-              Text('←')
-                .fontSize(ThemeConfig.fontSizeXL)
-                .fontColor(ColorResource.surfaceBold)
-                .fontWeight(ThemeConfig.fontWeightBold)
+              Image($r('app.media.ic_back'))
+                .width(22)
+                .height(22)
+                .fillColor(ColorResource.surfaceBold)
             }
             .width(52)
             .height(52)
@@ -1618,10 +1618,10 @@ export struct TaskEditor {
 
             // 创建依赖按钮（从当前任务开始）
             Button({ type: ButtonType.Circle }) {
-              Text('链')
-                .fontSize(ThemeConfig.fontSizeL)
-                .fontColor(Color.White)
-                .fontWeight(ThemeConfig.fontWeightBold)
+              Image($r('app.media.ic_link'))
+                .width(22)
+                .height(22)
+                .fillColor(Color.White)
             }
             .width(52)
             .height(52)

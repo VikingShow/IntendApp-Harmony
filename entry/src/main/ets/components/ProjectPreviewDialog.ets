@@ -429,9 +429,10 @@ export struct ProjectPreviewDialog {
             .layoutWeight(1)
 
           Button() {
-            Text('✕')
-              .fontSize(20)
-              .fontColor(ColorResource.textSecondary)
+            Image($r('app.media.ic_close'))
+              .width(16)
+              .height(16)
+              .fillColor(ColorResource.textSecondary)
           }
           .width(32)
           .height(32)

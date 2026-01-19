@@ -1669,9 +1669,10 @@ struct Index {
         if (!this.toolbarExpanded) {
           Button() {
             Row({ space: 4 }) {
-              Text('⚡')
-                .fontSize(16)
-                .fontColor(ColorResource.primaryColor)
+              Image($r('app.media.ic_flash'))
+                .width(16)
+                .height(16)
+                .fillColor(ColorResource.primaryColor)
             }
             .padding({ left: 2, right: 2 })
           }
@@ -1720,7 +1721,7 @@ struct Index {
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 this.promptAction.showToast({
-                  message: commandName ? `✓ 已撤销：${commandName}` : '✓ 已撤销操作',
+                  message: commandName ? `已撤销：${commandName}` : '已撤销操作',
                   duration: 2000
                 });
               } else {
@@ -1757,7 +1758,7 @@ struct Index {
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 this.promptAction.showToast({
-                  message: commandName ? `✓ 已重做：${commandName}` : '✓ 已重做操作',
+                  message: commandName ? `已重做：${commandName}` : '已重做操作',
                   duration: 2000
                 });
               } else {
@@ -1777,8 +1778,10 @@ struct Index {
             
             // 锁定/解锁按钮 - 内联以确保响应式更新
             Button() {
-              Text(this.canvasLock ? '🔓' : '🔒')
-                .fontSize(18)
+              Image(this.canvasLock ? $r('app.media.ic_unlock') : $r('app.media.ic_lock'))
+                .width(18)
+                .height(18)
+                .fillColor(ColorResource.warningColor)
             }
             .width(36)
             .height(36)
@@ -1795,8 +1798,10 @@ struct Index {
             
             // 重置按钮
             Button() {
-              Text('🔄')
-                .fontSize(18)
+              Image($r('app.media.ic_reset'))
+                .width(18)
+                .height(18)
+                .fillColor(ColorResource.successColor)
             }
             .width(36)
             .height(36)
@@ -1820,8 +1825,12 @@ struct Index {
             
             // 缩略模式切换按钮
             Button() {
-              Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
-                .fontSize(18)
+              Image(this.canvasRenderMode === RenderMode.NORMAL
+                ? $r('app.media.ic_render_normal')
+                : $r('app.media.ic_render_compact'))
+                .width(18)
+                .height(18)
+                .fillColor(this.canvasRenderMode === RenderMode.COMPACT ? ColorResource.primaryColor : ColorResource.infoColor)
             }
             .width(36)
             .height(36)
@@ -1841,8 +1850,10 @@ struct Index {
             
             // 缩放按钮
             Button() {
-              Text('🔍')
-                .fontSize(18)
+              Image($r('app.media.ic_zoom'))
+                .width(18)
+                .height(18)
+                .fillColor(this.zoomPanelExpanded ? ColorResource.primaryColor : ColorResource.textSecondary)
             }
             .width(36)
             .height(36)
@@ -1912,9 +1923,10 @@ struct Index {
         if (!this.toolbarExpanded) {
           Button() {
             Row({ space: 6 }) {
-              Text('⚡')
-                .fontSize(18)
-                .fontColor(ColorResource.primaryColor)
+              Image($r('app.media.ic_flash'))
+                .width(18)
+                .height(18)
+                .fillColor(ColorResource.primaryColor)
             }
             .padding({ left: 2, right: 2 })
           }
@@ -1968,7 +1980,7 @@ struct Index {
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 this.promptAction.showToast({
-                  message: commandName ? `✓ 已撤销：${commandName}` : '✓ 已撤销操作',
+                  message: commandName ? `已撤销：${commandName}` : '已撤销操作',
                   duration: 2000
                 });
               } else {
@@ -2010,7 +2022,7 @@ struct Index {
                 this.drawGraph();
                 this.projectManager.getActions().calculateCriticalPath();
                 this.promptAction.showToast({
-                  message: commandName ? `✓ 已重做：${commandName}` : '✓ 已重做操作',
+                  message: commandName ? `已重做：${commandName}` : '已重做操作',
                   duration: 2000
                 });
               } else {
@@ -2031,8 +2043,10 @@ struct Index {
             // 锁定/解锁按钮 - 内联以确保响应式更新
             Button() {
               Row({ space: 4 }) {
-                Text(this.canvasLock ? '🔓' : '🔒')
-                  .fontSize(16)
+                Image(this.canvasLock ? $r('app.media.ic_unlock') : $r('app.media.ic_lock'))
+                  .width(16)
+                  .height(16)
+                  .fillColor(ColorResource.warningColor)
                 Text(this.canvasLock ? '解锁' : '锁定')
                   .fontSize(12)
                   .fontColor(ColorResource.warningColor)
@@ -2055,8 +2069,10 @@ struct Index {
             // 重置按钮
             Button() {
               Row({ space: 4 }) {
-                Text('🔄')
-                  .fontSize(16)
+                Image($r('app.media.ic_reset'))
+                  .width(16)
+                  .height(16)
+                  .fillColor(ColorResource.successColor)
                 Text('重置')
                   .fontSize(12)
                   .fontColor(ColorResource.successColor)
@@ -2086,8 +2102,14 @@ struct Index {
             // 缩略模式切换按钮
             Button() {
               Row({ space: 4 }) {
-                Text(this.canvasRenderMode === RenderMode.NORMAL ? '⚪' : '🔵')
-                  .fontSize(16)
+                Image(this.canvasRenderMode === RenderMode.NORMAL
+                  ? $r('app.media.ic_render_normal')
+                  : $r('app.media.ic_render_compact'))
+                  .width(16)
+                  .height(16)
+                  .fillColor(this.canvasRenderMode === RenderMode.COMPACT
+                    ? ColorResource.primaryColor
+                    : ColorResource.infoColor)
                 Text(this.canvasRenderMode === RenderMode.NORMAL ? '缩略' : '完整')
                   .fontSize(12)
                   .fontColor(this.canvasRenderMode === RenderMode.COMPACT 
@@ -2115,8 +2137,10 @@ struct Index {
             // 缩放按钮
             Button() {
               Row({ space: 4 }) {
-                Text('🔍')
-                  .fontSize(16)
+                Image($r('app.media.ic_zoom'))
+                  .width(16)
+                  .height(16)
+                  .fillColor(ColorResource.primaryColor)
                 Text(`${Math.round(this.zoomScale * 100)}%`)
                   .fontSize(12)
                   .fontColor(ColorResource.primaryColor)

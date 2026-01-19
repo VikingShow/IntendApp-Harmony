@@ -30,8 +30,10 @@ export struct TutorialSettingsDialog {
 
       Column({ space: 0 }) {
         Row({ space: 12 }) {
-          Text('📖')
-            .fontSize(24)
+          Image($r('app.media.ic_book'))
+            .width(24)
+            .height(24)
+            .fillColor(ColorResource.textSecondary)
           Column({ space: 4 }) {
             Text('主页引导')
               .fontSize(15)
@@ -65,8 +67,10 @@ export struct TutorialSettingsDialog {
           .opacity(0.3)
 
         Row({ space: 12 }) {
-          Text('✏️')
-            .fontSize(24)
+          Image($r('app.media.ic_edit'))
+            .width(24)
+            .height(24)
+            .fillColor(ColorResource.textSecondary)
           Column({ space: 4 }) {
             Text('编辑页引导')
               .fontSize(15)
@@ -100,8 +104,10 @@ export struct TutorialSettingsDialog {
           .opacity(0.3)
 
         Row({ space: 12 }) {
-          Text('🔄')
-            .fontSize(24)
+          Image($r('app.media.ic_reset'))
+            .width(24)
+            .height(24)
+            .fillColor(ColorResource.textSecondary)
           Column({ space: 4 }) {
             Text('重置所有引导')
               .fontSize(15)

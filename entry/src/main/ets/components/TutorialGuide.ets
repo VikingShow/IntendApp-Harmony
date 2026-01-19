@@ -268,7 +268,7 @@ export struct TutorialWelcomeDialog {
   build() {
     Column({ space: 0 }) {
       Column({ space: 12 }) {
-        Text('👋 欢迎使用 EasyFlow')
+        Text('欢迎使用 EasyFlow')
           .fontSize(22)
           .fontWeight(FontWeight.Bold)
           .fontColor(ColorResource.textPrimary)

@@ -33,7 +33,7 @@ export struct WelcomeView {
             .fontWeight(ThemeConfig.fontWeightBold)
             .fontColor(ColorResource.primaryColor)
             .textAlign(TextAlign.Center)
-          Text('EazyFlow')
+          Text('EasyFlow')
             .fontSize(BreakpointSystem.getResponsiveFontSize(ThemeConfig.fontSizeXXL, this.screenWidth))
             .fontColor(ColorResource.surfaceBold)
             .fontWeight(ThemeConfig.fontWeightMedium)

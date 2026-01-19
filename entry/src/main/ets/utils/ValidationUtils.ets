@@ -28,6 +28,19 @@ export class ValidationUtils {
     return { isValid: true, message: '' };
   }
 
+  /** 验证任务名称：不能为空，长度不超过100个字符 */
+  static validateTaskName(name: string): ValidationResult {
+    if (!name || name.trim().length === 0) {
+      return { isValid: false, message: '任务名称不能为空' };
+    }
+
+    if (name.trim().length > 100) {
+      return { isValid: false, message: '任务名称不能超过100个字符' };
+    }
+
+    return { isValid: true, message: '' };
+  }
+
   /** 验证任务数据：名称不为空，时间合理，开始时间早于结束时间 */
   static validateTaskData(task: TaskNode): ValidationResult {
     if (!task.name || task.name.trim().length === 0) {

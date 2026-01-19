@@ -24,7 +24,7 @@ export struct SidebarMenu {
             .fillColor(this.activePanelId === item.id ? ColorResource.primaryColor : ColorResource.textSecondary)
 
           Text(item.label)
-            .fontSize(ThemeConfig.fontSizeXXS)
+            .fontSize(ThemeConfig.fontSizeXS)
             .fontColor(this.activePanelId === item.id ? ColorResource.primaryColor : ColorResource.textSecondary)
         }
         .width(56)

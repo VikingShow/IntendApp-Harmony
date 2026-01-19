@@ -92,6 +92,8 @@ export struct TaskEditor {
   @Prop @Watch('onTaskChanged') task: TaskNode | null;
   @State newChecklistItemText: string = '';
   @State private localTask: TaskNode | null = null; // 内部编辑状态（因为@Prop是只读的）
+  @State private taskNameDraft: string = '';
+  @State private taskNameInputKey: number = 0;
   @State private forceUpdateKey: number = 0;
   @State private autoSaveTimer: number | null = null;
   @State private hasUnsavedChanges: boolean = false;
@@ -571,6 +573,33 @@ export struct TaskEditor {
     return '请选择';
   }
 
+  private commitTaskNameDraft(blurAfter: boolean = false): void {
+    if (!this.localTask) {
+      return;
+    }
+    const nextName = this.taskNameDraft.trim();
+    const validation = ValidationUtils.validateTaskName(nextName);
+    if (!validation.isValid) {
+      this.promptAction.showToast({ message: validation.message });
+      return;
+    }
+    if (this.localTask.name === nextName) {
+      if (blurAfter) {
+        this.taskNameInputKey++;
+      }
+      return;
+    }
+
+    this.taskNameDraft = nextName;
+    this.localTask.name = nextName;
+    this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
+    this.onUpdateTask(this.localTask.id, { name: nextName });
+
+    if (blurAfter) {
+      this.taskNameInputKey++;
+    }
+  }
+
   @Builder
   private renderTitleEditor() {
     Column({ space: 8 }) {
@@ -578,7 +607,8 @@ export struct TaskEditor {
         .fontSize(ThemeConfig.fontSizeS)
         .fontWeight(ThemeConfig.fontWeightMedium)
         .fontColor(ColorResource.surfaceEmphasized)
-      TextInput({ text: this.localTask?.name || '', placeholder: '请输入任务名称' })
+      TextInput({ text: this.taskNameDraft, placeholder: '请输入任务名称' })
+        .key(`task-name-input-${this.taskNameInputKey}`)
         .backgroundColor(ColorResource.transparent)
         .borderRadius(ThemeConfig.radiusMedium)
         .padding({ left: ThemeConfig.spacingL, right: ThemeConfig.spacingL, top: ThemeConfig.spacingM, bottom: ThemeConfig.spacingM })
@@ -593,38 +623,14 @@ export struct TaskEditor {
           radius: ThemeConfig.radiusMedium
         })
         .onBlur(() => {
-          if (this.localTask) {
-            // 避免无意义的重复提交（值未变也提交会导致 CommandHistory 暴涨）
-            if (this.task && this.task.name === this.localTask.name) {
-              return;
-            }
-            this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
-          }
+          this.commitTaskNameDraft(false);
         })
         .enterKeyType(EnterKeyType.Done)
         .onSubmit(() => {
-          if (this.localTask) {
-            if (this.task && this.task.name === this.localTask.name) {
-              return;
-            }
-            this.onUpdateTask(this.localTask.id, { name: this.localTask.name });
-          }
+          this.commitTaskNameDraft(true);
         })
         .onChange((value: string) => {
-          const validation = ValidationUtils.validateProjectName(value);
-          if (!validation.isValid) {
-            this.promptAction.showToast({ message: validation.message });
-            return;
-          }
-          if (this.localTask) {
-            if (this.localTask.name === value) {
-              return;
-            }
-            this.localTask.name = value;
-            this.lastTaskDataHash = this.computeTaskDataHash(this.localTask);
-            this.forceUpdateKey++;
-            this.onUpdateTask(this.localTask.id, { name: value });
-          }
+          this.taskNameDraft = value;
         })
     }
   }
@@ -1297,6 +1303,7 @@ export struct TaskEditor {
       // 触发切换动画
       this.triggerTaskTransition(() => {
         this.localTask = this.task;
+        this.taskNameDraft = this.task?.name || '';
         this.forceUpdateKey++;
         this.dateTabIndex = 0;
         this.newChecklistItemText = '';
@@ -1308,6 +1315,7 @@ export struct TaskEditor {
       console.log(`[TaskEditor] Same task, force updating localTask: ${this.task.name}`);
       this.lastTaskDataHash = this.computeTaskDataHash(this.task);
       this.localTask = this.task;
+      this.taskNameDraft = this.task?.name || '';
       this.forceUpdateKey++;
       this.updateDisplayData();
     } else if (!this.task) {
@@ -1315,6 +1323,7 @@ export struct TaskEditor {
       this.lastTaskId = null;
       this.lastTaskDataHash = '';
       this.localTask = null;
+      this.taskNameDraft = '';
     }
   }
 
@@ -1337,6 +1346,7 @@ export struct TaskEditor {
       this.lastTaskDataHash = this.computeTaskDataHash(this.task);
       // 直接设置数据，不触发动画（首次加载不需要动画）
       this.localTask = this.task;
+      this.taskNameDraft = this.task?.name || '';
       this.forceUpdateKey++;
       // 重置状态
       this.dateTabIndex = 0;
@@ -1351,6 +1361,7 @@ export struct TaskEditor {
       this.lastTaskId = null;
       this.lastTaskDataHash = '';
       this.localTask = null;
+      this.taskNameDraft = '';
     }
   }
 

@@ -1016,12 +1016,12 @@ export struct Sidebar {
             Button({ type: ButtonType.Circle }) {
               Text('+')
                 .fontSize(ThemeConfig.fontSizeXL)
-                .fontColor(Color.White)
+                .fontColor(ColorResource.surfaceBold)
                 .fontWeight(ThemeConfig.fontWeightBold)
             }
             .width(44)
             .height(44)
-            .backgroundColor(ColorResource.successColor)
+            .backgroundColor(ColorResource.surfaceLight)
             .borderRadius(22)
             .shadow(ThemeConfig.shadowMedium)
             .border({ width: 2, color: ColorResource.successLight, radius: 22 })
@@ -1033,11 +1033,11 @@ export struct Sidebar {
           Button({ type: ButtonType.Circle }) {
             Text('💾')
               .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(Color.White)
+              .fontColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
-          .backgroundColor(ColorResource.primaryColor)
+          .backgroundColor(ColorResource.surfaceLight)
           .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
           .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 22 })
@@ -1048,11 +1048,11 @@ export struct Sidebar {
           Button({ type: ButtonType.Circle }) {
             Text('📤')
               .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(Color.White)
+              .fontColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
-          .backgroundColor(ColorResource.successColor)
+          .backgroundColor(ColorResource.surfaceLight)
           .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
           .border({ width: 2, color: ColorResource.successLight, radius: 22 })
@@ -1063,11 +1063,11 @@ export struct Sidebar {
           Button({ type: ButtonType.Circle }) {
             Text('⚙️')
               .fontSize(ThemeConfig.fontSizeM)
-              .fontColor(Color.White)
+              .fontColor(ColorResource.surfaceBold)
           }
           .width(44)
           .height(44)
-          .backgroundColor(ColorResource.surfaceEmphasized)
+          .backgroundColor(ColorResource.surfaceLight)
           .borderRadius(22)
           .shadow(ThemeConfig.shadowMedium)
           .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 22 })

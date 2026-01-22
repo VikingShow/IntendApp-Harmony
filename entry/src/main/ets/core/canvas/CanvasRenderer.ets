@@ -1378,54 +1378,64 @@ export class CanvasRenderer {
   private drawChecklistIcon(x: number, y: number, size: number, color: string): void {
     const ctx = this.context;
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.fillStyle = color;
 
-    const leftW = Math.max(4, Math.floor(size * 0.45));
-    const lineX = x + leftW + 3;
-    const lineW = Math.max(5, size - leftW - 3);
+    const leftW = Math.max(4, Math.floor(size * 0.44));
+    const lineX = Math.round(x + leftW + 2);
+    const lineW = Math.max(4, Math.floor(size - leftW - 2));
+    const lineH = Math.max(1, Math.floor(size * 0.12));
 
-    // 两行文本
-    ctx.beginPath();
-    ctx.moveTo(lineX, y + size * 0.35);
-    ctx.lineTo(lineX + lineW, y + size * 0.35);
-    ctx.moveTo(lineX, y + size * 0.68);
-    ctx.lineTo(lineX + lineW, y + size * 0.68);
-    ctx.stroke();
+    // “文本线”（尽量贴近 ic_checklist.svg 的多行效果）
+    const line1Y = Math.round(y + size * 0.20);
+    const line2Y = Math.round(y + size * 0.46);
+    const line3Y = Math.round(y + size * 0.72);
+    ctx.fillRect(lineX, line1Y, lineW, lineH);
+    ctx.fillRect(lineX, line2Y, lineW, lineH);
+    ctx.fillRect(lineX, line3Y, lineW, lineH);
 
-    // 两个勾
-    const checkSize = Math.max(3, Math.floor(size * 0.34));
-    const c1x = x + 0.5;
-    const c1y = y + size * 0.23;
-    ctx.beginPath();
-    ctx.moveTo(c1x + checkSize * 0.1, c1y + checkSize * 0.55);
-    ctx.lineTo(c1x + checkSize * 0.38, c1y + checkSize * 0.82);
-    ctx.lineTo(c1x + checkSize * 0.9, c1y + checkSize * 0.2);
-    ctx.stroke();
+    // 两个“实心勾” (接近 ic_checklist.svg 的风格)
+    const checkBoxW = leftW;
+    const drawSolidCheck = (baseY: number) => {
+      const bx = x;
+      const by = baseY;
+      ctx.beginPath();
+      ctx.moveTo(bx + checkBoxW * 0.10, by + checkBoxW * 0.55);
+      ctx.lineTo(bx + checkBoxW * 0.28, by + checkBoxW * 0.75);
+      ctx.lineTo(bx + checkBoxW * 0.62, by + checkBoxW * 0.22);
+      ctx.lineTo(bx + checkBoxW * 0.72, by + checkBoxW * 0.32);
+      ctx.lineTo(bx + checkBoxW * 0.28, by + checkBoxW * 0.88);
+      ctx.lineTo(bx + checkBoxW * 0.02, by + checkBoxW * 0.62);
+      ctx.closePath();
+      ctx.fill();
+    };
 
-    const c2x = x + 0.5;
-    const c2y = y + size * 0.56;
-    ctx.beginPath();
-    ctx.moveTo(c2x + checkSize * 0.1, c2y + checkSize * 0.55);
-    ctx.lineTo(c2x + checkSize * 0.38, c2y + checkSize * 0.82);
-    ctx.lineTo(c2x + checkSize * 0.9, c2y + checkSize * 0.2);
-    ctx.stroke();
+    drawSolidCheck(y + size * 0.06);
+    drawSolidCheck(y + size * 0.56);
     ctx.restore();
   }
 
   private drawTagIcon(x: number, y: number, size: number, color: string): void {
     const ctx = this.context;
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    const left = x;
-    const top = y + size * 0.18;
-    const right = x + size;
-    const bottom = y + size * 0.82;
-    const notch = x + size * 0.36;
-    const midY = y + size / 2;
+    const bg = String(this.isDarkMode ? ThemeConfig.surfaceDeep : ThemeConfig.backgroundCard);
+    ctx.fillStyle = color;
+
+    // 旋转一点角度，贴近 ic_tag.svg 的倾斜标签造型
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    ctx.translate(-cx, -cy);
+
+    const s = size * 0.92;
+    const ox = cx - s / 2;
+    const oy = cy - s / 2;
+    const left = ox;
+    const top = oy + s * 0.18;
+    const right = ox + s;
+    const bottom = oy + s * 0.82;
+    const notch = ox + s * 0.36;
+    const midY = oy + s / 2;
 
     ctx.beginPath();
     ctx.moveTo(notch, top);
@@ -1434,30 +1444,38 @@ export class CanvasRenderer {
     ctx.lineTo(notch, bottom);
     ctx.lineTo(left, midY);
     ctx.closePath();
-    ctx.stroke();
+    ctx.fill();
 
+    // 打孔（用卡片背景色填充）
+    ctx.fillStyle = bg;
     ctx.beginPath();
-    ctx.arc(notch + size * 0.18, midY, Math.max(1.8, size * 0.08), 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.arc(notch + s * 0.18, midY, Math.max(1.2, s * 0.10), 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
   private drawUserIcon(x: number, y: number, size: number, color: string): void {
     const ctx = this.context;
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = color;
+
+    // 头部（实心圆）
     const cx = x + size / 2;
-    const headR = size * 0.23;
-    const headY = y + size * 0.33;
+    const headR = size * 0.24;
+    const headY = y + size * 0.34;
     ctx.beginPath();
     ctx.arc(cx, headY, headR, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fill();
 
-    const bodyY = y + size * 0.72;
+    // 身体（用更圆润的半圆肩部，贴近 ic_user.svg 的底座）
+    const bodyR = size * 0.56;
+    const bodyCY = y + size * 1.08; // 略低于图标底部，使上沿更平缓
     ctx.beginPath();
-    ctx.arc(cx, bodyY, size * 0.35, Math.PI, 0, false);
-    ctx.stroke();
+    ctx.arc(cx, bodyCY, bodyR, Math.PI, 0);
+    ctx.lineTo(cx + bodyR, y + size);
+    ctx.lineTo(cx - bodyR, y + size);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 

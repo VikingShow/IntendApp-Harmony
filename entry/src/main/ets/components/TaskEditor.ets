@@ -1601,34 +1601,37 @@ export struct TaskEditor {
             // 返回列表按钮
             Button() {
               Image($r('app.media.ic_back'))
-                .width(22)
-                .height(22)
+                .width(20)
+                .height(20)
                 .fillColor(ColorResource.surfaceBold)
             }
-            .width(52)
-            .height(52)
+            .width(44)
+            .height(44)
             .type(ButtonType.Circle)
             .backgroundColor(ColorResource.surfaceLight)
-            .borderRadius(26)
+            .borderRadius(22)
             .shadow(ThemeConfig.shadowMedium)
-            .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 26 })
+            .border({ width: 2, color: ColorResource.surfaceNeutral, radius: 22 })
             .onClick(() => {
               this.onBack();
             })
+
+            Text('编辑任务')
+              .fontSize(ThemeConfig.fontSizeXXL)
+              .fontWeight(ThemeConfig.fontWeightMedium)
+              .fontColor(ColorResource.surfaceDeep)
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+
+            // 右侧占位，保证标题在整行视觉居中
+            Column()
+              .width(44)
+              .height(44)
           }
           .width('100%')
+          .alignItems(VerticalAlign.Center)
 
            Column({ space: 16 }) {
-            Row({ space: 12 }) {
-              Text('编辑任务')
-                 .fontSize(ThemeConfig.fontSizeXXL)
-                 .fontWeight(ThemeConfig.fontWeightMedium)
-                 .fontColor(ColorResource.surfaceDeep)
-                 .layoutWeight(1)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
             // 日期选择区域 - 使用自定义Tab切换（苹果风格）
             // 节点类型选择（下拉）
             Column({ space: 8 }) {

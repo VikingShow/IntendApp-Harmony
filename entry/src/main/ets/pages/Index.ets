@@ -571,11 +571,13 @@ struct Index {
     const zoom = canvasState.zoomScale || 1.0;
     const offsetX = canvasState.canvasOffsetX;
     const offsetY = canvasState.canvasOffsetY;
+    const QUICK_BAR_GAP_Y = 2;
 
     // 计算锚点（节点底部中心）
     let anchorX: number;
     let anchorY: number;
-    const CANVAS_MARGIN = 16; // 与 Canvas 组件的 margin 保持一致
+    const CANVAS_MARGIN_TOP = 16; // 与 Canvas 组件的 margin.top 保持一致
+    const CANVAS_MARGIN_LEFT = 0; // 与 Canvas 组件的 margin.left 保持一致
 
     if (this.canvasRenderMode === RenderMode.COMPACT) {
       // 紧凑模式下按小圆圈计算
@@ -583,8 +585,7 @@ struct Index {
       const centerY = task.y + offsetY + 60;
       const circleRadius = 24;
       anchorX = centerX;
-      // 快捷条整体较高，这里只在圆圈下方留很小的间距，主要由内部 padding 控制
-      anchorY = centerY + circleRadius;
+      anchorY = centerY + circleRadius + QUICK_BAR_GAP_Y;
     } else {
       // 普通模式下按卡片底部中心计算
       // 优先使用渲染器缓存的真实节点宽高（自适应卡片），避免按钮与卡片边缘脱节
@@ -592,16 +593,21 @@ struct Index {
       const nodeW: number = bounds && bounds.width ? bounds.width : 200;
       const nodeH: number = bounds && bounds.height ? bounds.height : 120;
       anchorX = task.x + offsetX + nodeW / 2;
-      // 与节点底部保持更贴近的竖向间距（减去 2px 让快捷条更“挨着”）
-      anchorY = task.y + offsetY + nodeH - 2;
+      // 与节点底部保持贴近（原逻辑是 nodeH - 2）
+      anchorY = task.y + offsetY + nodeH - 2 + QUICK_BAR_GAP_Y;
     }
 
     // 转换为屏幕坐标（考虑缩放和 Canvas 外层 margin）
-    // TaskQuickActionsBar 一排 4 个 40vp 圆按钮 + 3 个 8vp 间距 + 左右各 10vp padding ≈ 204vp
-    // 为了在视觉上稍微向左收一点，这里比精确一半再多减去 8vp
-    const QUICK_BAR_HALF_WIDTH = 110;
-    const screenX = anchorX * zoom + CANVAS_MARGIN - QUICK_BAR_HALF_WIDTH;
-    const screenY = anchorY * zoom + CANVAS_MARGIN;
+    // TaskQuickActionsBar：5 个 36vp 圆按钮 + 4 个 8vp 间距 + 左右各 10vp padding = 232vp
+    const QUICK_ACTION_BUTTON_SIZE = 36;
+    const QUICK_ACTION_BUTTON_SPACE = 8;
+    const QUICK_ACTION_BUTTON_COUNT = 5;
+    const QUICK_ACTION_PADDING_H = 20; // left + right
+    const quickBarWidth = QUICK_ACTION_BUTTON_SIZE * QUICK_ACTION_BUTTON_COUNT
+      + QUICK_ACTION_BUTTON_SPACE * (QUICK_ACTION_BUTTON_COUNT - 1)
+      + QUICK_ACTION_PADDING_H;
+    const screenX = anchorX * zoom + CANVAS_MARGIN_LEFT - quickBarWidth / 2;
+    const screenY = anchorY * zoom + CANVAS_MARGIN_TOP;
 
     this.quickActionsX = screenX;
     this.quickActionsY = screenY;
@@ -1347,23 +1353,24 @@ struct Index {
     })
   }
 
-  // 选中任务时悬浮显示的快捷操作条（编辑 / 复制 / 删除 / 新增 / 创建依赖）
+  // 选中任务时悬浮显示的快捷操作条（编辑 / 复制 / 新增 / 删除 / 链接）
   @Builder
   TaskQuickActionsBar() {
     if (this.showTaskQuickActions && this.selectedTask) {
       Row({ space: 8 }) {
-        // 编辑（主操作按钮，稍大一些）
+        // 编辑
         Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_edit'))
             .width(18)
             .height(18)
+            .fillColor(ColorResource.textPrimary)
         }
-        .width(40)
-        .height(40)
-        .backgroundColor(ColorResource.primaryColor)
-        .borderRadius(20)
-        .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 20 })
-        .shadow(ThemeConfig.shadowMedium)
+        .width(36)
+        .height(36)
+        .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .borderRadius(18)
+        .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 18 })
+        .shadow(ThemeConfig.shadowSmall)
         .onClick(() => {
           this.handleEditSelectedTask();
         })
@@ -1373,6 +1380,7 @@ struct Index {
           Image($r('app.media.ic_copy'))
             .width(18)
             .height(18)
+            .fillColor(ColorResource.textPrimary)
         }
         .width(36)
         .height(36)
@@ -1384,27 +1392,12 @@ struct Index {
           this.handleDuplicateSelectedTask();
         })
 
-        // 删除
-        Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_delete'))
-            .width(18)
-            .height(18)
-        }
-        .width(36)
-        .height(36)
-        .backgroundColor(this.isDarkMode ? ColorResource.errorColor : ColorResource.errorLight)
-        .borderRadius(18)
-        .border({ width: 1.5, color: ColorResource.errorColor, radius: 18 })
-        .shadow(ThemeConfig.shadowMedium)
-        .onClick(() => {
-          this.handleDeleteSelectedTask();
-        })
-
         // 新增
         Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_add'))
-            .width(20)
-            .height(20)
+            .width(18)
+            .height(18)
+            .fillColor(ColorResource.textPrimary)
         }
         .width(36)
         .height(36)
@@ -1416,11 +1409,29 @@ struct Index {
           this.handleAddTaskNearSelected();
         })
 
+        // 删除
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_delete'))
+            .width(18)
+            .height(18)
+            .fillColor(ColorResource.textPrimary)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .borderRadius(18)
+        .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 18 })
+        .shadow(ThemeConfig.shadowSmall)
+        .onClick(() => {
+          this.handleDeleteSelectedTask();
+        })
+
         // 创建依赖（连线）
         Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_link'))
             .width(18)
             .height(18)
+            .fillColor(ColorResource.textPrimary)
         }
         .width(36)
         .height(36)

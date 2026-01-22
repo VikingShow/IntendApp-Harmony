@@ -1347,7 +1347,7 @@ struct Index {
     })
   }
 
-  // 选中任务时悬浮显示的快捷操作条（编辑 / 复制 / 删除 / 新增）
+  // 选中任务时悬浮显示的快捷操作条（编辑 / 复制 / 删除 / 新增 / 创建依赖）
   @Builder
   TaskQuickActionsBar() {
     if (this.showTaskQuickActions && this.selectedTask) {
@@ -1414,6 +1414,22 @@ struct Index {
         .shadow(ThemeConfig.shadowSmall)
         .onClick(() => {
           this.handleAddTaskNearSelected();
+        })
+
+        // 创建依赖（连线）
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_link'))
+            .width(18)
+            .height(18)
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(this.isDarkMode ? ColorResource.surfaceLight : ColorResource.surface)
+        .borderRadius(18)
+        .border({ width: 1, color: ColorResource.surfaceNeutral, radius: 18 })
+        .shadow(ThemeConfig.shadowSmall)
+        .onClick(() => {
+          this.handleStartConnecting();
         })
       }
       .padding({ left: 10, right: 10, top: 2, bottom: 8 })

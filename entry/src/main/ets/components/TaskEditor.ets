@@ -1615,24 +1615,6 @@ export struct TaskEditor {
             .onClick(() => {
               this.onBack();
             })
-
-            // 创建依赖按钮（从当前任务开始）
-            Button({ type: ButtonType.Circle }) {
-              Image($r('app.media.ic_link'))
-                .width(22)
-                .height(22)
-                .fillColor(Color.White)
-            }
-            .width(52)
-            .height(52)
-            .backgroundColor(ColorResource.primaryColor)
-            .borderRadius(26)
-            .shadow(ThemeConfig.shadowMedium)
-            .border({ width: 2, color: ColorResource.primaryUltraLight, radius: 26 })
-            .margin({ left: 12 })
-            .onClick(() => {
-              this.onStartConnecting();
-            })
           }
           .width('100%')
 

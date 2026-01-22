@@ -1378,39 +1378,34 @@ export class CanvasRenderer {
   private drawChecklistIcon(x: number, y: number, size: number, color: string): void {
     const ctx = this.context;
     ctx.save();
-    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     const leftW = Math.max(4, Math.floor(size * 0.44));
-    const lineX = Math.round(x + leftW + 2);
-    const lineW = Math.max(4, Math.floor(size - leftW - 2));
-    const lineH = Math.max(1, Math.floor(size * 0.12));
+    const lineX = x + leftW + 2;
+    const lineW = Math.max(4, size - leftW - 2);
 
-    // “文本线”（尽量贴近 ic_checklist.svg 的多行效果）
-    const line1Y = Math.round(y + size * 0.20);
-    const line2Y = Math.round(y + size * 0.46);
-    const line3Y = Math.round(y + size * 0.72);
-    ctx.fillRect(lineX, line1Y, lineW, lineH);
-    ctx.fillRect(lineX, line2Y, lineW, lineH);
-    ctx.fillRect(lineX, line3Y, lineW, lineH);
+    // 两行
+    ctx.beginPath();
+    ctx.moveTo(lineX, y + size * 0.35);
+    ctx.lineTo(lineX + lineW, y + size * 0.35);
+    ctx.moveTo(lineX, y + size * 0.70);
+    ctx.lineTo(lineX + lineW, y + size * 0.70);
+    ctx.stroke();
 
-    // 两个“实心勾” (接近 ic_checklist.svg 的风格)
-    const checkBoxW = leftW;
-    const drawSolidCheck = (baseY: number) => {
-      const bx = x;
-      const by = baseY;
+    // 两个勾
+    const checkW = leftW;
+    const drawCheck = (baseY: number) => {
       ctx.beginPath();
-      ctx.moveTo(bx + checkBoxW * 0.10, by + checkBoxW * 0.55);
-      ctx.lineTo(bx + checkBoxW * 0.28, by + checkBoxW * 0.75);
-      ctx.lineTo(bx + checkBoxW * 0.62, by + checkBoxW * 0.22);
-      ctx.lineTo(bx + checkBoxW * 0.72, by + checkBoxW * 0.32);
-      ctx.lineTo(bx + checkBoxW * 0.28, by + checkBoxW * 0.88);
-      ctx.lineTo(bx + checkBoxW * 0.02, by + checkBoxW * 0.62);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x + checkW * 0.10, baseY + checkW * 0.55);
+      ctx.lineTo(x + checkW * 0.32, baseY + checkW * 0.78);
+      ctx.lineTo(x + checkW * 0.72, baseY + checkW * 0.22);
+      ctx.stroke();
     };
-
-    drawSolidCheck(y + size * 0.06);
-    drawSolidCheck(y + size * 0.56);
+    drawCheck(y + size * 0.08);
+    drawCheck(y + size * 0.55);
     ctx.restore();
   }
 

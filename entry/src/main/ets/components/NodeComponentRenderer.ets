@@ -7,6 +7,7 @@
 import { NodeComponentType, NodeComponentSchema } from '../model/NodeSchema';
 import { unifiedDataChannel } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
+import { InlineCanvasIcon } from './InlineCanvasIcon';
 
 /**
  * 可拖拽的组件项
@@ -217,10 +218,7 @@ export struct NodeComponentPreview {
   @Builder
   renderDateRange() {
     Row({ space: 4 }) {
-      Image($r('app.media.ic_calendar'))
-        .width(12)
-        .height(12)
-        .fillColor(ColorResource.textSecondary)
+      InlineCanvasIcon({ kind: 'calendar', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       Text('12/23 ~ 12/30 (8天)')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -231,9 +229,7 @@ export struct NodeComponentPreview {
   @Builder
   renderTimeProgress() {
     Row({ space: 8 }) {
-      Text('时间')
-        .fontSize(10)
-        .fontColor(ColorResource.textSecondary);
+      InlineCanvasIcon({ kind: 'clock', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -262,9 +258,7 @@ export struct NodeComponentPreview {
   @Builder
   renderTaskProgress() {
     Row({ space: 8 }) {
-      Text('完成')
-        .fontSize(10)
-        .fontColor(ColorResource.textSecondary);
+      InlineCanvasIcon({ kind: 'select', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -293,11 +287,8 @@ export struct NodeComponentPreview {
   @Builder
   renderChecklistSummary() {
     Row({ space: 6 }) {
-      Image($r('app.media.ic_checklist'))
-        .width(12)
-        .height(12)
-        .fillColor(ColorResource.textSecondary)
-      Text('3/5 项已完成')
+      InlineCanvasIcon({ kind: 'checklist', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      Text('3/5 完成')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
     }
@@ -340,10 +331,7 @@ export struct NodeComponentPreview {
   @Builder
   renderAssignee() {
     Row({ space: 6 }) {
-      Image($r('app.media.ic_user'))
-        .width(12)
-        .height(12)
-        .fillColor(ColorResource.textSecondary)
+      InlineCanvasIcon({ kind: 'user', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       Text('张三')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -362,10 +350,7 @@ export struct NodeComponentPreview {
     } else {
       // 默认标签样式
       Row({ space: 6 }) {
-        Image($r('app.media.ic_tag'))
-          .width(12)
-          .height(12)
-          .fillColor(ColorResource.textSecondary)
+        InlineCanvasIcon({ kind: 'tag', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
 
         Row({ space: 4 }) {
           Text('前端')
@@ -417,11 +402,8 @@ export struct NodeComponentPreview {
   @Builder
   renderCustomField() {
     Row({ space: 6 }) {
-      Image($r('app.media.ic_edit'))
-        .width(12)
-        .height(12)
-        .fillColor(ColorResource.textSecondary)
-      Text(this.component.fieldId || '未绑定字段')
+      InlineCanvasIcon({ kind: 'pencil', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      Text(`${this.component.fieldId || '字段'}: 未绑定字段`)
         .fontSize(11)
         .fontColor(ColorResource.textTertiary);
     }
@@ -451,68 +433,66 @@ export struct NodeComponentContent {
           .width('100%');
       } else if (this.component.type === 'DATE_RANGE') {
         Row({ space: 4 }) {
-          Image($r('app.media.ic_calendar'))
-            .width(12)
-            .height(12)
-            .fillColor(ColorResource.textSecondary)
+          InlineCanvasIcon({ kind: 'calendar', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Text('12/23 ~ 12/30 (8天)')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
         }
         .width('100%');
       } else if (this.component.type === 'TIME_PROGRESS') {
-        Column({ space: 3 }) {
-          Text('时间: 35%')
-            .fontSize(10)
-            .fontColor(ColorResource.textSecondary)
-            .width('100%');
-          
+        Row({ space: 8 }) {
+          InlineCanvasIcon({ kind: 'clock', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Stack({ alignContent: Alignment.Start }) {
             Row()
               .width('100%')
               .height(6)
               .backgroundColor(ColorResource.backgroundSecondary)
               .borderRadius(3);
-            
+
             Row()
               .width('35%')
               .height(6)
               .backgroundColor('#409EFF')
               .borderRadius(3);
           }
-          .width('100%');
-        }
-        .width('100%');
-      } else if (this.component.type === 'TASK_PROGRESS') {
-        Column({ space: 3 }) {
-          Text('完成: 60%')
+          .layoutWeight(1);
+
+          Text('35%')
             .fontSize(10)
-            .fontColor(ColorResource.textSecondary)
-            .width('100%');
-          
+            .fontColor('#409EFF')
+            .fontWeight(FontWeight.Medium);
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center);
+      } else if (this.component.type === 'TASK_PROGRESS') {
+        Row({ space: 8 }) {
+          InlineCanvasIcon({ kind: 'select', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Stack({ alignContent: Alignment.Start }) {
             Row()
               .width('100%')
               .height(6)
               .backgroundColor(ColorResource.backgroundSecondary)
               .borderRadius(3);
-            
+
             Row()
               .width('60%')
               .height(6)
               .backgroundColor('#67C23A')
               .borderRadius(3);
           }
-          .width('100%');
+          .layoutWeight(1);
+
+          Text('60%')
+            .fontSize(10)
+            .fontColor('#67C23A')
+            .fontWeight(FontWeight.Medium);
         }
-        .width('100%');
+        .width('100%')
+        .alignItems(VerticalAlign.Center);
       } else if (this.component.type === 'CHECKLIST_SUMMARY') {
         Row({ space: 6 }) {
-          Image($r('app.media.ic_checklist'))
-            .width(12)
-            .height(12)
-            .fillColor(ColorResource.textSecondary)
-          Text('3/5 项已完成')
+          InlineCanvasIcon({ kind: 'checklist', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          Text('3/5 完成')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
         }
@@ -548,10 +528,7 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'ASSIGNEE') {
         Row({ space: 6 }) {
-          Image($r('app.media.ic_user'))
-            .width(12)
-            .height(12)
-            .fillColor(ColorResource.textSecondary)
+          InlineCanvasIcon({ kind: 'user', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Text('张三')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
@@ -567,10 +544,7 @@ export struct NodeComponentContent {
         } else {
           // 默认标签样式
           Row({ space: 6 }) {
-            Image($r('app.media.ic_tag'))
-              .width(12)
-              .height(12)
-              .fillColor(ColorResource.textSecondary)
+            InlineCanvasIcon({ kind: 'tag', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
 
             Row({ space: 4 }) {
               Text('前端')
@@ -616,11 +590,8 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'CUSTOM_FIELD') {
         Row({ space: 6 }) {
-          Image($r('app.media.ic_edit'))
-            .width(12)
-            .height(12)
-            .fillColor(ColorResource.textSecondary)
-          Text(this.component.fieldId || '未绑定字段')
+          InlineCanvasIcon({ kind: 'pencil', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          Text(`${this.component.fieldId || '字段'}: 未绑定字段`)
             .fontSize(11)
             .fontColor(ColorResource.textTertiary);
         }

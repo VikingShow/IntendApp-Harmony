@@ -30,6 +30,7 @@ import { ColorSelector } from '../components/ColorPicker';
 import { ComponentLibrary } from '../components/ComponentLibrary';
 import { NodeVisualCanvas } from '../components/NodeVisualCanvas';
 import { ComponentPropertyPanel } from '../components/ComponentPropertyPanel';
+import { InlineCanvasIcon } from '../components/InlineCanvasIcon';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { picker } from '@kit.CoreFileKit';
 import pasteboard from '@ohos.pasteboard';
@@ -1164,43 +1165,43 @@ struct HistoryCardPreview {
               .width('100%');
           } else if (comp.type === 'DATE_RANGE') {
             Row({ space: 3 }) {
-              Image($r('app.media.ic_calendar'))
-                .width(8)
-                .height(8)
-                .fillColor(ColorResource.textSecondary)
+              InlineCanvasIcon({ kind: 'calendar', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Text('12/23 ~ 12/30')
                 .fontSize(7)
                 .fontColor(ColorResource.textSecondary)
             }
             .width('100%');
           } else if (comp.type === 'TIME_PROGRESS') {
-            Column({ space: 1 }) {
-              Text('时间: 50%')
-                .fontSize(6)
-                .fontColor(ColorResource.textSecondary);
+            Row({ space: 4 }) {
+              InlineCanvasIcon({ kind: 'clock', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Stack({ alignContent: Alignment.Start }) {
                 Row().width('100%').height(3).backgroundColor(ColorResource.backgroundSecondary).borderRadius(1);
                 Row().width('50%').height(3).backgroundColor(this.schema.style.fillColor).borderRadius(1);
               }
-            }
-            .width('100%');
-          } else if (comp.type === 'TASK_PROGRESS') {
-            Column({ space: 1 }) {
-              Text('完成: 60%')
+              .layoutWeight(1);
+              Text('50%')
                 .fontSize(6)
-                .fontColor(ColorResource.textSecondary);
+                .fontColor(this.schema.style.fillColor || ColorResource.textSecondary);
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center);
+          } else if (comp.type === 'TASK_PROGRESS') {
+            Row({ space: 4 }) {
+              InlineCanvasIcon({ kind: 'select', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Stack({ alignContent: Alignment.Start }) {
                 Row().width('100%').height(3).backgroundColor(ColorResource.backgroundSecondary).borderRadius(1);
                 Row().width('60%').height(3).backgroundColor('#67C23A').borderRadius(1);
               }
+              .layoutWeight(1);
+              Text('60%')
+                .fontSize(6)
+                .fontColor('#67C23A');
             }
-            .width('100%');
+            .width('100%')
+            .alignItems(VerticalAlign.Center);
           } else if (comp.type === 'CHECKLIST_SUMMARY') {
             Row({ space: 3 }) {
-              Image($r('app.media.ic_checklist'))
-                .width(8)
-                .height(8)
-                .fillColor(ColorResource.textSecondary)
+              InlineCanvasIcon({ kind: 'checklist', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Text('3/5 完成')
                 .fontSize(7)
                 .fontColor(ColorResource.textSecondary)
@@ -1219,10 +1220,7 @@ struct HistoryCardPreview {
             .width('100%');
           } else if (comp.type === 'ASSIGNEE') {
             Row({ space: 3 }) {
-              Image($r('app.media.ic_user'))
-                .width(8)
-                .height(8)
-                .fillColor(ColorResource.textSecondary)
+              InlineCanvasIcon({ kind: 'user', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Text('张三')
                 .fontSize(7)
                 .fontColor(ColorResource.textSecondary)
@@ -1230,10 +1228,7 @@ struct HistoryCardPreview {
             .width('100%');
           } else if (comp.type === 'TAGS') {
             Row({ space: 3 }) {
-              Image($r('app.media.ic_tag'))
-                .width(8)
-                .height(8)
-                .fillColor(ColorResource.textSecondary)
+              InlineCanvasIcon({ kind: 'tag', iconSize: 8, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
               Text('开发, 设计')
                 .fontSize(7)
                 .fontColor(ColorResource.textSecondary)

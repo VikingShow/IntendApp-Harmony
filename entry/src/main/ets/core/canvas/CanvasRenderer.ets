@@ -113,6 +113,8 @@ export class CanvasRenderer {
   private settings: RenderingContextSettings;
   private isDarkMode: boolean = false;
   private nodeSchemaService: NodeSchemaService | null = null;
+  private readonly INLINE_ICON_SIZE: number = 10;
+  private readonly INLINE_ICON_GAP: number = 6;
 
   // 缓存每次渲染周期内节点的实际尺寸，用于依赖线/箭头定位
   private lastNodeBounds: Map<string, NodeBounds> = new Map();
@@ -737,6 +739,10 @@ export class CanvasRenderer {
       const leftX = drawX + 12;
       const LINE_HEIGHT = 20; // 统一行高
       this.context.textBaseline = 'top'; // 设置文本基线为顶部，便于计算位置
+      const inlineIconColor = String(this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary);
+      const inlineIconLabelW = this.INLINE_ICON_SIZE + this.INLINE_ICON_GAP + 4;
+      const lineMid = (y: number, h: number = LINE_HEIGHT): number => y + h / 2;
+      const iconTopY = (y: number, h: number = LINE_HEIGHT): number => lineMid(y, h) - this.INLINE_ICON_SIZE / 2;
 
       if (!layout || layout.length === 0) {
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surface : ThemeConfig.textStrong;
@@ -746,39 +752,46 @@ export class CanvasRenderer {
 
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
         this.context.font = `24px HarmonyOS Sans`;
+        this.context.textBaseline = 'middle';
         // 紧凑日期格式：月/日 ~ 月/日 (天数)
         const startM = task.startDate.getMonth() + 1;
         const startD = task.startDate.getDate();
         const endM = task.endDate.getMonth() + 1;
         const endD = task.endDate.getDate();
-        const dateString = `日期 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
-        this.context.fillText(dateString, leftX, cursorY);
+        const dateString = `${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
+        const dateLineH = 18;
+        const dateMidY = lineMid(cursorY, dateLineH);
+        this.drawCalendarIcon(leftX, iconTopY(cursorY, dateLineH), this.INLINE_ICON_SIZE, inlineIconColor);
+        this.context.fillText(dateString, leftX + inlineIconLabelW, dateMidY);
         cursorY += 18;
 
         const timeProgress = this.getTimeProgress(task);
         this.context.font = `22px HarmonyOS Sans`;
         // 时间进度 - 标签、进度条、百分比同行
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-        this.context.fillText(`时间`, leftX, cursorY);
-        const timeLabelW = this.context.measureText('时间').width + 10;
+        const timeMidY = lineMid(cursorY);
+        this.drawClockIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+        const timeLabelW = inlineIconLabelW;
         const timePercentW = this.context.measureText('100%').width + 10;
         const timeBarW = NODE_WIDTH - 30 - timeLabelW - timePercentW;
-        this.drawProgressBar(leftX + timeLabelW, cursorY + 4, timeBarW, 6, timeProgress, '#409EFF');
+        this.drawProgressBar(leftX + timeLabelW, timeMidY - 3, timeBarW, 6, timeProgress, '#409EFF');
         this.context.fillStyle = '#409EFF';
-        this.context.fillText(`${timeProgress}%`, leftX + timeLabelW + timeBarW + 8, cursorY);
+        this.context.fillText(`${timeProgress}%`, leftX + timeLabelW + timeBarW + 8, timeMidY);
         cursorY += 20;
 
         const completionProgress = this.getCompletionProgress(task);
         // 完成进度 - 标签、进度条、百分比同行
         this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-        this.context.fillText(`完成`, leftX, cursorY);
-        const compLabelW = this.context.measureText('完成').width + 10;
+        const compMidY = lineMid(cursorY);
+        this.drawSelectIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+        const compLabelW = inlineIconLabelW;
         const compPercentW = this.context.measureText('100%').width + 10;
         const compBarW = NODE_WIDTH - 30 - compLabelW - compPercentW;
-        this.drawProgressBar(leftX + compLabelW, cursorY + 4, compBarW, 6, completionProgress, '#67C23A');
+        this.drawProgressBar(leftX + compLabelW, compMidY - 3, compBarW, 6, completionProgress, '#67C23A');
         this.context.fillStyle = '#67C23A';
-        this.context.fillText(`${completionProgress}%`, leftX + compLabelW + compBarW + 8, cursorY);
+        this.context.fillText(`${completionProgress}%`, leftX + compLabelW + compBarW + 8, compMidY);
         cursorY += 20;
+        this.context.textBaseline = 'top';
       } else {
         // 检查是否有可合并的组件（STATUS_DOT、ASSIGNEE、PRIORITY_BADGE）
         const mergeableTypes = ['STATUS_DOT', 'ASSIGNEE', 'PRIORITY_BADGE'];
@@ -802,17 +815,20 @@ export class CanvasRenderer {
           mergeableComps.forEach((mc: NodeComponentSchema, idx: number) => {
             const mt: string = mc && mc.type ? String(mc.type) : '';
             const slotX = leftX + idx * slotWidth; // 每个组件的起始X位置
+            const rowMidY = lineMid(cursorY);
 
             if (mt === 'STATUS_DOT') {
               this.context.font = `20px HarmonyOS Sans`;
-              const dotY = cursorY + LINE_HEIGHT / 2;
+              const dotY = rowMidY;
               this.context.beginPath();
               this.context.arc(slotX + 4, dotY, 4, 0, Math.PI * 2);
               this.context.fillStyle = '#67C23A';
               this.context.fill();
               const statusText = getCustomStr('_status') || '进行中';
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-              this.context.fillText(statusText, slotX + 12, cursorY + 3);
+              this.context.textBaseline = 'middle';
+              this.context.fillText(statusText, slotX + 12, rowMidY);
+              this.context.textBaseline = 'top';
             }
 
             if (mt === 'PRIORITY_BADGE') {
@@ -827,17 +843,22 @@ export class CanvasRenderer {
               this.drawRoundRect(this.context, slotX, badgeY, badgeW, badgeH, 3);
               this.context.fill();
               this.context.fillStyle = '#FFFFFF';
-              this.context.fillText(badgeText, slotX + badgePadX, badgeY);
+              this.context.textBaseline = 'middle';
+              this.context.fillText(badgeText, slotX + badgePadX, badgeY + badgeH / 2);
               this.context.fillStyle = '#FF3B30';
               this.context.font = `20px HarmonyOS Sans`;
-              this.context.fillText(priorityText, slotX + badgeW + 4, cursorY + 3);
+              this.context.fillText(priorityText, slotX + badgeW + 4, rowMidY);
+              this.context.textBaseline = 'top';
             }
 
             if (mt === 'ASSIGNEE') {
-              const assigneeText = getCustomStr('_assignee') || '负责人';
+              const assigneeText = getCustomStr('_assignee') || '未分配';
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
               this.context.font = `20px HarmonyOS Sans`;
-              this.context.fillText(`负责人 ${assigneeText}`, slotX, cursorY + 3);
+              this.drawUserIcon(slotX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+              this.context.textBaseline = 'middle';
+              this.context.fillText(assigneeText, slotX + inlineIconLabelW, rowMidY);
+              this.context.textBaseline = 'top';
             }
           });
 
@@ -864,14 +885,18 @@ export class CanvasRenderer {
           if (t === 'DATE_RANGE') {
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `24px HarmonyOS Sans`;
+            this.context.textBaseline = 'middle';
             // 紧凑日期格式：月/日 ~ 月/日 (天数)
             const startM = task.startDate.getMonth() + 1;
             const startD = task.startDate.getDate();
             const endM = task.endDate.getMonth() + 1;
             const endD = task.endDate.getDate();
-            const dateString = `日期 ${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
-            this.context.fillText(dateString, leftX, cursorY);
+            const dateString = `${startM}/${startD} ~ ${endM}/${endD} (${this.getDuration(task)}天)`;
+            const rowMidY = lineMid(cursorY);
+            this.drawCalendarIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+            this.context.fillText(dateString, leftX + inlineIconLabelW, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'CHECKLIST_SUMMARY') {
@@ -881,42 +906,50 @@ export class CanvasRenderer {
               : 0;
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`清单 ${done}/${total} 项已完成`, leftX, cursorY);
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawChecklistIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+            this.context.fillText(`${done}/${total} 完成`, leftX + inlineIconLabelW, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'TIME_PROGRESS') {
             const timeProgress = this.getTimeProgress(task);
             this.context.font = `22px HarmonyOS Sans`;
-            // 标签
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.fillText(`时间`, leftX, cursorY);
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawClockIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
             // 进度条
-            const labelWidth = this.context.measureText('时间').width + 10;
+            const labelWidth = inlineIconLabelW;
             const percentWidth = this.context.measureText('100%').width + 10;
             const barWidth = NODE_WIDTH - 30 - labelWidth - percentWidth;
-            this.drawProgressBar(leftX + labelWidth, cursorY + 4, barWidth, 6, timeProgress, '#409EFF');
+            this.drawProgressBar(leftX + labelWidth, rowMidY - 3, barWidth, 6, timeProgress, '#409EFF');
             // 百分比
             this.context.fillStyle = '#409EFF';
-            this.context.fillText(`${timeProgress}%`, leftX + labelWidth + barWidth + 8, cursorY);
+            this.context.fillText(`${timeProgress}%`, leftX + labelWidth + barWidth + 8, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'TASK_PROGRESS') {
             const completionProgress = this.getCompletionProgress(task);
             this.context.font = `22px HarmonyOS Sans`;
-            // 标签
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.fillText(`完成`, leftX, cursorY);
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawSelectIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
             // 进度条
-            const labelWidth = this.context.measureText('完成').width + 10;
+            const labelWidth = inlineIconLabelW;
             const percentWidth = this.context.measureText('100%').width + 10;
             const barWidth = NODE_WIDTH - 30 - labelWidth - percentWidth;
-            this.drawProgressBar(leftX + labelWidth, cursorY + 4, barWidth, 6, completionProgress, '#67C23A');
+            this.drawProgressBar(leftX + labelWidth, rowMidY - 3, barWidth, 6, completionProgress, '#67C23A');
             // 百分比
             this.context.fillStyle = '#67C23A';
-            this.context.fillText(`${completionProgress}%`, leftX + labelWidth + barWidth + 8, cursorY);
+            this.context.fillText(`${completionProgress}%`, leftX + labelWidth + barWidth + 8, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'PRIORITY_BADGE') {
@@ -925,13 +958,15 @@ export class CanvasRenderer {
             const priorityText = v && v.length > 0 ? v : '高';
             this.context.font = `18px HarmonyOS Sans`;
             
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
             if (propStyle === 'icon') {
-              this.context.fillText('高优先级', leftX, cursorY);
+              this.context.fillText('高优先级', leftX, rowMidY);
               cursorY += LINE_HEIGHT;
             } else if (propStyle === 'text') {
               // 文字样式
               this.context.fillStyle = '#FF3B30';
-              this.context.fillText(priorityText, leftX, cursorY);
+              this.context.fillText(priorityText, leftX, rowMidY);
               cursorY += LINE_HEIGHT;
             } else {
               // 默认徽章样式：贴片高度12，垂直居中于行高20
@@ -947,13 +982,14 @@ export class CanvasRenderer {
               // 绘制徽章文字（垂直居中）
               this.context.fillStyle = '#FFFFFF';
               this.context.font = `22px HarmonyOS Sans`;
-              this.context.fillText(badgeText, leftX + badgePadX-3, badgeY );
+              this.context.fillText(badgeText, leftX + badgePadX-3, badgeY + badgeH / 2);
               // 绘制优先级文字
               this.context.fillStyle = '#FF3B30';
               this.context.font = `22px HarmonyOS Sans`;
-              this.context.fillText(priorityText, leftX + badgeW + 5, badgeY );
+              this.context.fillText(priorityText, leftX + badgeW + 5, rowMidY);
               cursorY += LINE_HEIGHT;
             }
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'STATUS_DOT') {
@@ -972,28 +1008,36 @@ export class CanvasRenderer {
               this.drawRoundRect(this.context, leftX, labelY, labelW, labelH, 3);
               this.context.fill();
               this.context.fillStyle = '#FFFFFF';
-              this.context.fillText(statusText, leftX + labelPadX, labelY - 2);
+              this.context.textBaseline = 'middle';
+              this.context.fillText(statusText, leftX + labelPadX, labelY + labelH / 2);
               cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
             } else {
               // 默认圆点样式
-              const dotY = cursorY + LINE_HEIGHT / 2; // 圆点垂直居中
+              const dotY = lineMid(cursorY); // 圆点垂直居中
               this.context.beginPath();
               this.context.arc(leftX + 4, dotY, 4, 0, Math.PI * 2);
               this.context.fillStyle = '#67C23A';
               this.context.fill();
               this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-              this.context.fillText(statusText, leftX + 14, cursorY+4);
+              this.context.textBaseline = 'middle';
+              this.context.fillText(statusText, leftX + 14, dotY);
               cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
             }
             return;
           }
           if (t === 'ASSIGNEE') {
             const v = getCustomStr('_assignee');
-            const assigneeText = v && v.length > 0 ? v : '负责人';
+            const assigneeText = v && v.length > 0 ? v : '未分配';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`负责人 ${assigneeText}`, leftX, cursorY+3);
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawUserIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+            this.context.fillText(assigneeText, leftX + inlineIconLabelW, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
           if (t === 'TAGS') {
@@ -1009,16 +1053,15 @@ export class CanvasRenderer {
             const chipRadius = 3;
             const chipGap = 4;
             const rowGap = 4;
-            const iconWidth = 24;
+            const iconWidth = inlineIconLabelW;
             const availableWidth = NODE_WIDTH - 24 - iconWidth; // 可用宽度（减去左右边距和图标）
 
             // 绘制标签图标
-            this.context.font = `24px HarmonyOS Sans`;
-            this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
-            this.context.fillText(`标签`, leftX, cursorY);
+            this.drawTagIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
 
             // 切换到较小字体绘制标签文字
             this.context.font = `22px HarmonyOS Sans`;
+            this.context.textBaseline = 'top';
 
             // 计算每行可以放多少标签，支持多行
             let currentRow = 0;
@@ -1038,7 +1081,7 @@ export class CanvasRenderer {
                 rowStartY += LINE_HEIGHT;
               }
 
-              const chipY = rowStartY + (LINE_HEIGHT - chipHeight) / 2 - 2;
+              const chipY = rowStartY + (LINE_HEIGHT - chipHeight) / 2;
 
               // 背景颜色 - 交替使用蓝色和红色
               if (i % 2 === 1) {
@@ -1071,8 +1114,12 @@ export class CanvasRenderer {
             const displayText = v && v.length > 0 ? v : '未绑定字段';
             this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
             this.context.font = `22px HarmonyOS Sans`;
-            this.context.fillText(`${label}: ${displayText}`, leftX, cursorY);
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+            this.context.fillText(`${label}: ${displayText}`, leftX + inlineIconLabelW, rowMidY);
             cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
             return;
           }
 
@@ -1246,6 +1293,194 @@ export class CanvasRenderer {
     ctx.lineTo(x, y + radius);
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
+  }
+
+  private drawCalendarIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const r = Math.max(2, Math.floor(size / 6));
+    this.drawRoundRect(ctx, x, y, size, size, r);
+    ctx.stroke();
+
+    const headerH = Math.max(3, Math.floor(size * 0.32));
+    ctx.beginPath();
+    ctx.moveTo(x, y + headerH);
+    ctx.lineTo(x + size, y + headerH);
+    ctx.stroke();
+
+    // 两个小“环”
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.28, y);
+    ctx.lineTo(x + size * 0.28, y + headerH * 0.6);
+    ctx.moveTo(x + size * 0.72, y);
+    ctx.lineTo(x + size * 0.72, y + headerH * 0.6);
+    ctx.stroke();
+
+    // 日期小方块（3个）
+    const cellY = y + headerH + Math.max(1, Math.floor(size * 0.18));
+    const cellSize = Math.max(2, Math.floor(size * 0.22));
+    const gap = Math.max(1, Math.floor(size * 0.12));
+    const startX = x + Math.max(2, Math.floor(size * 0.18));
+    ctx.fillStyle = color;
+    ctx.fillRect(startX, cellY, cellSize, cellSize);
+    ctx.fillRect(startX + cellSize + gap, cellY, cellSize, cellSize);
+    ctx.fillRect(startX + (cellSize + gap) * 2, cellY, cellSize, cellSize);
+    ctx.restore();
+  }
+
+  private drawClockIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const r = size / 2;
+    const cx = x + r;
+    const cy = y + r;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 指针
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - r * 0.55);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * 0.5, cy);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawSelectIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const r = size / 2;
+    const cx = x + r;
+    const cy = y + r;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.22, y + size * 0.56);
+    ctx.lineTo(x + size * 0.42, y + size * 0.74);
+    ctx.lineTo(x + size * 0.78, y + size * 0.28);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawChecklistIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const leftW = Math.max(4, Math.floor(size * 0.45));
+    const lineX = x + leftW + 3;
+    const lineW = Math.max(5, size - leftW - 3);
+
+    // 两行文本
+    ctx.beginPath();
+    ctx.moveTo(lineX, y + size * 0.35);
+    ctx.lineTo(lineX + lineW, y + size * 0.35);
+    ctx.moveTo(lineX, y + size * 0.68);
+    ctx.lineTo(lineX + lineW, y + size * 0.68);
+    ctx.stroke();
+
+    // 两个勾
+    const checkSize = Math.max(3, Math.floor(size * 0.34));
+    const c1x = x + 0.5;
+    const c1y = y + size * 0.23;
+    ctx.beginPath();
+    ctx.moveTo(c1x + checkSize * 0.1, c1y + checkSize * 0.55);
+    ctx.lineTo(c1x + checkSize * 0.38, c1y + checkSize * 0.82);
+    ctx.lineTo(c1x + checkSize * 0.9, c1y + checkSize * 0.2);
+    ctx.stroke();
+
+    const c2x = x + 0.5;
+    const c2y = y + size * 0.56;
+    ctx.beginPath();
+    ctx.moveTo(c2x + checkSize * 0.1, c2y + checkSize * 0.55);
+    ctx.lineTo(c2x + checkSize * 0.38, c2y + checkSize * 0.82);
+    ctx.lineTo(c2x + checkSize * 0.9, c2y + checkSize * 0.2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawTagIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const left = x;
+    const top = y + size * 0.18;
+    const right = x + size;
+    const bottom = y + size * 0.82;
+    const notch = x + size * 0.36;
+    const midY = y + size / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(notch, top);
+    ctx.lineTo(right, top);
+    ctx.lineTo(right, bottom);
+    ctx.lineTo(notch, bottom);
+    ctx.lineTo(left, midY);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(notch + size * 0.18, midY, Math.max(1.8, size * 0.08), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawUserIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const cx = x + size / 2;
+    const headR = size * 0.23;
+    const headY = y + size * 0.33;
+    ctx.beginPath();
+    ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const bodyY = y + size * 0.72;
+    ctx.beginPath();
+    ctx.arc(cx, bodyY, size * 0.35, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawPencilIcon(x: number, y: number, size: number, color: string): void {
+    const ctx = this.context;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 笔身
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.22, y + size * 0.78);
+    ctx.lineTo(x + size * 0.78, y + size * 0.22);
+    ctx.stroke();
+
+    // 笔尖
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.68, y + size * 0.16);
+    ctx.lineTo(x + size * 0.86, y + size * 0.34);
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawProgressBar(x: number, y: number, width: number, height: number, progress: number, color: string): void {

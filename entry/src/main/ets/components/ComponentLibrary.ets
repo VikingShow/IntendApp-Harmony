@@ -62,9 +62,9 @@ export struct ComponentLibrary {
           
           Text(`${this.getFilteredComponents().length}`)
             .fontSize(ThemeConfig.fontSizeXS)
-            .fontColor(Color.White)
+            .fontColor(ColorResource.textSecondary)
             .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-            .backgroundColor(ColorResource.primaryColor)
+            .backgroundColor(ColorResource.backgroundSecondary)
             .borderRadius(8);
           
           Row()
@@ -148,6 +148,7 @@ export struct ComponentLibrary {
               DraggableComponentItem({
                 type: component.type,
                 label: component.label,
+                description: component.description,
                 icon: component.icon,
                 isDragging: this.draggedComponentType === component.type,
                 handleDragStart: (type: NodeComponentType) => {
@@ -168,13 +169,6 @@ export struct ComponentLibrary {
                   this.onComponentClick(component.type);
                 }
               });
-              
-              // 描述信息
-              Text(component.description)
-                .fontSize(ThemeConfig.fontSizeXS)
-                .fontColor(ColorResource.textTertiary)
-                .opacity(0.7)
-                .padding({ left: 12, right: 12, top: 4, bottom: 8 });
             }
             .width('100%');
           }, (component: ComponentTypeInfo) => component.type);

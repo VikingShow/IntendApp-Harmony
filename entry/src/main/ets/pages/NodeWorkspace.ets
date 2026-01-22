@@ -2972,14 +2972,14 @@ struct NodeWorkspacePage {
 
           Text(`${this.getFilteredSchemas().length}`)
             .fontSize(ThemeConfig.fontSizeXS)
-            .fontColor(Color.White)
+            .fontColor(ColorResource.textSecondary)
             .padding({
               left: 6,
               right: 6,
               top: 2,
               bottom: 2
             })
-            .backgroundColor(ColorResource.primaryColor)
+            .backgroundColor(ColorResource.backgroundSecondary)
             .borderRadius(8);
         }
         .width('100%');

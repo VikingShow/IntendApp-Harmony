@@ -15,6 +15,7 @@ import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 export struct DraggableComponentItem {
   @Prop type: NodeComponentType;
   @Prop label: string;
+  @Prop description?: string;
   @Prop icon: Resource;
   @Prop isDragging: boolean = false;
   handleDragStart?: (type: NodeComponentType) => void;
@@ -29,11 +30,23 @@ export struct DraggableComponentItem {
           .height(16)
           .fillColor(ColorResource.textSecondary)
 
-        Text(this.label)
-          .fontSize(ThemeConfig.fontSizeS)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorResource.textPrimary)
-          .layoutWeight(1);
+        Row({ space: 6 }) {
+          Text(this.label)
+            .fontSize(ThemeConfig.fontSizeS)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorResource.textPrimary);
+
+          if (this.description) {
+            Text(this.description)
+              .fontSize(ThemeConfig.fontSizeXS)
+              .fontColor(ColorResource.textTertiary)
+              .opacity(0.7)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+          }
+        }
+        .layoutWeight(1)
+        .alignItems(VerticalAlign.Center);
 
         Text('⋮⋮')
           .fontSize(14)
@@ -145,7 +158,8 @@ export struct NodeComponentPreview {
       if (this.isSelected && this.handleDelete) {
         Button() {
           Text('×')
-            .fontSize(14)
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
             .fontColor(Color.White);
         }
         .width(32)

@@ -21,7 +21,7 @@ export struct DockablePanel {
           .layoutWeight(1);
 
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          Image($r('sys.media.icon_delete'))
+          Image($r('app.media.ic_delete'))
             .width(16)
             .height(16)
             .fillColor(ColorResource.textSecondary)

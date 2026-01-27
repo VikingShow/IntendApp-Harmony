@@ -1,4 +1,4 @@
-// File: entry/src/main/ets/pages/CustomComponentDesigner.ets
+﻿// File: entry/src/main/ets/pages/CustomComponentDesigner.ets
 
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import router from '@ohos.router';
@@ -6,6 +6,7 @@ import { PromptAction } from '@kit.ArkUI';
 import { CustomComponentService } from '../services/CustomComponentService';
 import {
   CustomComponentDefinition,
+  CustomComponentMeta,
   CustomEnumItem,
   CustomRenderType,
   CustomLayoutType,
@@ -188,6 +189,44 @@ struct CustomComponentDesignerPage {
     }
   }
 
+  private duplicateSelected(): void {
+    const selected = this.getSelected();
+    if (!selected) {
+      return;
+    }
+    const id = `cc_${Date.now()}`;
+    const now = Date.now();
+    const meta: CustomComponentMeta = {
+      author: selected.meta?.author,
+      createdAt: now,
+      updatedAt: now,
+      tags: selected.meta?.tags
+    };
+    const def: CustomComponentDefinition = {
+      id: id,
+      name: `${selected.name} 副本`,
+      renderType: selected.renderType,
+      description: selected.description,
+      version: selected.version,
+      meta: meta,
+      valueType: selected.valueType,
+      textTemplate: selected.textTemplate,
+      layout: selected.layout,
+      enums: selected.enums ? selected.enums.slice() : [],
+      min: selected.min,
+      max: selected.max,
+      unit: selected.unit,
+      style: selected.style,
+      styleRules: selected.styleRules ? selected.styleRules.slice() : [],
+      events: selected.events ? selected.events.slice() : []
+    };
+    this.service.upsert(def);
+    this.service.saveToStorage();
+    this.selectedId = id;
+    this.reloadList();
+    this.promptAction.showToast({ message: '已复制组件', duration: 1200 });
+  }
+
   private reloadList(): void {
     const all = this.service.getAll();
     if (!this.selectedId && all.length > 0) {
@@ -218,8 +257,15 @@ struct CustomComponentDesignerPage {
       id: id,
       name: '新自定义组件',
       renderType: 'text',
+      valueType: 'text',
       description: '',
       textTemplate: '{value}',
+      layout: {
+        type: 'inline',
+        template: {
+          raw: '{value}'
+        }
+      },
       enums: [],
       min: 0,
       max: 100,
@@ -228,6 +274,12 @@ struct CustomComponentDesignerPage {
         borderRadius: 8,
         paddingX: 8,
         paddingY: 4
+      },
+      styleRules: [],
+      events: [],
+      meta: {
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       }
     };
     this.service.upsert(def);
@@ -257,17 +309,30 @@ struct CustomComponentDesignerPage {
     if (!selected) {
       return;
     }
+    const nextMeta = patch.meta ? patch.meta : selected.meta;
+    const mergedMeta: CustomComponentMeta = {
+      author: nextMeta?.author,
+      createdAt: nextMeta?.createdAt,
+      updatedAt: Date.now(),
+      tags: nextMeta?.tags
+    };
     const updated: CustomComponentDefinition = {
       id: selected.id,
       name: patch.name !== undefined ? patch.name : selected.name,
       renderType: patch.renderType !== undefined ? patch.renderType : selected.renderType,
       description: patch.description !== undefined ? patch.description : selected.description,
+      version: patch.version !== undefined ? patch.version : selected.version,
+      meta: mergedMeta,
+      valueType: patch.valueType !== undefined ? patch.valueType : selected.valueType,
       textTemplate: patch.textTemplate !== undefined ? patch.textTemplate : selected.textTemplate,
+      layout: patch.layout !== undefined ? patch.layout : selected.layout,
       enums: patch.enums !== undefined ? patch.enums : selected.enums,
       min: patch.min !== undefined ? patch.min : selected.min,
       max: patch.max !== undefined ? patch.max : selected.max,
       unit: patch.unit !== undefined ? patch.unit : selected.unit,
-      style: patch.style !== undefined ? patch.style : selected.style
+      style: patch.style !== undefined ? patch.style : selected.style,
+      styleRules: patch.styleRules !== undefined ? patch.styleRules : selected.styleRules,
+      events: patch.events !== undefined ? patch.events : selected.events
     };
     this.service.upsert(updated);
     this.service.saveToStorage();
@@ -306,7 +371,7 @@ struct CustomComponentDesignerPage {
     if (!selected || !selected.enums) {
       return;
     }
-    const nextEnums: CustomEnumItem[] = [...selected.enums];
+    const nextEnums: CustomEnumItem[] = selected.enums.slice();
     if (index < 0 || index >= nextEnums.length) {
       return;
     }
@@ -347,9 +412,10 @@ struct CustomComponentDesignerPage {
     // 顶部栏
     Row({ space: 12 }) {
       Row({ space: 6 }) {
-        Text('←')
-          .fontSize(20)
-          .fontColor(ColorResource.primaryColor);
+        Image($r('app.media.ic_back'))
+          .width(18)
+          .height(18)
+          .fillColor(ColorResource.primaryColor);
         Text('返回')
           .fontSize(ThemeConfig.fontSizeM)
           .fontColor(ColorResource.primaryColor);
@@ -360,11 +426,17 @@ struct CustomComponentDesignerPage {
         router.back();
       });
 
-      Text('自定义组件定义器')
-        .fontSize(ThemeConfig.fontSizeL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(ColorResource.textPrimary)
-        .layoutWeight(1);
+      Column({ space: 2 }) {
+        Text('自定义组件定义器')
+          .fontSize(ThemeConfig.fontSizeL)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorResource.textPrimary);
+        Text('自动保存')
+          .fontSize(ThemeConfig.fontSizeXS)
+          .fontColor(ColorResource.textTertiary);
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
 
       Row({ space: 8 }) {
         Button('新建')
@@ -374,6 +446,14 @@ struct CustomComponentDesignerPage {
           .fontColor(Color.White)
           .borderRadius(8)
           .onClick(() => this.createNew());
+
+        Button('复制')
+          .height(36)
+          .fontSize(ThemeConfig.fontSizeS)
+          .backgroundColor(ColorResource.surface)
+          .fontColor(ColorResource.primaryColor)
+          .borderRadius(8)
+          .onClick(() => this.duplicateSelected());
 
         Button('删除')
           .height(36)
@@ -419,7 +499,7 @@ struct CustomComponentDesignerPage {
                     .fontColor(ColorResource.textPrimary)
                     .maxLines(1);
 
-                  Text(`${item.renderType} · ${item.id}`)
+                  Text(`${this.getRenderTypeLabel(item.renderType)} · ${item.id}`)
                     .fontSize(ThemeConfig.fontSizeXS)
                     .fontColor(ColorResource.textTertiary)
                     .maxLines(1);
@@ -443,7 +523,7 @@ struct CustomComponentDesignerPage {
         .scrollBar(BarState.Auto);
 
         // 导入导出（JSON）
-        Column({ space: 8 }) {
+          Column({ space: 8 }) {
           Text('导入/导出（JSON）')
             .fontSize(ThemeConfig.fontSizeS)
             .fontWeight(FontWeight.Medium)
@@ -480,7 +560,7 @@ struct CustomComponentDesignerPage {
               .onClick(() => this.doImport('replace'));
           }
 
-          Button('复制导出JSON')
+          Button('复制导出 JSON')
             .width('100%')
             .height(34)
             .fontSize(ThemeConfig.fontSizeXS)
@@ -489,10 +569,10 @@ struct CustomComponentDesignerPage {
             .borderRadius(8)
             .onClick(() => {
               this.exportJson = this.service.exportToJson();
-              this.promptAction.showToast({ message: '已刷新导出JSON，请手动复制', duration: 1500 });
+              this.promptAction.showToast({ message: '已刷新导出 JSON，请手动复制', duration: 1500 });
             });
 
-          TextArea({ text: this.exportJson, placeholder: '导出JSON会显示在这里' })
+          TextArea({ text: this.exportJson, placeholder: '导出 JSON 会显示在这里' })
             .width('100%')
             .height(90)
             .fontSize(ThemeConfig.fontSizeXS)
@@ -518,14 +598,13 @@ struct CustomComponentDesignerPage {
       Column({ space: 12 }) {
         if (!this.getSelected()) {
           Column({ space: 12 }) {
-            Text('← 请选择一个自定义组件')
+            Text('请先选择一个自定义组件')
               .fontSize(ThemeConfig.fontSizeM)
               .fontColor(ColorResource.textTertiary);
 
             Text('或点击右上角“新建”创建')
               .fontSize(ThemeConfig.fontSizeS)
-              .fontColor(ColorResource.textTertiary)
-              .opacity(0.7);
+              .fontColor(ColorResource.textSecondary);
           }
           .width('100%')
           .layoutWeight(1)

@@ -359,6 +359,75 @@ export struct ComponentPropertyPanel {
           .fontWeight(FontWeight.Medium)
           .fontColor(ColorResource.textPrimary);
 
+        if (this.selectedComponent.type === 'CUSTOM_COMPONENT') {
+          Column({ space: 8 }) {
+            Text('选择自定义组件')
+              .fontSize(ThemeConfig.fontSizeS)
+              .fontColor(ColorResource.textTertiary);
+
+            if (this.customComponents.length === 0) {
+              Column({ space: 6 }) {
+                Text('暂无可用自定义组件')
+                  .fontSize(ThemeConfig.fontSizeS)
+                  .fontColor(ColorResource.textTertiary);
+
+                Text('请先在“自定义组件”中创建组件')
+                  .fontSize(ThemeConfig.fontSizeXS)
+                  .fontColor(ColorResource.textSecondary)
+                  .lineHeight(16);
+              }
+              .width('100%')
+              .padding(12)
+              .backgroundColor(ColorResource.backgroundSecondary)
+              .borderRadius(8)
+              .alignItems(HorizontalAlign.Start);
+            } else {
+              Column({ space: 6 }) {
+                ForEach(this.customComponents, (def: CustomComponentDefinition) => {
+                  Row({ space: 8 }) {
+                    Radio({ value: def.id, group: 'customComponentBinding' })
+                      .checked(this.selectedComponent?.customComponentId === def.id)
+                      .onChange((isChecked: boolean) => {
+                        if (isChecked && this.selectedComponent && this.onPropertyChange) {
+                          const updated: NodeComponentSchema = {
+                            id: this.selectedComponent.id,
+                            type: this.selectedComponent.type,
+                            fieldId: this.selectedComponent.fieldId,
+                            customComponentId: def.id,
+                            props: this.selectedComponent.props
+                          };
+                          this.onPropertyChange(updated);
+                        }
+                      });
+
+                    Column({ space: 2 }) {
+                      Text(def.name)
+                        .fontSize(ThemeConfig.fontSizeS)
+                        .fontColor(ColorResource.textPrimary);
+
+                      Text(def.renderType)
+                        .fontSize(ThemeConfig.fontSizeXS)
+                        .fontColor(ColorResource.textTertiary);
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1);
+                  }
+                  .width('100%')
+                  .padding(10)
+                  .backgroundColor(
+                    this.selectedComponent?.customComponentId === def.id
+                      ? ColorResource.backgroundSecondary
+                      : Color.Transparent
+                  )
+                  .borderRadius(6);
+                }, (def: CustomComponentDefinition) => def.id);
+              }
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start);
+        }
+
         if (this.selectedComponent.type === 'CUSTOM_FIELD' || this.selectedComponent.type === 'CUSTOM_COMPONENT') {
           // 自定义字段需要绑定字段
           Column({ space: 8 }) {

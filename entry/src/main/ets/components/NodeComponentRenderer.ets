@@ -23,6 +23,9 @@ export struct DraggableComponentItem {
   @Prop dragPayload?: string;
   @Prop customComponentId?: string;
   @Prop isDragging: boolean = false;
+  @State private allowDrag: boolean = false;
+  @State private dragActive: boolean = false;
+  private touchDownAt: number = 0;
   handleDragStart?: (type: NodeComponentType) => void;
   handleDragEnd?: () => void;
 
@@ -53,32 +56,9 @@ export struct DraggableComponentItem {
         .layoutWeight(1)
         .alignItems(VerticalAlign.Center);
 
-        Text('??')
+        Text('::')
           .fontSize(14)
-          .fontColor(ColorResource.textTertiary)
-          .onDragStart((event?: DragEvent) => {
-            if (event) {
-              const unifiedData = new unifiedDataChannel.UnifiedData();
-              const plainText = new unifiedDataChannel.PlainText();
-              plainText.textContent = this.dragPayload ? this.dragPayload : this.type;
-              unifiedData.addRecord(plainText);
-              event.setData(unifiedData);
-            }
-
-            if (this.handleDragStart) {
-              this.handleDragStart(this.type);
-            }
-
-            return {
-              builder: this.dragPreviewBuilder()
-            };
-          })
-          .onDragEnd(() => {
-            if (this.handleDragEnd) {
-              this.handleDragEnd();
-            }
-          })
-          .draggable(true);
+          .fontColor(ColorResource.textTertiary);
       }
       .width('100%');
 
@@ -98,6 +78,50 @@ export struct DraggableComponentItem {
     .backgroundColor(this.isDragging ? ColorResource.backgroundSecondary : ColorResource.surface)
     .borderRadius(8)
     .shadow(this.isDragging ? { radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 } : { radius: 2, color: 'rgba(0,0,0,0.05)', offsetY: 1 })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.touchDownAt = Date.now();
+        this.allowDrag = false;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.touchDownAt = 0;
+        if (!this.dragActive) {
+          this.allowDrag = false;
+        }
+      }
+    })
+    .onDragStart((event?: DragEvent) => {
+      const now = Date.now();
+      if (this.touchDownAt === 0 || now - this.touchDownAt < 350) {
+        return;
+      }
+      this.dragActive = true;
+      this.allowDrag = true;
+
+      if (event) {
+        const unifiedData = new unifiedDataChannel.UnifiedData();
+        const plainText = new unifiedDataChannel.PlainText();
+        plainText.textContent = this.dragPayload ? this.dragPayload : this.type;
+        unifiedData.addRecord(plainText);
+        event.setData(unifiedData);
+      }
+
+      if (this.handleDragStart) {
+        this.handleDragStart(this.type);
+      }
+
+      return {
+        builder: this.dragPreviewBuilder()
+      };
+    })
+    .onDragEnd(() => {
+      this.dragActive = false;
+      this.allowDrag = false;
+      this.touchDownAt = 0;
+      if (this.handleDragEnd) {
+        this.handleDragEnd();
+      }
+    })
+    .draggable(true)
   }
 
   @Builder

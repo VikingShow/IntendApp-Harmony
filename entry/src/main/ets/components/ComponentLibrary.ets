@@ -5,6 +5,8 @@
  */
 
 import { NodeComponentType } from '../model/NodeSchema';
+import { CustomComponentService } from '../services/CustomComponentService';
+import { CustomComponentDefinition } from '../model/CustomComponentSchema';
 import { DraggableComponentItem } from './NodeComponentRenderer';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
@@ -14,40 +16,81 @@ interface ComponentTypeInfo {
   icon: Resource;
   description: string;
   category: 'basic' | 'data' | 'advanced';
+  customComponentId?: string;
 }
 
 @Component
 export struct ComponentLibrary {
   @State selectedCategory: 'all' | 'basic' | 'data' | 'advanced' = 'all';
   @State draggedComponentType: NodeComponentType | null = null;
+  @State customComponents: CustomComponentDefinition[] = [];
+
+  private customComponentService: CustomComponentService = CustomComponentService.getInstance();
   
-  onComponentClick?: (type: NodeComponentType) => void;
+  onComponentClick?: (type: NodeComponentType, customComponentId?: string) => void;
   onComponentDragStart?: (type: NodeComponentType) => void;
   onComponentDragEnd?: () => void;
+  onOpenCustomComponentDesigner?: () => void;
 
-  private componentTypes: ComponentTypeInfo[] = [
+  private baseComponentTypes: ComponentTypeInfo[] = [
     // 基础组件
-    { type: 'TITLE', label: '标题', icon: $r('app.media.ic_pin'), description: '任务名称标题', category: 'basic' },
-    { type: 'DATE_RANGE', label: '日期范围', icon: $r('app.media.ic_calendar'), description: '开始-结束日期', category: 'basic' },
-    { type: 'STATUS_DOT', label: '状态点', icon: $r('app.media.ic_status'), description: '状态指示器', category: 'basic' },
-    
-    // 数据展示组件
+    { type: 'TITLE', label: '标题', icon: $r('app.media.ic_pin'), description: '任务标题', category: 'basic' },
+    { type: 'DATE_RANGE', label: '日期区间', icon: $r('app.media.ic_calendar'), description: '开始和结束日期', category: 'basic' },
+    { type: 'STATUS_DOT', label: '状态点', icon: $r('app.media.ic_status'), description: '状态指示', category: 'basic' },
+
+    // 数据组件
     { type: 'TIME_PROGRESS', label: '时间进度', icon: $r('app.media.ic_clock'), description: '时间进度条', category: 'data' },
-    { type: 'TASK_PROGRESS', label: '任务进度', icon: $r('app.media.ic_select'), description: '完成度进度条', category: 'data' },
-    { type: 'CHECKLIST_SUMMARY', label: '清单统计', icon: $r('app.media.ic_checklist'), description: '清单完成情况', category: 'data' },
-    { type: 'PRIORITY_BADGE', label: '优先级', icon: $r('app.media.ic_priority'), description: '优先级标签', category: 'data' },
-    
+    { type: 'TASK_PROGRESS', label: '任务进度', icon: $r('app.media.ic_select'), description: '完成进度条', category: 'data' },
+    { type: 'CHECKLIST_SUMMARY', label: '清单完成', icon: $r('app.media.ic_checklist'), description: '清单统计', category: 'data' },
+    { type: 'PRIORITY_BADGE', label: '优先级', icon: $r('app.media.ic_priority'), description: '优先级徽章', category: 'data' },
+
     // 高级组件
     { type: 'ASSIGNEE', label: '负责人', icon: $r('app.media.ic_user'), description: '任务负责人', category: 'advanced' },
     { type: 'TAGS', label: '标签', icon: $r('app.media.ic_tag'), description: '标签列表', category: 'advanced' },
     { type: 'CUSTOM_FIELD', label: '自定义字段', icon: $r('app.media.ic_edit'), description: '绑定自定义字段', category: 'advanced' }
   ];
 
+
+
+  aboutToAppear() {
+    this.reloadCustomComponents();
+  }
+
+  private reloadCustomComponents(): void {
+    this.customComponents = this.customComponentService.getAll();
+  }
+
+  private getAllComponents(): ComponentTypeInfo[] {
+    const customItems: ComponentTypeInfo[] = this.customComponents.map((def: CustomComponentDefinition) => {
+      return {
+        type: 'CUSTOM_COMPONENT',
+        label: def.name,
+        icon: $r('app.media.ic_edit'),
+        description: def.description ? def.description : '自定义组件',
+        category: 'advanced',
+        customComponentId: def.id
+      } as ComponentTypeInfo;
+    });
+    return [...this.baseComponentTypes, ...customItems];
+  }
+
   private getFilteredComponents(): ComponentTypeInfo[] {
+    const all = this.getAllComponents();
     if (this.selectedCategory === 'all') {
-      return this.componentTypes;
+      return all;
     }
-    return this.componentTypes.filter(c => c.category === this.selectedCategory);
+    return all.filter(c => c.category === this.selectedCategory);
+  }
+
+  private buildDragPayload(component: ComponentTypeInfo): string | undefined {
+    if (!component.customComponentId) {
+      return undefined;
+    }
+    return JSON.stringify({
+      action: 'add_custom',
+      type: 'CUSTOM_COMPONENT',
+      customComponentId: component.customComponentId
+    });
   }
 
   build() {
@@ -70,6 +113,18 @@ export struct ComponentLibrary {
           Row()
             .layoutWeight(1);
           
+          Text('自定义')
+            .fontSize(12)
+            .fontColor(ColorResource.primaryColor)
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .backgroundColor('rgba(0, 122, 255, 0.12)')
+            .borderRadius(12)
+            .onClick(() => {
+              if (this.onOpenCustomComponentDesigner) {
+                this.onOpenCustomComponentDesigner();
+              }
+            });
+
           Text('?')
             .fontSize(14)
             .fontWeight(FontWeight.Bold)
@@ -150,6 +205,8 @@ export struct ComponentLibrary {
                 label: component.label,
                 description: component.description,
                 icon: component.icon,
+                dragPayload: this.buildDragPayload(component),
+                customComponentId: component.customComponentId,
                 isDragging: this.draggedComponentType === component.type,
                 handleDragStart: (type: NodeComponentType) => {
                   this.draggedComponentType = type;
@@ -166,26 +223,26 @@ export struct ComponentLibrary {
               })
               .onClick(() => {
                 if (this.onComponentClick) {
-                  this.onComponentClick(component.type);
+                  this.onComponentClick(component.type, component.customComponentId);
                 }
               });
             }
             .width('100%');
-          }, (component: ComponentTypeInfo) => component.type);
+          }, (component: ComponentTypeInfo) => component.customComponentId ? component.customComponentId : component.type);
 
-          // 使用说明
+          // 组件库面板组件库面板
           Column({ space: 8 }) {
             Text('使用说明')
               .fontSize(ThemeConfig.fontSizeS)
               .fontWeight(FontWeight.Medium)
               .fontColor(ColorResource.textPrimary);
             
-            Text('1. 点击组件快速添加到画布底部')
+            Text('1. 点击组件可快速添加到画布末尾')
               .fontSize(ThemeConfig.fontSizeXS)
               .fontColor(ColorResource.textSecondary)
               .lineHeight(18);
             
-            Text('2. 长按组件拖拽到指定位置')
+            Text('2. 拖拽组件到画布可精确控制位置')
               .fontSize(ThemeConfig.fontSizeXS)
               .fontColor(ColorResource.textSecondary)
               .lineHeight(18);

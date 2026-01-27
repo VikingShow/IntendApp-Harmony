@@ -553,6 +553,7 @@ export struct TaskEditor {
     if (type === 'TAGS') return '标签';
     if (type === 'STATUS_DOT') return '状态';
     if (type === 'CUSTOM_FIELD') return '自定义字段';
+    if (type === 'CUSTOM_COMPONENT') return '自定义组件';
     return type;
   }
 
@@ -835,6 +836,7 @@ export struct TaskEditor {
             placeholder: (() => {
               if (component.type === 'ASSIGNEE') return '请输入负责人';
               if (component.type === 'CUSTOM_FIELD') return '请输入内容';
+              if (component.type === 'CUSTOM_COMPONENT') return 'Enter value';
               return '请输入';
             })()
           })
@@ -1013,8 +1015,10 @@ export struct TaskEditor {
       this.renderStatusDotEditor(component);
     } else if (component.type === 'CUSTOM_FIELD') {
       this.renderCustomFieldEditor(component);
+    } else if (component.type === 'CUSTOM_COMPONENT') {
+      this.renderCustomFieldEditor(component);
     } else {
-      Text(`暂不支持编辑：${component.type}`)
+      Text(`未知组件类型${component.type}`)
         .fontSize(ThemeConfig.fontSizeS)
         .fontColor(ColorResource.textTertiary)
         .width('100%');

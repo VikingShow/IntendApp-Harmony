@@ -90,7 +90,8 @@ export type NodeComponentType =
   | 'ASSIGNEE'           // 负责人
   | 'TAGS'               // 标签列表
   | 'STATUS_DOT'         // 状态指示器
-  | 'CUSTOM_FIELD';      // 自定义字段
+  | 'CUSTOM_FIELD'
+  | 'CUSTOM_COMPONENT'; // Custom component
 
 /**
  * 节点内部组件 Schema
@@ -106,6 +107,10 @@ export interface NodeComponentSchema {
    * 当 type 为 CUSTOM_FIELD / TAG_LIST 等依赖字段的组件时使用
    */
   fieldId?: string;
+  /**
+   * Custom component definition ID (only for CUSTOM_COMPONENT)
+   */
+  customComponentId?: string;
   /**
    * 组件配置属性
    * 用于扩展诸如最大行数、是否高亮、颜色强化等

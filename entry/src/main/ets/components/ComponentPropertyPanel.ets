@@ -5,12 +5,14 @@
  */
 
 import { NodeComponentType, NodeComponentSchema, NodeComponentProps, FieldSchema, FieldType, NodeStyleSchema } from '../model/NodeSchema';
+import { CustomComponentDefinition } from '../model/CustomComponentSchema';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 @Component
 export struct ComponentPropertyPanel {
   @Prop selectedComponent: NodeComponentSchema | null;
   @Prop availableFields: FieldSchema[] = [];
+  @Prop customComponents: CustomComponentDefinition[] = [];
   @Prop schemaStyle: NodeStyleSchema | null = null;
   @Prop @Watch('onRefreshKeyChanged') refreshKey: number = 0;
 
@@ -37,7 +39,8 @@ export struct ComponentPropertyPanel {
       'ASSIGNEE': '负责人',
       'TAGS': '标签',
       'STATUS_DOT': '状态点',
-      'CUSTOM_FIELD': '自定义字段'
+      'CUSTOM_FIELD': '自定义字段',
+      'CUSTOM_COMPONENT': '自定义组件',
     };
     return typeMap[type] || type;
   }
@@ -53,7 +56,8 @@ export struct ComponentPropertyPanel {
       'ASSIGNEE': $r('app.media.ic_user'),
       'TAGS': $r('app.media.ic_tag'),
       'STATUS_DOT': $r('app.media.ic_status'),
-      'CUSTOM_FIELD': $r('app.media.ic_edit')
+      'CUSTOM_FIELD': $r('app.media.ic_edit'),
+      'CUSTOM_COMPONENT': $r('app.media.ic_edit')
     };
     return iconMap[type] || $r('app.media.ic_project_file');
   }
@@ -355,7 +359,7 @@ export struct ComponentPropertyPanel {
           .fontWeight(FontWeight.Medium)
           .fontColor(ColorResource.textPrimary);
 
-        if (this.selectedComponent.type === 'CUSTOM_FIELD') {
+        if (this.selectedComponent.type === 'CUSTOM_FIELD' || this.selectedComponent.type === 'CUSTOM_COMPONENT') {
           // 自定义字段需要绑定字段
           Column({ space: 8 }) {
             Text('绑定字段')
@@ -401,6 +405,7 @@ export struct ComponentPropertyPanel {
                             id: this.selectedComponent.id,
                             type: this.selectedComponent.type,
                             fieldId: field.id,
+                            customComponentId: this.selectedComponent?.customComponentId,
                             props: this.selectedComponent.props
                           };
                           this.onPropertyChange(updated);
@@ -462,6 +467,7 @@ export struct ComponentPropertyPanel {
                         id: this.selectedComponent.id,
                         type: this.selectedComponent.type,
                         fieldId: this.selectedComponent.fieldId,
+                        customComponentId: this.selectedComponent.customComponentId,
                         props: {
                           maxLines: lines,
                           highlight: this.selectedComponent.props?.highlight,
@@ -552,7 +558,8 @@ export struct ComponentPropertyPanel {
       'ASSIGNEE': '显示任务的负责人信息。',
       'TAGS': '显示任务的标签列表，支持多个标签。',
       'STATUS_DOT': '显示任务当前状态的指示点，通过颜色区分不同状态。',
-      'CUSTOM_FIELD': '显示自定义字段的值，需要先在字段管理中创建字段并绑定。'
+      'CUSTOM_FIELD': '显示自定义字段的值，需要先在字段管理中创建字段并绑定。',
+      'CUSTOM_COMPONENT': 'Custom component bound to a field.',
     };
     return descriptions[type] || '该组件的详细说明暂未提供。';
   }
@@ -677,6 +684,7 @@ export struct ComponentPropertyPanel {
       id: this.selectedComponent.id,
       type: this.selectedComponent.type,
       fieldId: this.selectedComponent.fieldId,
+      customComponentId: this.selectedComponent.customComponentId,
       props: newProps
     };
     this.onPropertyChange(updated);

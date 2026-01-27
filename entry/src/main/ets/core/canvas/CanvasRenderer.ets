@@ -36,6 +36,8 @@ import { Project, TaskNode, Dependency, ChecklistItem } from '../../model/Projec
 import { TaskNodeWithSchema, NodeSchema } from '../../model/NodeSchema';
 import { ThemeConfig, ColorResource } from '../../utils/ThemeConfig';
 import { NodeSchemaService } from '../../services/NodeSchemaService';
+import { CustomComponentService } from '../../services/CustomComponentService';
+import { CustomComponentDefinition, CustomEnumItem } from '../../model/CustomComponentSchema';
 import { NodeComponentSchema, NodeFieldValue, FieldSchema } from '../../model/NodeSchema';
 
 interface TaskNodeWithCustomFields extends TaskNodeWithSchema {
@@ -650,6 +652,32 @@ export class CanvasRenderer {
         return f && f.label ? String(f.label) : fallback;
       };
 
+      const customComponentService = CustomComponentService.getInstance();
+
+      const getCustomValue = (fieldId: string): NodeFieldValue | null => {
+        if (!customFields || !fieldId) return null;
+        return customFields.get(fieldId) as NodeFieldValue;
+      };
+
+      const normalizeValue = (value: NodeFieldValue): string => {
+        if (value === null || value === undefined) return '';
+        if (Array.isArray(value)) return value.join(',');
+        if (typeof value === 'boolean') return value ? 'true' : 'false';
+        if (value instanceof Date) return value.toISOString();
+        return String(value);
+      };
+
+      const findEnumItem = (def: CustomComponentDefinition, value: string): CustomEnumItem | null => {
+        if (!def.enums || def.enums.length === 0) return null;
+        const found = def.enums.find((item: CustomEnumItem) => item.value === value || item.label === value);
+        return found ? found : null;
+      };
+
+      const applyTextTemplate = (template: string | undefined, value: string): string => {
+        if (!template || template.trim().length === 0) return value;
+        return template.replace('{value}', value);
+      };
+
       // 完全自适应高度：先按 layout 进行“尺寸测算”（不画背景），再画背景/边框，最后画内容
       const estimateCursorEnd = (): number => {
         const layout: NodeComponentSchema[] = schema && schema.layout ? schema.layout : [];
@@ -689,6 +717,7 @@ export class CanvasRenderer {
             y += LINE_H; return;
           }
           if (t === 'CUSTOM_FIELD') { y += LINE_H; return; }
+          if (t === 'CUSTOM_COMPONENT') { y += LINE_H; return; }
           if (t === 'TAGS') {
             // 根据 maxLines 属性计算高度
             const maxLines = comp && comp.props && comp.props.maxLines ? Number(comp.props.maxLines) : 1;
@@ -1118,6 +1147,97 @@ export class CanvasRenderer {
             this.context.textBaseline = 'middle';
             this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
             this.context.fillText(`${label}: ${displayText}`, leftX + inlineIconLabelW, rowMidY);
+            cursorY += LINE_HEIGHT;
+            this.context.textBaseline = 'top';
+            return;
+          }
+          if (t === 'CUSTOM_COMPONENT') {
+            const def = comp && comp.customComponentId ? customComponentService.getById(String(comp.customComponentId)) : null;
+            const raw = getCustomValue(fieldId);
+            const valueText = normalizeValue(raw);
+            if (!def) {
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textTertiary;
+              this.context.font = `22px HarmonyOS Sans`;
+              const rowMidY = lineMid(cursorY);
+              this.context.textBaseline = 'middle';
+              this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+              this.context.fillText('Custom component', leftX + inlineIconLabelW, rowMidY);
+              cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
+              return;
+            }
+          
+            const renderType = def.renderType ? String(def.renderType) : 'text';
+            if (renderType === 'tag') {
+              const item = valueText ? findEnumItem(def, valueText) : null;
+              const tagText = item ? (item.label || item.value) : (valueText && valueText.length > 0 ? valueText : '--');
+              const padX = 5;
+              const badgeH = 12;
+              this.context.font = `20px HarmonyOS Sans`;
+              const badgeW = this.context.measureText(tagText).width + padX * 2;
+              const badgeY = cursorY + (LINE_HEIGHT - badgeH) / 2;
+              const bg = item && item.backgroundColor ? String(item.backgroundColor) : (def.style && def.style.backgroundColor ? String(def.style.backgroundColor) : 'rgba(0, 122, 255, 0.12)');
+              const fg = item && item.color ? String(item.color) : (def.style && def.style.textColor ? String(def.style.textColor) : (this.isDarkMode ? ThemeConfig.surface : ThemeConfig.primaryColor));
+              this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+              this.context.fillStyle = bg;
+              this.drawRoundRect(this.context, leftX + inlineIconLabelW, badgeY, badgeW, badgeH, 3);
+              this.context.fill();
+              this.context.fillStyle = fg;
+              this.context.textBaseline = 'middle';
+              this.context.fillText(tagText, leftX + inlineIconLabelW + padX, badgeY + badgeH / 2);
+              cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
+              return;
+            }
+          
+            if (renderType === 'status_dot') {
+              const item = valueText ? findEnumItem(def, valueText) : null;
+              const label = item ? (item.label || item.value) : (valueText && valueText.length > 0 ? valueText : '--');
+              const dotColor = item && item.color ? String(item.color) : (def.style && def.style.backgroundColor ? String(def.style.backgroundColor) : '#67C23A');
+              const rowMidY = lineMid(cursorY);
+              this.context.beginPath();
+              this.context.arc(leftX + 4, rowMidY, 4, 0, Math.PI * 2);
+              this.context.fillStyle = dotColor;
+              this.context.fill();
+              this.context.fillStyle = this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary;
+              this.context.font = `22px HarmonyOS Sans`;
+              this.context.textBaseline = 'middle';
+              this.context.fillText(label, leftX + 14, rowMidY);
+              cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
+              return;
+            }
+          
+            if (renderType === 'progress') {
+              const min = typeof def.min === 'number' ? def.min : 0;
+              const max = typeof def.max === 'number' ? def.max : 100;
+              const num = Number(valueText);
+              const clamped = isNaN(num) ? min : Math.max(min, Math.min(max, num));
+              const pct = max > min ? Math.round((clamped - min) * 100 / (max - min)) : 0;
+              const barColor = def.style && def.style.backgroundColor ? String(def.style.backgroundColor) : '#409EFF';
+              this.context.font = `22px HarmonyOS Sans`;
+              const rowMidY = lineMid(cursorY);
+              this.context.textBaseline = 'middle';
+              this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+              const labelWidth = inlineIconLabelW;
+              const percentWidth = this.context.measureText('100%').width + 10;
+              const barWidth = NODE_WIDTH - 30 - labelWidth - percentWidth;
+              this.drawProgressBar(leftX + labelWidth, rowMidY - 3, barWidth, 6, pct, barColor);
+              this.context.fillStyle = barColor;
+              this.context.fillText(`${pct}%`, leftX + labelWidth + barWidth + 8, rowMidY);
+              cursorY += LINE_HEIGHT;
+              this.context.textBaseline = 'top';
+              return;
+            }
+          
+            const textValue = valueText && valueText.length > 0 ? valueText : '--';
+            const display = applyTextTemplate(def.textTemplate, textValue);
+            this.context.fillStyle = def.style && def.style.textColor ? String(def.style.textColor) : (this.isDarkMode ? ThemeConfig.surfaceMuted : ThemeConfig.textSecondary);
+            this.context.font = `22px HarmonyOS Sans`;
+            const rowMidY = lineMid(cursorY);
+            this.context.textBaseline = 'middle';
+            this.drawPencilIcon(leftX, iconTopY(cursorY), this.INLINE_ICON_SIZE, inlineIconColor);
+            this.context.fillText(display, leftX + inlineIconLabelW, rowMidY);
             cursorY += LINE_HEIGHT;
             this.context.textBaseline = 'top';
             return;

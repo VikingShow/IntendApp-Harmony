@@ -6,12 +6,12 @@
         "type": "HarmonyOS",
         "material": {
           "storeFile": "C:/Users/SowrJam/Desktop/sowrjam/easyflow/easyflow.p12",
-          "storePassword": "00000018A755A8555D25B2488B47D8263DF4FB5DC8487A1B76355DDF0561FBFA5753594FF1394F25",
+          "storePassword": "000000182D0868018B4E14A65D321A0AF823CF1234AD002BE4F0EBE321CC327992755AC251D99667",
           "keyAlias": "1asyflow",
-          "keyPassword": "0000001881099FC953808A325635C3DE9CF0317D8C60DB1A3E02756273105BDD0C3F6740F57B90AF",
+          "keyPassword": "00000018990C65F0575A34A504F2ADAD63122D5BB502BA079F4D33DBAF11D0B1D61C0A34381C0D02",
           "signAlg": "SHA256withECDSA",
-          "profile": "C:/Users/SowrJam/Downloads/1209Release.p7b",
-          "certpath": "C:/Users/SowrJam/Downloads/1209.cer"
+          "profile": "C:/Users/SowrJam/Downloads/1209tDebug.p7b",
+          "certpath": "C:/Users/SowrJam/Downloads/1209t.cer"
         }
       }
     ],

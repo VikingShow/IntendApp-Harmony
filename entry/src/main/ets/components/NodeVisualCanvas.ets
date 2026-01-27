@@ -10,8 +10,10 @@ import { unifiedDataChannel, uniformTypeDescriptor } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 
 interface DragInfo {
-  action: 'reorder';
-  index: number;
+  action: 'reorder' | 'add_custom';
+  index?: number;
+  type?: NodeComponentType;
+  customComponentId?: string;
 }
 
 @Component
@@ -27,7 +29,7 @@ export struct NodeVisualCanvas {
   onComponentSelect?: (componentId: string) => void;
   onComponentDelete?: (componentId: string) => void;
   onComponentReorder?: (fromIndex: number, toIndex: number) => void;
-  onComponentAdd?: (type: NodeComponentType, index: number) => void;
+  onComponentAdd?: (type: NodeComponentType, index: number, customComponentId?: string) => void;
 
   build() {
     Column({ space: 0 }) {
@@ -181,13 +183,24 @@ export struct NodeVisualCanvas {
                   try {
                     const unifiedData = await event.getData();
                     const records = unifiedData.getRecords();
-                    if (records.length > 0) {
-                      const data: unifiedDataChannel.UnifiedRecord = records[0];
-                      if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
-                        const typeToAdd = (data as unifiedDataChannel.PlainText).textContent as NodeComponentType;
-                        this.onComponentAdd(typeToAdd, 0);
+                      if (records.length > 0) {
+                        const data: unifiedDataChannel.UnifiedRecord = records[0];
+                        if (data.getType() === uniformTypeDescriptor.UniformDataType.PLAIN_TEXT) {
+                          const content = (data as unifiedDataChannel.PlainText).textContent;
+                          try {
+                            const dropData = JSON.parse(content) as DragInfo;
+                            if (dropData.action === 'add_custom' && this.onComponentAdd) {
+                              const addType = dropData.type ? dropData.type : 'CUSTOM_COMPONENT';
+                              this.onComponentAdd(addType, 0, dropData.customComponentId);
+                            } else if (dropData.action === 'reorder' && this.onComponentReorder && typeof dropData.index === 'number') {
+                              this.onComponentReorder(dropData.index, 0);
+                            }
+                          } catch (e) {
+                            const typeToAdd = content as NodeComponentType;
+                            this.onComponentAdd(typeToAdd, 0);
+                          }
+                        }
                       }
-                    }
                   } catch (e) {
                     console.error('Drop error:', e);
                   }
@@ -232,8 +245,11 @@ export struct NodeVisualCanvas {
                               const content = (data as unifiedDataChannel.PlainText).textContent;
                               try {
                                 const dropData = JSON.parse(content) as DragInfo;
-                                if (dropData.action === 'reorder' && this.onComponentReorder) {
+                                if (dropData.action === 'reorder' && this.onComponentReorder && typeof dropData.index === 'number') {
                                   this.onComponentReorder(dropData.index, index);
+                                } else if (dropData.action === 'add_custom' && this.onComponentAdd) {
+                                  const addType = dropData.type ? dropData.type : 'CUSTOM_COMPONENT';
+                                  this.onComponentAdd(addType, index, dropData.customComponentId);
                                 }
                               } catch (e) {
                                 if (this.onComponentAdd) {
@@ -312,8 +328,11 @@ export struct NodeVisualCanvas {
                                 const content = (data as unifiedDataChannel.PlainText).textContent;
                                 try {
                                   const dropData = JSON.parse(content) as DragInfo;
-                                  if (dropData.action === 'reorder' && this.onComponentReorder) {
+                                  if (dropData.action === 'reorder' && this.onComponentReorder && typeof dropData.index === 'number') {
                                     this.onComponentReorder(dropData.index, index + 1);
+                                  } else if (dropData.action === 'add_custom' && this.onComponentAdd) {
+                                    const addType = dropData.type ? dropData.type : 'CUSTOM_COMPONENT';
+                                    this.onComponentAdd(addType, index + 1, dropData.customComponentId);
                                   }
                                 } catch (e) {
                                   if (this.onComponentAdd) {

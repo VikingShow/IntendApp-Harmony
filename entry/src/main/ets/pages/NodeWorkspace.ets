@@ -22,8 +22,11 @@ import {
   NodeStyleSchema
 } from '../model/NodeSchema';
 import { NodeSchemaService } from '../services/NodeSchemaService';
+import { CustomComponentService } from '../services/CustomComponentService';
+import { CustomComponentDefinition } from '../model/CustomComponentSchema';
 import { SchemaErrorBoundary, ErrorType } from '../utils/ErrorBoundary';
 import { PromptAction } from '@kit.ArkUI';
+import common from '@ohos.app.ability.common';
 import util from '@ohos.util';
 import router from '@ohos.router';
 import { ColorSelector } from '../components/ColorPicker';
@@ -261,6 +264,15 @@ class SchemaDiffHelper {
             newValue: c.fieldId || '(无)'
           });
         }
+        if (oldC.customComponentId !== c.customComponentId) {
+          changes.push({
+            type: 'modify',
+            category: 'layout',
+            name: `${SchemaDiffHelper.getComponentTypeName(c.type)} 自定义组件`,
+            oldValue: oldC.customComponentId || '(none)',
+            newValue: c.customComponentId || '(none)'
+          });
+        }
       }
     });
   }
@@ -276,7 +288,8 @@ class SchemaDiffHelper {
       'ASSIGNEE': '负责人',
       'TAGS': '标签列表',
       'STATUS_DOT': '状态指示器',
-      'CUSTOM_FIELD': '自定义字段'
+      'CUSTOM_FIELD': '自定义字段',
+      'CUSTOM_COMPONENT': '自定义组件',
     };
     return typeNames[type] || type;
   }
@@ -1536,12 +1549,14 @@ struct RenameNodeDialog {
 @Component
 struct NodeWorkspacePage {
   private schemaService: NodeSchemaService = NodeSchemaService.getInstance();
+  private customComponentService: CustomComponentService = CustomComponentService.getInstance();
   private errorBoundary: SchemaErrorBoundary = new SchemaErrorBoundary();
   private uiContext: UIContext = this.getUIContext();
   private promptAction: PromptAction = this.uiContext.getPromptAction();
   private autoSaveTimer: number = -1;
   private readonly AUTO_SAVE_DELAY = 500;
   @State schemas: NodeSchema[] = [];
+  @State customComponents: CustomComponentDefinition[] = [];
   @State selectedSchemaId: string | null = null;
   @State selectedSchemaObject: NodeSchema | null = null;
   @State schemaJson: string = '';
@@ -1595,6 +1610,11 @@ struct NodeWorkspacePage {
 
   aboutToAppear() {
     console.log('[NodeWorkspace] aboutToAppear (schema workspace v3 - three columns)');
+    const hostContext = this.uiContext.getHostContext() as common.UIAbilityContext;
+    if (hostContext && hostContext.filesDir) {
+      this.customComponentService.initializeStorage(hostContext.filesDir);
+    }
+    this.customComponents = this.customComponentService.getAll();
     this.reloadSchemas();
     this.refreshSchemaJson();
     // 初始化错误边界快照
@@ -2533,7 +2553,8 @@ struct NodeWorkspacePage {
     this.scheduleAutoSave();
   }
 
-  private addComponentToSelectedSchema(type: NodeComponentType = 'TITLE', index: number = -1): void {
+  
+  private addComponentToSelectedSchema(type: NodeComponentType = 'TITLE', index: number = -1, customComponentId?: string): void {
     const schema = this.getSelectedSchema();
     if (!schema) {
       return;
@@ -2541,8 +2562,31 @@ struct NodeWorkspacePage {
 
     const newComponent: NodeComponentSchema = {
       id: `component_${Date.now()}`,
-      type: type
+      type: type,
+      customComponentId: customComponentId
     };
+
+    const updatedFields: FieldSchema[] = [...schema.fields];
+
+    if (type === 'CUSTOM_COMPONENT' && customComponentId) {
+      const def = this.customComponentService.getById(customComponentId);
+      if (def) {
+        const newFieldId = `ccf_${Date.now()}`;
+        const fieldType = this.mapCustomValueType(def.valueType);
+        const options = fieldType === 'select' && def.enums
+          ? def.enums.map(item => item.value || item.label).filter(v => !!v) as string[]
+          : undefined;
+        const newField: FieldSchema = {
+          id: newFieldId,
+          label: def.name,
+          type: fieldType,
+          required: false,
+          options: options && options.length > 0 ? options : undefined
+        };
+        updatedFields.push(newField);
+        newComponent.fieldId = newFieldId;
+      }
+    }
 
     const updatedLayout: NodeComponentSchema[] = [...schema.layout];
     if (index >= 0 && index <= updatedLayout.length) {
@@ -2559,7 +2603,7 @@ struct NodeWorkspacePage {
       meta: schema.meta,
       ports: schema.ports,
       style: schema.style,
-      fields: schema.fields,
+      fields: updatedFields,
       layout: updatedLayout,
       rules: schema.rules,
       isSystem: schema.isSystem,
@@ -2649,21 +2693,30 @@ struct NodeWorkspacePage {
     return typeMap[type] || type;
   }
 
+  private mapCustomValueType(valueType?: string): FieldType {
+    if (valueType === 'number') return 'number';
+    if (valueType === 'boolean') return 'boolean';
+    if (valueType === 'enum') return 'select';
+    return 'text';
+  }
+
   private getComponentTypeLabel(type: NodeComponentType): string {
     const typeMap: Record<string, string> = {
-      'TITLE': '标题',
-      'DATE_RANGE': '日期范围',
+      'TITLE': '??',
+      'DATE_RANGE': '日期区间',
       'TIME_PROGRESS': '时间进度',
       'TASK_PROGRESS': '任务进度',
-      'CHECKLIST_SUMMARY': '清单统计',
+      'CHECKLIST_SUMMARY': '清单完成',
       'PRIORITY_BADGE': '优先级',
       'ASSIGNEE': '负责人',
-      'TAGS': '标签',
+      'TAGS': '??',
       'STATUS_DOT': '状态点',
-      'CUSTOM_FIELD': '自定义字段'
+      'CUSTOM_FIELD': '自定义字段',
+      'CUSTOM_COMPONENT': '自定义组件'
     };
     return typeMap[type] || type;
   }
+
 
   private duplicateSelectedSchema(): void {
     const schema = this.getSelectedSchema();
@@ -2821,8 +2874,14 @@ struct NodeWorkspacePage {
     this.updateComponentInSelectedSchema(component.id, component);
   }
 
-  private handleComponentLibraryClick(type: NodeComponentType): void {
-    this.addComponentToSelectedSchema(type, -1);
+  private handleComponentLibraryClick(type: NodeComponentType, customComponentId?: string): void {
+    this.addComponentToSelectedSchema(type, -1, customComponentId);
+  }
+
+  private openCustomComponentDesigner(): void {
+    this.getUIContext().getRouter().pushUrl({
+      url: 'pages/CustomComponentDesigner'
+    } as router.RouterOptions);
   }
 
   private handleComponentReorder(fromIndex: number, toIndex: number): void {
@@ -2881,6 +2940,7 @@ struct NodeWorkspacePage {
         id: component.id,
         type: component.type,
         fieldId: component.fieldId,
+        customComponentId: component.customComponentId,
         props: component.props ? {
           style: component.props.style,
           maxLines: component.props.maxLines,
@@ -4549,7 +4609,7 @@ struct NodeWorkspacePage {
                           .fontColor(ColorResource.textTertiary);
 
                         Row({ space: 6 }) {
-                          ForEach(['TITLE', 'CUSTOM_FIELD', 'TIME_PROGRESS', 'TASK_PROGRESS',
+                          ForEach(['TITLE', 'CUSTOM_FIELD', 'CUSTOM_COMPONENT', 'TIME_PROGRESS', 'TASK_PROGRESS',
                             'TAGS'] as NodeComponentType[], (type: NodeComponentType) => {
                             Text(this.getComponentTypeLabel(type))
                               .fontSize(ThemeConfig.fontSizeXS)
@@ -4567,7 +4627,8 @@ struct NodeWorkspacePage {
                                 const updated: NodeComponentSchema = {
                                   id: component.id,
                                   type: type,
-                                  fieldId: component.fieldId
+                                  fieldId: component.fieldId,
+                                  customComponentId: type === 'CUSTOM_COMPONENT' ? component.customComponentId : undefined
                                 };
                                 this.updateComponentInSelectedSchema(component.id, updated);
                               });
@@ -4579,7 +4640,7 @@ struct NodeWorkspacePage {
                       .alignItems(HorizontalAlign.Start);
 
                       // 如果是CUSTOM_FIELD类型，显示字段绑定
-                      if (component.type === 'CUSTOM_FIELD') {
+                      if (component.type === 'CUSTOM_FIELD' || component.type === 'CUSTOM_COMPONENT') {
                         Column({ space: 6 }) {
                           Text('绑定字段')
                             .fontSize(ThemeConfig.fontSizeXS)
@@ -4959,8 +5020,8 @@ struct NodeWorkspacePage {
           onComponentDelete: (componentId: string) => {
             this.handleComponentDelete(componentId);
           },
-          onComponentAdd: (type: NodeComponentType, index: number) => {
-            this.addComponentToSelectedSchema(type, index);
+          onComponentAdd: (type: NodeComponentType, index: number, customComponentId?: string) => {
+            this.addComponentToSelectedSchema(type, index, customComponentId);
           },
           onComponentReorder: (fromIndex: number, toIndex: number) => {
             this.handleComponentReorder(fromIndex, toIndex);
@@ -5043,6 +5104,9 @@ struct NodeWorkspacePage {
           },
           onComponentDragEnd: () => {
             this.handleComponentDragEnd();
+          },
+          onOpenCustomComponentDesigner: () => {
+            this.openCustomComponentDesigner();
           }
         });
       } else {
@@ -5288,6 +5352,7 @@ struct NodeWorkspacePage {
       ComponentPropertyPanel({
         selectedComponent: this.selectedComponentObject,
         availableFields: this.selectedSchemaObject?.fields || [],
+        customComponents: this.customComponents,
         schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
         refreshKey: this.componentRefreshKey,
         onFillColorChange: (color: string) => {
@@ -5465,9 +5530,10 @@ struct NodeWorkspacePage {
           // 中左: 组件库面板
           Column({ space: 0 }) {
             ComponentLibrary({
-              onComponentClick: (type: NodeComponentType) => this.handleComponentLibraryClick(type),
+              onComponentClick: (type: NodeComponentType, customComponentId?: string) => this.handleComponentLibraryClick(type, customComponentId),
               onComponentDragStart: (type: NodeComponentType) => this.handleComponentDragStart(type),
-              onComponentDragEnd: () => this.handleComponentDragEnd()
+              onComponentDragEnd: () => this.handleComponentDragEnd(),
+              onOpenCustomComponentDesigner: () => this.openCustomComponentDesigner()
             })
           }
           .width(this.getActualPanelWidth(1))
@@ -5513,6 +5579,7 @@ struct NodeWorkspacePage {
             ComponentPropertyPanel({
               selectedComponent: this.selectedComponentObject,
               availableFields: this.selectedSchemaObject?.fields || [],
+              customComponents: this.customComponents,
               schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
               refreshKey: this.componentRefreshKey,
               onFillColorChange: (color: string) => {
@@ -5599,6 +5666,9 @@ struct NodeWorkspacePage {
                     },
                     onComponentDragEnd: () => {
                       this.handleComponentDragEnd();
+                    },
+                    onOpenCustomComponentDesigner: () => {
+                      this.openCustomComponentDesigner();
                     }
                   });
                 } else if (index === 2) {
@@ -5623,6 +5693,7 @@ struct NodeWorkspacePage {
                   ComponentPropertyPanel({
                     selectedComponent: this.selectedComponentObject,
                     availableFields: this.selectedSchemaObject?.fields || [],
+                    customComponents: this.customComponents,
                     schemaStyle: this.selectedSchemaObject ? this.selectedSchemaObject.style : null,
                     refreshKey: this.componentRefreshKey,
                     onFillColorChange: (color: string) => {

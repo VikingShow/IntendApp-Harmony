@@ -5,6 +5,8 @@
  */
 
 import { NodeComponentType, NodeComponentSchema } from '../model/NodeSchema';
+import { CustomComponentService } from '../services/CustomComponentService';
+import { CustomComponentDefinition } from '../model/CustomComponentSchema';
 import { unifiedDataChannel } from '@kit.ArkData';
 import { ThemeConfig, ColorResource } from '../utils/ThemeConfig';
 import { InlineCanvasIcon } from './InlineCanvasIcon';
@@ -18,6 +20,8 @@ export struct DraggableComponentItem {
   @Prop label: string;
   @Prop description?: string;
   @Prop icon: Resource;
+  @Prop dragPayload?: string;
+  @Prop customComponentId?: string;
   @Prop isDragging: boolean = false;
   handleDragStart?: (type: NodeComponentType) => void;
   handleDragEnd?: () => void;
@@ -49,16 +53,39 @@ export struct DraggableComponentItem {
         .layoutWeight(1)
         .alignItems(VerticalAlign.Center);
 
-        Text('⋮⋮')
+        Text('??')
           .fontSize(14)
-          .fontColor(ColorResource.textTertiary);
+          .fontColor(ColorResource.textTertiary)
+          .onDragStart((event?: DragEvent) => {
+            if (event) {
+              const unifiedData = new unifiedDataChannel.UnifiedData();
+              const plainText = new unifiedDataChannel.PlainText();
+              plainText.textContent = this.dragPayload ? this.dragPayload : this.type;
+              unifiedData.addRecord(plainText);
+              event.setData(unifiedData);
+            }
+
+            if (this.handleDragStart) {
+              this.handleDragStart(this.type);
+            }
+
+            return {
+              builder: this.dragPreviewBuilder()
+            };
+          })
+          .onDragEnd(() => {
+            if (this.handleDragEnd) {
+              this.handleDragEnd();
+            }
+          })
+          .draggable(true);
       }
       .width('100%');
 
       // 实时预览区域 - 直接使用内容组件，与画布保持一致
       Column({ space: 0 }) {
         NodeComponentContent({
-          component: { id: 'library-preview', type: this.type } as NodeComponentSchema
+          component: { id: 'library-preview', type: this.type, customComponentId: this.customComponentId } as NodeComponentSchema
         })
       }
       .width('100%')
@@ -71,30 +98,6 @@ export struct DraggableComponentItem {
     .backgroundColor(this.isDragging ? ColorResource.backgroundSecondary : ColorResource.surface)
     .borderRadius(8)
     .shadow(this.isDragging ? { radius: 8, color: 'rgba(0,0,0,0.15)', offsetY: 4 } : { radius: 2, color: 'rgba(0,0,0,0.05)', offsetY: 1 })
-    .onDragStart((event?: DragEvent) => {
-      if (event) {
-        const unifiedData = new unifiedDataChannel.UnifiedData();
-        const plainText = new unifiedDataChannel.PlainText();
-        plainText.textContent = this.type;
-        unifiedData.addRecord(plainText);
-        event.setData(unifiedData);
-      }
-
-      if (this.handleDragStart) {
-        this.handleDragStart(this.type);
-      }
-
-      return {
-        builder: this.dragPreviewBuilder()
-      };
-    })
-    .onDragEnd(() => {
-      if (this.handleDragEnd) {
-        this.handleDragEnd();
-      }
-    })
-    .draggable(true)
-    .priorityGesture(PanGesture({}))
   }
 
   @Builder
@@ -102,7 +105,7 @@ export struct DraggableComponentItem {
     // 直接复用 NodeComponentPreview 来渲染一个真实的预览
     NodeComponentPreview({
       // 在 @Builder 中，不能声明变量，因此以内联方式创建对象
-      component: { id: 'drag-preview', type: this.type } as NodeComponentSchema,
+      component: { id: 'drag-preview', type: this.type, customComponentId: this.customComponentId } as NodeComponentSchema,
       isSelected: false, // 预览项不是选中状态
       nodeColor: '#007AFF' // 为预览项提供一个中性的颜色
     })
@@ -201,6 +204,8 @@ export struct NodeComponentPreview {
       this.renderStatusDot();
     } else if (this.component.type === 'CUSTOM_FIELD') {
       this.renderCustomField();
+    } else if (this.component.type === 'CUSTOM_COMPONENT') {
+      this.renderCustomComponent();
     } else {
       this.renderPlaceholder();
     }
@@ -218,7 +223,7 @@ export struct NodeComponentPreview {
   @Builder
   renderDateRange() {
     Row({ space: 4 }) {
-      InlineCanvasIcon({ kind: 'calendar', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      InlineCanvasIcon({ kind: 'calendar', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       Text('12/23 ~ 12/30 (8天)')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -229,7 +234,7 @@ export struct NodeComponentPreview {
   @Builder
   renderTimeProgress() {
     Row({ space: 8 }) {
-      InlineCanvasIcon({ kind: 'clock', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      InlineCanvasIcon({ kind: 'clock', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -258,7 +263,7 @@ export struct NodeComponentPreview {
   @Builder
   renderTaskProgress() {
     Row({ space: 8 }) {
-      InlineCanvasIcon({ kind: 'select', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      InlineCanvasIcon({ kind: 'select', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       
       Stack({ alignContent: Alignment.Start }) {
         Row()
@@ -287,7 +292,7 @@ export struct NodeComponentPreview {
   @Builder
   renderChecklistSummary() {
     Row({ space: 6 }) {
-      InlineCanvasIcon({ kind: 'checklist', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      InlineCanvasIcon({ kind: 'checklist', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       Text('3/5 完成')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -331,7 +336,7 @@ export struct NodeComponentPreview {
   @Builder
   renderAssignee() {
     Row({ space: 6 }) {
-      InlineCanvasIcon({ kind: 'user', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      InlineCanvasIcon({ kind: 'user', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
       Text('张三')
         .fontSize(11)
         .fontColor(ColorResource.textSecondary);
@@ -350,7 +355,7 @@ export struct NodeComponentPreview {
     } else {
       // 默认标签样式
       Row({ space: 6 }) {
-        InlineCanvasIcon({ kind: 'tag', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+        InlineCanvasIcon({ kind: 'tag', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
 
         Row({ space: 4 }) {
           Text('前端')
@@ -402,15 +407,146 @@ export struct NodeComponentPreview {
   @Builder
   renderCustomField() {
     Row({ space: 6 }) {
-      InlineCanvasIcon({ kind: 'pencil', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
-      Text(`${this.component.fieldId || '字段'}: 未绑定字段`)
+      InlineCanvasIcon({ kind: 'pencil', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      Text(`${this.component.fieldId || '字段'}: 未绑定`)
         .fontSize(11)
         .fontColor(ColorResource.textTertiary);
     }
     .width('100%');
   }
 
+  private getPreviewValue(def: CustomComponentDefinition): string {
+    if (def.renderType === 'progress') {
+      return '45';
+    }
+    if (def.renderType === 'status_dot' || def.renderType === 'tag') {
+      const first = def.enums && def.enums.length > 0 ? def.enums[0] : null;
+      return first ? (first.label || first.value) : '进行中';
+    }
+    return '示例';
+  }
+
+  private applyTextTemplate(raw: string, value: string): string {
+    if (!raw || raw.trim().length === 0) {
+      return value;
+    }
+    return raw.replace('{value}', value);
+  }
+
   @Builder
+  renderCustomComponent() {
+    if (!this.getCustomComponentDef()) {
+      Text('自定义组件')
+        .fontSize(11)
+        .fontColor(ColorResource.textTertiary)
+        .width('100%');
+    } else {
+      if (this.getCustomComponentRenderType() === 'tag') {
+        Row({ space: 6 }) {
+          Text(this.getCustomComponentPreviewValue())
+            .fontSize(10)
+            .fontColor(this.getCustomComponentTagTextColor())
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor(this.getCustomComponentTagBackgroundColor())
+            .borderRadius(4);
+        }
+        .width('100%');
+      } else {
+        if (this.getCustomComponentRenderType() === 'status_dot') {
+          Row({ space: 6 }) {
+            Circle()
+              .width(8)
+              .height(8)
+              .fill(this.getCustomComponentStatusDotColor());
+            Text(this.getCustomComponentPreviewValue())
+              .fontSize(11)
+              .fontColor(ColorResource.textSecondary);
+          }
+          .width('100%');
+        } else {
+          if (this.getCustomComponentRenderType() === 'progress') {
+            Row({ space: 6 }) {
+              Stack({ alignContent: Alignment.Start }) {
+                Row()
+                  .width('100%')
+                  .height(6)
+                  .backgroundColor(ColorResource.backgroundSecondary)
+                  .borderRadius(3);
+                Row()
+                  .width('45%')
+                  .height(6)
+                  .backgroundColor(this.getCustomComponentProgressColor())
+                  .borderRadius(3);
+              }
+              .layoutWeight(1);
+              Text('45%')
+                .fontSize(10)
+                .fontColor(this.getCustomComponentProgressColor());
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center);
+          } else {
+            Text(this.applyTextTemplate(this.getCustomComponentTemplate(), this.getCustomComponentPreviewValue()))
+              .fontSize(11)
+              .fontColor(this.getCustomComponentTextColor())
+              .width('100%');
+          }
+        }
+      }
+    }
+  }
+
+  private getCustomComponentDef(): CustomComponentDefinition | null {
+    return CustomComponentService.getInstance().getById(this.component.customComponentId || '');
+  }
+
+  private getCustomComponentRenderType(): string {
+    const def = this.getCustomComponentDef();
+    return def ? def.renderType : 'text';
+  }
+
+  private getCustomComponentPreviewValue(): string {
+    const def = this.getCustomComponentDef();
+    return def ? this.getPreviewValue(def) : '示例';
+  }
+
+  private getCustomComponentTemplate(): string {
+    const def = this.getCustomComponentDef();
+    return def && def.textTemplate ? def.textTemplate : '{value}';
+  }
+
+  private getCustomComponentTextColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    return def && def.style && def.style.textColor ? String(def.style.textColor) : ColorResource.textSecondary;
+  }
+
+  private getCustomComponentTagTextColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.color) return String(item.color);
+    return ColorResource.primaryColor;
+  }
+
+  private getCustomComponentTagBackgroundColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.backgroundColor) return String(item.backgroundColor);
+    return 'rgba(0, 122, 255, 0.1)';
+  }
+
+  private getCustomComponentStatusDotColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.color) return String(item.color);
+    return '#34C759';
+  }
+
+  private getCustomComponentProgressColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    return def && def.style && def.style.backgroundColor ? String(def.style.backgroundColor) : '#409EFF';
+  }
+
+@Builder
   renderPlaceholder() {
     Text('未知组件类型')
       .fontSize(11)
@@ -433,7 +569,7 @@ export struct NodeComponentContent {
           .width('100%');
       } else if (this.component.type === 'DATE_RANGE') {
         Row({ space: 4 }) {
-          InlineCanvasIcon({ kind: 'calendar', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          InlineCanvasIcon({ kind: 'calendar', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Text('12/23 ~ 12/30 (8天)')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
@@ -441,7 +577,7 @@ export struct NodeComponentContent {
         .width('100%');
       } else if (this.component.type === 'TIME_PROGRESS') {
         Row({ space: 8 }) {
-          InlineCanvasIcon({ kind: 'clock', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          InlineCanvasIcon({ kind: 'clock', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Stack({ alignContent: Alignment.Start }) {
             Row()
               .width('100%')
@@ -466,7 +602,7 @@ export struct NodeComponentContent {
         .alignItems(VerticalAlign.Center);
       } else if (this.component.type === 'TASK_PROGRESS') {
         Row({ space: 8 }) {
-          InlineCanvasIcon({ kind: 'select', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          InlineCanvasIcon({ kind: 'select', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Stack({ alignContent: Alignment.Start }) {
             Row()
               .width('100%')
@@ -491,14 +627,14 @@ export struct NodeComponentContent {
         .alignItems(VerticalAlign.Center);
       } else if (this.component.type === 'CHECKLIST_SUMMARY') {
         Row({ space: 6 }) {
-          InlineCanvasIcon({ kind: 'checklist', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          InlineCanvasIcon({ kind: 'checklist', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Text('3/5 完成')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
         }
         .width('100%');
       } else if (this.component.type === 'PRIORITY_BADGE') {
-        // 支持不同样式：badge（默认）、text、icon
+        // DragDragDragDragDragXadgeDragDragDragDragextDragcon
         if (this.component.props?.style === 'text') {
           Text('高优先级')
             .fontSize(11)
@@ -511,7 +647,7 @@ export struct NodeComponentContent {
             .height(14)
             .fillColor('#FF3B30')
         } else {
-          // 默认徽章样式
+          // DragDragDragDragX
           Row({ space: 6 }) {
             Text('高')
               .fontSize(10)
@@ -528,23 +664,23 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'ASSIGNEE') {
         Row({ space: 6 }) {
-          InlineCanvasIcon({ kind: 'user', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+          InlineCanvasIcon({ kind: 'user', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
           Text('张三')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary);
         }
         .width('100%');
       } else if (this.component.type === 'TAGS') {
-        // 支持不同样式：tag（默认）、text
+        // DragDragDragDragDragXagDragDragDragDragext
         if (this.component.props?.style === 'text') {
           Text('前端, 紧急')
             .fontSize(11)
             .fontColor(ColorResource.textSecondary)
             .width('100%');
         } else {
-          // 默认标签样式
+          // DragDragDragDragX
           Row({ space: 6 }) {
-            InlineCanvasIcon({ kind: 'tag', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+            InlineCanvasIcon({ kind: 'tag', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
 
             Row({ space: 4 }) {
               Text('前端')
@@ -565,7 +701,7 @@ export struct NodeComponentContent {
           .width('100%');
         }
       } else if (this.component.type === 'STATUS_DOT') {
-        // 支持不同样式：dot（默认）、label
+        // DragDragDragDragDragXotDragDragDragDragabel
         if (this.component.props?.style === 'label') {
           Text('进行中')
             .fontSize(10)
@@ -575,7 +711,7 @@ export struct NodeComponentContent {
             .borderRadius(4)
             .width('100%');
         } else {
-          // 默认圆点样式
+          // DragDragDragDragX
           Row({ space: 6 }) {
             Circle()
               .width(8)
@@ -590,12 +726,14 @@ export struct NodeComponentContent {
         }
       } else if (this.component.type === 'CUSTOM_FIELD') {
         Row({ space: 6 }) {
-          InlineCanvasIcon({ kind: 'pencil', iconSize: 10, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
-          Text(`${this.component.fieldId || '字段'}: 未绑定字段`)
+          InlineCanvasIcon({ kind: 'pencil', iconSize: 12, iconColor: ThemeConfig.textSecondary, holeColor: ThemeConfig.backgroundCard })
+      Text(`${this.component.fieldId || '字段'}: 未绑定`)
             .fontSize(11)
             .fontColor(ColorResource.textTertiary);
         }
         .width('100%');
+      } else if (this.component.type === 'CUSTOM_COMPONENT') {
+        this.renderCustomComponentContent();
       } else {
         Text('未知组件类型')
           .fontSize(11)
@@ -605,4 +743,136 @@ export struct NodeComponentContent {
     }
     .width('100%');
   }
+
+  private getPreviewValue(def: CustomComponentDefinition): string {
+    if (def.renderType === 'progress') {
+      return '45';
+    }
+    if (def.renderType === 'status_dot' || def.renderType === 'tag') {
+      const first = def.enums && def.enums.length > 0 ? def.enums[0] : null;
+      return first ? (first.label || first.value) : '进行中';
+    }
+    return '示例';
+  }
+
+  private applyTextTemplate(raw: string, value: string): string {
+    if (!raw || raw.trim().length === 0) {
+      return value;
+    }
+    return raw.replace('{value}', value);
+  }
+
+  @Builder
+  renderCustomComponentContent() {
+    if (!this.getCustomComponentDef()) {
+      Text('自定义组件')
+        .fontSize(11)
+        .fontColor(ColorResource.textTertiary)
+        .width('100%');
+    } else {
+      if (this.getCustomComponentRenderType() === 'tag') {
+        Row({ space: 6 }) {
+          Text(this.getCustomComponentPreviewValue())
+            .fontSize(10)
+            .fontColor(this.getCustomComponentTagTextColor())
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .backgroundColor(this.getCustomComponentTagBackgroundColor())
+            .borderRadius(4);
+        }
+        .width('100%');
+      } else {
+        if (this.getCustomComponentRenderType() === 'status_dot') {
+          Row({ space: 6 }) {
+            Circle()
+              .width(8)
+              .height(8)
+              .fill(this.getCustomComponentStatusDotColor());
+            Text(this.getCustomComponentPreviewValue())
+              .fontSize(11)
+              .fontColor(ColorResource.textSecondary);
+          }
+          .width('100%');
+        } else {
+          if (this.getCustomComponentRenderType() === 'progress') {
+            Row({ space: 6 }) {
+              Stack({ alignContent: Alignment.Start }) {
+                Row()
+                  .width('100%')
+                  .height(6)
+                  .backgroundColor(ColorResource.backgroundSecondary)
+                  .borderRadius(3);
+                Row()
+                  .width('45%')
+                  .height(6)
+                  .backgroundColor(this.getCustomComponentProgressColor())
+                  .borderRadius(3);
+              }
+              .layoutWeight(1);
+              Text('45%')
+                .fontSize(10)
+                .fontColor(this.getCustomComponentProgressColor());
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center);
+          } else {
+            Text(this.applyTextTemplate(this.getCustomComponentTemplate(), this.getCustomComponentPreviewValue()))
+              .fontSize(11)
+              .fontColor(this.getCustomComponentTextColor())
+              .width('100%');
+          }
+        }
+      }
+    }
+  }
+
+  private getCustomComponentDef(): CustomComponentDefinition | null {
+    return CustomComponentService.getInstance().getById(this.component.customComponentId || '');
+  }
+
+  private getCustomComponentRenderType(): string {
+    const def = this.getCustomComponentDef();
+    return def ? def.renderType : 'text';
+  }
+
+  private getCustomComponentPreviewValue(): string {
+    const def = this.getCustomComponentDef();
+    return def ? this.getPreviewValue(def) : '示例';
+  }
+
+  private getCustomComponentTemplate(): string {
+    const def = this.getCustomComponentDef();
+    return def && def.textTemplate ? def.textTemplate : '{value}';
+  }
+
+  private getCustomComponentTextColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    return def && def.style && def.style.textColor ? String(def.style.textColor) : ColorResource.textSecondary;
+  }
+
+  private getCustomComponentTagTextColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.color) return String(item.color);
+    return ColorResource.primaryColor;
+  }
+
+  private getCustomComponentTagBackgroundColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.backgroundColor) return String(item.backgroundColor);
+    return 'rgba(0, 122, 255, 0.1)';
+  }
+
+  private getCustomComponentStatusDotColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    const item = def && def.enums && def.enums.length > 0 ? def.enums[0] : null;
+    if (item && item.color) return String(item.color);
+    return '#34C759';
+  }
+
+  private getCustomComponentProgressColor(): string | Resource {
+    const def = this.getCustomComponentDef();
+    return def && def.style && def.style.backgroundColor ? String(def.style.backgroundColor) : '#409EFF';
+  }
+
 }

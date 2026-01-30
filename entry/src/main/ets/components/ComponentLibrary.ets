@@ -119,6 +119,7 @@ export struct ComponentLibrary {
             .padding({ left: 10, right: 10, top: 4, bottom: 4 })
             .backgroundColor('rgba(0, 122, 255, 0.12)')
             .borderRadius(12)
+            .visibility(Visibility.None) // 暂时隐藏自定义入口
             .onClick(() => {
               if (this.onOpenCustomComponentDesigner) {
                 this.onOpenCustomComponentDesigner();
